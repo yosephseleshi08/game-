@@ -37,17 +37,8 @@ class AmbientAudioEngine {
   }
 
   public stop() {
-    if (this.masterGain && this.ctx) {
-      // Smooth fade out
-      this.masterGain.gain.setTargetAtTime(0.001, this.ctx.currentTime, 0.05);
-      setTimeout(() => {
-        this.cleanupNodes();
-        this.currentMode = 'off';
-      }, 100);
-    } else {
-      this.cleanupNodes();
-      this.currentMode = 'off';
-    }
+    this.cleanupNodes();
+    this.currentMode = 'off';
   }
 
   private cleanupNodes() {
@@ -130,37 +121,114 @@ class AmbientAudioEngine {
 
     const ctx = this.ctx;
 
-    // Channel merger for true Left/Right ear split
-    const merger = ctx.createChannelMerger(2);
-
-    // Left Ear Oscillator
-    const oscL = ctx.createOscillator();
-    oscL.type = 'sine';
-    oscL.frequency.setValueAtTime(carrierFreq, ctx.currentTime);
-
-    // Right Ear Oscillator
-    const oscR = ctx.createOscillator();
-    oscR.type = 'sine';
-    oscR.frequency.setValueAtTime(carrierFreq + beatDiffFreq, ctx.currentTime);
-
-    // Subtle gentle pink/brown background pad to blend the tones comfortably
-    const padGain = ctx.createGain();
-    padGain.gain.value = 0.08;
-
+    // Master gain node
     this.masterGain = ctx.createGain();
     this.masterGain.gain.setValueAtTime(0.01, ctx.currentTime);
-    this.masterGain.gain.setTargetAtTime(this.volume, ctx.currentTime, 0.2);
-
-    oscL.connect(merger, 0, 0); // Left channel
-    oscR.connect(merger, 0, 1); // Right channel
-
-    merger.connect(this.masterGain);
+    this.masterGain.gain.setTargetAtTime(this.volume, ctx.currentTime, 0.15);
     this.masterGain.connect(ctx.destination);
+
+    // Subtle warm filtered brown noise background pad so the beat feels full and soothing
+    const bufferSize = ctx.sampleRate * 2;
+    const padBuffer = ctx.createBuffer(2, bufferSize, ctx.sampleRate);
+    const padL = padBuffer.getChannelData(0);
+    const padR = padBuffer.getChannelData(1);
+    let pL = 0;
+    let pR = 0;
+    for (let i = 0; i < bufferSize; i++) {
+      pL = (pL + 0.02 * (Math.random() * 2 - 1)) / 1.02;
+      pR = (pR + 0.02 * (Math.random() * 2 - 1)) / 1.02;
+      padL[i] = pL * 1.2;
+      padR[i] = pR * 1.2;
+    }
+    const padSource = ctx.createBufferSource();
+    padSource.buffer = padBuffer;
+    padSource.loop = true;
+
+    const padFilter = ctx.createBiquadFilter();
+    padFilter.type = 'lowpass';
+    padFilter.frequency.setValueAtTime(320, ctx.currentTime);
+
+    const padGain = ctx.createGain();
+    padGain.gain.setValueAtTime(0.35, ctx.currentTime);
+
+    padSource.connect(padFilter);
+    padFilter.connect(padGain);
+    padGain.connect(this.masterGain);
+    padSource.start();
+
+    // Stereo Panner Setup: Ensures binaural beats work in headphones AND sum audibly on mono/laptop speakers
+    const leftFreq = carrierFreq;
+    const rightFreq = carrierFreq + beatDiffFreq;
+
+    // Left Ear / Channel Tone
+    const oscL = ctx.createOscillator();
+    oscL.type = 'sine';
+    oscL.frequency.setValueAtTime(leftFreq, ctx.currentTime);
+
+    const gainL = ctx.createGain();
+    gainL.gain.setValueAtTime(0.65, ctx.currentTime);
+
+    let pannerL: StereoPannerNode | GainNode;
+    if (typeof ctx.createStereoPanner === 'function') {
+      pannerL = ctx.createStereoPanner();
+      pannerL.pan.setValueAtTime(-0.85, ctx.currentTime);
+      oscL.connect(gainL);
+      gainL.connect(pannerL);
+      pannerL.connect(this.masterGain);
+    } else {
+      oscL.connect(gainL);
+      gainL.connect(this.masterGain);
+      pannerL = gainL;
+    }
+
+    // Right Ear / Channel Tone
+    const oscR = ctx.createOscillator();
+    oscR.type = 'sine';
+    oscR.frequency.setValueAtTime(rightFreq, ctx.currentTime);
+
+    const gainR = ctx.createGain();
+    gainR.gain.setValueAtTime(0.65, ctx.currentTime);
+
+    let pannerR: StereoPannerNode | GainNode;
+    if (typeof ctx.createStereoPanner === 'function') {
+      pannerR = ctx.createStereoPanner();
+      pannerR.pan.setValueAtTime(0.85, ctx.currentTime);
+      oscR.connect(gainR);
+      gainR.connect(pannerR);
+      pannerR.connect(this.masterGain);
+    } else {
+      oscR.connect(gainR);
+      gainR.connect(this.masterGain);
+      pannerR = gainR;
+    }
+
+    // Gentle sub-harmonic drone to ground the tones organically
+    const subOsc = ctx.createOscillator();
+    subOsc.type = 'triangle';
+    subOsc.frequency.setValueAtTime(carrierFreq / 2, ctx.currentTime);
+    const subGain = ctx.createGain();
+    subGain.gain.setValueAtTime(0.18, ctx.currentTime);
+    subOsc.connect(subGain);
+    subGain.connect(this.masterGain);
 
     oscL.start();
     oscR.start();
+    subOsc.start();
 
-    this.activeNodes.push(oscL, oscR, merger, this.masterGain);
+    this.activeNodes.push(
+      oscL,
+      gainL,
+      pannerL,
+      oscR,
+      gainR,
+      pannerR,
+      subOsc,
+      subGain,
+      padSource,
+      padFilter,
+      padGain,
+      this.masterGain
+    );
     this.currentMode = modeName;
   }
 }
