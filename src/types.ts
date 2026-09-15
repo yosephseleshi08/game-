@@ -1,95 +1,87 @@
-export type HabitCategory = 'health' | 'work' | 'mindfulness' | 'fitness' | 'learning' | 'personal';
+export type GameMode = 'eidetic-matrix' | 'ayumu-chimp' | 'symbol-detective' | 'daily-workout' | 'stats';
 
-export interface Habit {
-  id: string;
-  name: string;
-  description?: string;
-  category: HabitCategory;
-  frequency: 'daily' | 'weekdays' | 'custom';
-  customDays?: number[]; // 0 = Sun, 1 = Mon, ... 6 = Sat
-  targetType: 'boolean' | 'number';
-  targetValue: number; // 1 for boolean, or number for minutes/count
-  unit?: string; // "mins", "pages", "glasses", "km"
-  color: string; // Tailwind color accent
-  iconName: string; // Lucide icon identifier
-  createdAt: string;
-  archived?: boolean;
+export type FlashSpeed = 2000 | 1200 | 600 | 300 | 150;
+
+export interface FlashSpeedOption {
+  value: FlashSpeed;
+  label: string;
+  tag: string;
+  xpMultiplier: number;
 }
 
-export interface DayLog {
-  completed: boolean;
-  value?: number;
-  note?: string;
+export interface UserStats {
+  xp: number;
+  level: number;
+  totalGamesPlayed: number;
+  matrixMaxLevel: number;
+  ayumuMaxNumbers: number;
+  detectiveHighScore: number;
+  fastestFlashMs: number;
+  currentStreak: number;
+  bestStreak: number;
+  accuracyRate: number; // percentage 0-100
+  totalAttempts: number;
+  totalCorrectAttempts: number;
+  pqHistory: DailyPQRecord[];
 }
 
-// Map of date string "YYYY-MM-DD" to map of habitId -> DayLog
-export type HabitLogsMap = Record<string, Record<string, DayLog>>;
-
-export interface GoalMilestone {
+export interface DailyPQRecord {
   id: string;
+  date: string;
+  score: number; // 50 - 180+
+  grade: 'A+' | 'A' | 'B' | 'C' | 'D';
+  breakdown: {
+    matrixScore: number;
+    ayumuScore: number;
+    detectiveScore: number;
+  };
+}
+
+export type MasterRank = {
+  level: number;
   title: string;
-  completed: boolean;
+  minXp: number;
+  badgeColor: string;
+  description: string;
+};
+
+// Eidetic Matrix State
+export interface MatrixCell {
+  row: number;
+  col: number;
+  isTarget: boolean;
+  isSelected?: boolean;
+  isRevealed?: boolean;
+  isError?: boolean;
 }
 
-export interface Goal {
-  id: string;
-  title: string;
-  description?: string;
-  category: HabitCategory;
-  linkedHabitId?: string;
-  targetValue: number;
-  currentValue: number;
-  unit: string;
-  startDate: string;
-  targetDate: string;
-  status: 'in_progress' | 'completed' | 'behind';
-  milestones: GoalMilestone[];
-  createdAt: string;
+// Ayumu Chimp Test State
+export interface ChimpTile {
+  id: number;
+  num: number; // 1 to N
+  row: number; // grid row 0..4
+  col: number; // grid col 0..7
+  status: 'hidden' | 'visible' | 'blanked' | 'cleared' | 'failed';
 }
 
-export interface DailyStat {
-  date: string; // YYYY-MM-DD
-  dayLabel: string; // Mon, Tue, etc.
-  dayNumber: number; // 14, 15, etc.
-  scheduledCount: number;
-  completedCount: number;
-  percentage: number;
-  isToday: boolean;
-  isFuture: boolean;
+// Symbol Detective State
+export type SymbolShape = 'star' | 'circle' | 'square' | 'triangle' | 'heart' | 'diamond' | 'shield' | 'zap';
+export type SymbolColor = 'red' | 'blue' | 'emerald' | 'amber' | 'purple' | 'cyan';
+
+export interface DetectiveItem {
+  id: number;
+  row: number;
+  col: number;
+  shape: SymbolShape;
+  color: SymbolColor;
+  label?: string;
 }
 
-export interface WeeklyProductivityReport {
-  weekStart: string;
-  weekEnd: string;
-  totalScheduled: number;
-  totalCompleted: number;
-  completionRate: number; // 0 - 100
-  productivityScore: number; // 0 - 100
-  scoreDelta: number; // diff from previous week
-  perfectDays: number;
-  peakDay: { dayName: string; rate: number } | null;
-  slumpDay: { dayName: string; rate: number } | null;
-  dailyStats: DailyStat[];
-  categoryBreakdown: {
-    category: HabitCategory;
-    scheduled: number;
-    completed: number;
-    rate: number;
-  }[];
-  topHabits: {
-    habit: Habit;
-    completedDays: number;
-    streak: number;
-  }[];
-  needsAttentionHabits: {
-    habit: Habit;
-    completedDays: number;
-    rate: number;
-  }[];
-  insights: {
-    id: string;
-    type: 'positive' | 'warning' | 'tip';
-    title: string;
-    message: string;
-  }[];
+export interface DetectiveQuestion {
+  prompt: string;
+  options: string[];
+  correctAnswer: string;
+  targetRow?: number;
+  targetCol?: number;
+  questionType: 'color' | 'shape' | 'count' | 'position';
 }

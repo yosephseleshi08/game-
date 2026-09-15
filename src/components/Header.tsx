@@ -1,246 +1,139 @@
-import React, { useState } from 'react';
-import {
-  Calendar as CalendarIcon,
-  ChevronLeft,
-  ChevronRight,
-  RotateCcw,
-  Download,
-  Upload,
-  CheckCircle,
-  Target,
-  BarChart3,
-  ListTodo,
-} from 'lucide-react';
-import { formatWeekRange } from '../utils/dateUtils';
+import React from 'react';
+import { UserStats, FlashSpeed, GameMode } from '../types';
+import { getRankForXp, FLASH_SPEED_OPTIONS } from '../utils/storage';
+import { sound } from '../utils/audio';
+import { Camera, Volume2, VolumeX, BookOpen, Flame, Award, Zap, Clock } from 'lucide-react';
 
 interface HeaderProps {
-  currentWeekStart: Date;
-  currentWeekEnd: Date;
-  onPrevWeek: () => void;
-  onNextWeek: () => void;
-  onJumpToToday: () => void;
-  isCurrentWeek: boolean;
-  onResetData: () => void;
-  onExportData: () => void;
-  onImportData: (jsonData: string) => void;
-  activeTab: 'tracker' | 'insights' | 'goals';
-  onTabChange: (tab: 'tracker' | 'insights' | 'goals') => void;
-  activeHabitCount: number;
-  activeGoalCount: number;
+  stats: UserStats;
+  currentSpeed: FlashSpeed;
+  onSpeedChange: (speed: FlashSpeed) => void;
+  onOpenTips: () => void;
+  activeMode: GameMode;
+  onSelectMode: (mode: GameMode) => void;
+  isSoundMuted: boolean;
+  onToggleSound: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
-  currentWeekStart,
-  currentWeekEnd,
-  onPrevWeek,
-  onNextWeek,
-  onJumpToToday,
-  isCurrentWeek,
-  onResetData,
-  onExportData,
-  onImportData,
-  activeTab,
-  onTabChange,
-  activeHabitCount,
-  activeGoalCount,
+  stats,
+  currentSpeed,
+  onSpeedChange,
+  onOpenTips,
+  isSoundMuted,
+  onToggleSound,
 }) => {
-  const [showDataMenu, setShowDataMenu] = useState(false);
-  const [importNotice, setImportNotice] = useState<string | null>(null);
-
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      try {
-        const content = event.target?.result as string;
-        onImportData(content);
-        setImportNotice('Data restored successfully!');
-        setTimeout(() => setImportNotice(null), 3000);
-      } catch {
-        alert('Invalid backup JSON file.');
-      }
-    };
-    reader.readAsText(file);
-  };
+  const { currentRank, nextRank, progressPercent } = getRankForXp(stats.xp);
 
   return (
-    <header className="border-b border-slate-800/80 bg-slate-900/60 backdrop-blur-md sticky top-0 z-30">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          
-          {/* Brand & Stats */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center text-white shadow-lg shadow-blue-500/20">
-                <CheckCircle className="w-5 h-5" />
-              </div>
-              <div>
-                <h1 className="text-lg font-bold text-slate-100 tracking-tight flex items-center gap-2">
-                  Habit Tracker
-                  <span className="text-[11px] font-semibold uppercase px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20">
-                    Weekly Insights
-                  </span>
-                </h1>
-                <p className="text-xs text-slate-400">
-                  {activeHabitCount} habits active • {activeGoalCount} targets in progress
-                </p>
-              </div>
-            </div>
-
-            {/* Mobile week navigation */}
-            <div className="flex md:hidden items-center gap-1">
-              <button
-                onClick={onPrevWeek}
-                className="p-1.5 rounded-lg border border-slate-700 bg-slate-800 text-slate-300 hover:text-white"
-                title="Previous Week"
-              >
-                <ChevronLeft className="w-4 h-4" />
-              </button>
-              <button
-                onClick={onNextWeek}
-                className="p-1.5 rounded-lg border border-slate-700 bg-slate-800 text-slate-300 hover:text-white"
-                title="Next Week"
-              >
-                <ChevronRight className="w-4 h-4" />
-              </button>
-            </div>
+    <header className="bg-slate-900 border-b border-slate-800 text-slate-100 sticky top-0 z-30 shadow-lg">
+      <div className="max-w-6xl mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-4">
+        {/* Brand & Identity */}
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-500 to-indigo-600 flex items-center justify-center shadow-md shadow-cyan-500/20 ring-1 ring-cyan-400/30">
+            <Camera className="w-5 h-5 text-white animate-pulse" />
           </div>
-
-          {/* Center: Week Navigator */}
-          <div className="flex items-center justify-center gap-2 bg-slate-800/50 p-1.5 rounded-xl border border-slate-700/60">
-            <button
-              onClick={onPrevWeek}
-              className="p-1.5 rounded-lg hover:bg-slate-700/80 text-slate-400 hover:text-white transition-colors"
-              title="Previous Week"
-            >
-              <ChevronLeft className="w-4 h-4" />
-            </button>
-
-            <div className="flex items-center gap-2 px-3">
-              <CalendarIcon className="w-4 h-4 text-blue-400" />
-              <span className="text-xs sm:text-sm font-medium text-slate-200">
-                {formatWeekRange(currentWeekStart, currentWeekEnd)}
+          <div>
+            <div className="flex items-center gap-2">
+              <h1 className="text-lg font-bold tracking-tight text-white flex items-center gap-1.5">
+                Photographic Memory <span className="text-cyan-400 font-extrabold">Master</span>
+              </h1>
+              <span className="text-[10px] uppercase font-semibold px-2 py-0.5 rounded-full bg-cyan-950/80 border border-cyan-500/40 text-cyan-300">
+                Eidetic Engine
               </span>
             </div>
-
-            <button
-              onClick={onNextWeek}
-              className="p-1.5 rounded-lg hover:bg-slate-700/80 text-slate-400 hover:text-white transition-colors"
-              title="Next Week"
-            >
-              <ChevronRight className="w-4 h-4" />
-            </button>
-
-            {!isCurrentWeek && (
-              <button
-                onClick={onJumpToToday}
-                className="ml-1 text-xs font-semibold px-2.5 py-1 rounded-md bg-blue-500/20 text-blue-300 hover:bg-blue-500/30 border border-blue-500/30 transition-colors"
-              >
-                Today
-              </button>
-            )}
-          </div>
-
-          {/* Right: Data Management Options */}
-          <div className="flex items-center justify-end gap-2">
-            <div className="relative">
-              <button
-                onClick={() => setShowDataMenu(!showDataMenu)}
-                className="text-xs font-medium px-3 py-1.5 rounded-lg border border-slate-700 bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white transition-all flex items-center gap-1.5"
-              >
-                <span>Manage Data</span>
-              </button>
-
-              {showDataMenu && (
-                <>
-                  <div
-                    className="fixed inset-0 z-40"
-                    onClick={() => setShowDataMenu(false)}
-                  />
-                  <div className="absolute right-0 mt-2 w-52 bg-slate-800 border border-slate-700 rounded-xl shadow-xl z-50 p-1.5 text-xs text-slate-300">
-                    <button
-                      onClick={() => {
-                        onResetData();
-                        setShowDataMenu(false);
-                      }}
-                      className="w-full text-left px-3 py-2 rounded-lg hover:bg-slate-700 flex items-center gap-2 text-amber-300"
-                    >
-                      <RotateCcw className="w-3.5 h-3.5" />
-                      Reset to Sample Data
-                    </button>
-                    <button
-                      onClick={() => {
-                        onExportData();
-                        setShowDataMenu(false);
-                      }}
-                      className="w-full text-left px-3 py-2 rounded-lg hover:bg-slate-700 flex items-center gap-2"
-                    >
-                      <Download className="w-3.5 h-3.5" />
-                      Export Data (JSON)
-                    </button>
-                    <label className="w-full text-left px-3 py-2 rounded-lg hover:bg-slate-700 flex items-center gap-2 cursor-pointer">
-                      <Upload className="w-3.5 h-3.5" />
-                      Import Data
-                      <input
-                        type="file"
-                        accept=".json"
-                        onChange={(e) => {
-                          handleFileUpload(e);
-                          setShowDataMenu(false);
-                        }}
-                        className="hidden"
-                      />
-                    </label>
-                  </div>
-                </>
-              )}
-            </div>
+            <p className="text-xs text-slate-400">
+              Train retinal snapshot, rapid spatial recall & cognitive flash retention
+            </p>
           </div>
         </div>
 
-        {importNotice && (
-          <div className="mt-2 text-xs text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1.5 rounded-lg text-center">
-            {importNotice}
+        {/* Player Rank & XP Bar */}
+        <div className="flex items-center gap-4 bg-slate-800/80 border border-slate-700/70 rounded-xl px-3.5 py-1.5 min-w-[240px]">
+          <div className="flex flex-col">
+            <div className="flex items-center justify-between text-xs mb-1">
+              <span className="font-semibold text-slate-200 flex items-center gap-1">
+                <Award className="w-3.5 h-3.5 text-amber-400" />
+                {currentRank.title}
+              </span>
+              <span className="text-[11px] font-mono text-cyan-300">
+                {stats.xp} XP
+              </span>
+            </div>
+
+            {/* XP Progress Bar */}
+            <div className="w-40 bg-slate-700/60 rounded-full h-2 overflow-hidden relative">
+              <div
+                className="bg-gradient-to-r from-cyan-500 to-indigo-500 h-full rounded-full transition-all duration-500"
+                style={{ width: `${progressPercent}%` }}
+              />
+            </div>
+            <div className="flex justify-between items-center text-[10px] text-slate-400 mt-0.5">
+              <span>Lvl {currentRank.level}</span>
+              <span>{nextRank ? `${nextRank.minXp - stats.xp} XP to Lvl ${nextRank.level}` : 'Max Rank'}</span>
+            </div>
           </div>
-        )}
 
-        {/* Tab Navigation */}
-        <div className="flex items-center gap-2 mt-4 pt-2 border-t border-slate-800/60 overflow-x-auto no-scrollbar">
+          {/* Streak Badge */}
+          <div className="flex flex-col items-center justify-center pl-3 border-l border-slate-700/70">
+            <div className="flex items-center text-amber-400 font-bold text-sm">
+              <Flame className="w-4 h-4 fill-amber-400 text-amber-500 animate-bounce" />
+              <span>{stats.currentStreak}</span>
+            </div>
+            <span className="text-[10px] text-slate-400 uppercase tracking-wider">Streak</span>
+          </div>
+        </div>
+
+        {/* Global Controls: Flash Speed, Sound, Guide */}
+        <div className="flex items-center gap-2.5">
+          {/* Flash Speed Controller */}
+          <div className="flex items-center bg-slate-800/90 border border-slate-700 rounded-lg p-1 text-xs">
+            <span className="flex items-center gap-1 text-slate-400 px-2 font-medium">
+              <Clock className="w-3.5 h-3.5 text-cyan-400" />
+              <span className="hidden sm:inline">Flash:</span>
+            </span>
+            <select
+              value={currentSpeed}
+              onChange={(e) => {
+                sound.playClick();
+                onSpeedChange(Number(e.target.value) as FlashSpeed);
+              }}
+              className="bg-slate-900 border border-slate-700 text-cyan-300 font-medium rounded px-2 py-1 outline-none cursor-pointer focus:border-cyan-400 text-xs"
+              title="Flash duration for visual exposure"
+            >
+              {FLASH_SPEED_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label} ({opt.tag}) - {opt.xpMultiplier}x XP
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Sound Toggle */}
           <button
-            onClick={() => onTabChange('tracker')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all whitespace-nowrap ${
-              activeTab === 'tracker'
-                ? 'bg-blue-600 text-white shadow-md shadow-blue-600/20'
-                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+            onClick={() => {
+              onToggleSound();
+            }}
+            className={`p-2 rounded-lg border transition-colors ${
+              isSoundMuted
+                ? 'bg-slate-800 border-slate-700 text-slate-400 hover:text-slate-200'
+                : 'bg-cyan-950/60 border-cyan-800 text-cyan-300 hover:bg-cyan-900/60'
             }`}
+            title={isSoundMuted ? 'Unmute Audio Synthesizer' : 'Mute Sound'}
           >
-            <ListTodo className="w-4 h-4" />
-            <span>Habit Matrix</span>
+            {isSoundMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
           </button>
 
+          {/* Techniques & Guide Button */}
           <button
-            onClick={() => onTabChange('insights')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all whitespace-nowrap ${
-              activeTab === 'insights'
-                ? 'bg-blue-600 text-white shadow-md shadow-blue-600/20'
-                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
-            }`}
+            onClick={() => {
+              sound.playClick();
+              onOpenTips();
+            }}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-600/30 hover:bg-indigo-600/40 text-indigo-200 border border-indigo-500/40 font-medium text-xs transition-all shadow-sm"
           >
-            <BarChart3 className="w-4 h-4" />
-            <span>Weekly Insights</span>
-          </button>
-
-          <button
-            onClick={() => onTabChange('goals')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all whitespace-nowrap ${
-              activeTab === 'goals'
-                ? 'bg-blue-600 text-white shadow-md shadow-blue-600/20'
-                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
-            }`}
-          >
-            <Target className="w-4 h-4" />
-            <span>Goal Setting</span>
+            <BookOpen className="w-3.5 h-3.5 text-indigo-400" />
+            <span className="hidden md:inline">Master Techniques</span>
           </button>
         </div>
       </div>

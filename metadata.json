@@ -1,6 +1,6 @@
 {
-  "name": "Habit Tracker",
-  "description": "A habit tracking app with weekly productivity insights, consistency analytics, and goal setting.",
+  "name": "Photographic Memory Master",
+  "description": "An interactive cognitive training game suite designed to develop eidetic and photographic memory through flash matrix, chimpanzee sequence recall, and detail snapshot challenges.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }
