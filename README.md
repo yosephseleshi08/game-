@@ -85,6 +85,31 @@ npm run lint
 
 ---
 
+## 🔐 Firebase Authentication Setup & Domain Authorization
+
+If you deploy this app or run it on Google Cloud Run, Firebase Authentication requires your domain to be whitelisted before users can sign in with Google or Email/Password.
+
+### Resolving `Firebase: Error (auth/unauthorized-domain)`
+1. Open the [Firebase Console](https://console.firebase.google.com/).
+2. Select your project: `ai-studio-game-05100fdb-36e9-4559-910e-6e73535f5b21`.
+3. In the left sidebar, navigate to **Build** > **Authentication** > **Settings** tab.
+4. Scroll down to **Authorized domains**.
+5. Click **Add domain**.
+6. Enter your domain:
+   - For specific Cloud Run deployments: paste your full hostname (e.g. `ais-dev-olaxzidg2rlblj6lu5wtf3-260784122245.europe-west1.run.app`).
+   - Or to authorize all Cloud Run preview containers, simply add `run.app`.
+7. Click **Save**.
+
+### Resolving `Firebase: Error (auth/operation-not-allowed)`
+1. Navigate to **Authentication** > **Sign-in method** tab in Firebase Console.
+2. Ensure **Google** and **Email/Password** providers are toggled to **Enabled**.
+3. Click **Save**.
+
+### ⚡ Instant Local Mode (Zero Configuration)
+If you do not want to configure Firebase Console, click **"Continue as Local Athlete"** directly in the Sign-In modal or User Profile modal. All training data, XP, levels, custom usernames, and 365-day curriculum progress are preserved in local storage with full functionality.
+
+---
+
 ## 🧠 Cognitive Science Principles
 
 1. **Iconic Memory Persistence (Sperling Paradigm)**: Visual information remains in iconic sensory storage for 200–500ms before decaying. Training with sub-second flash rates forces the brain to encode patterns directly into visual short-term memory (VSTM).

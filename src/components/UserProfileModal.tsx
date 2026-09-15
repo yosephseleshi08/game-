@@ -7,6 +7,7 @@ import {
   AVATAR_PRESETS,
   getAvatarPreset,
 } from '../utils/firebase';
+import { saveLocalProfile } from '../utils/storage';
 import { sound } from '../utils/audio';
 import {
   X,
@@ -64,15 +65,16 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
   const currentPreset = getAvatarPreset(profile?.avatarPresetId || selectedPresetId);
 
   const handleSaveProfile = async () => {
-    if (!currentUser) return;
+    if (!currentUser && !profile) return;
     setSaving(true);
     sound.playClick();
     try {
       const finalPhoto = customPhotoUrl.trim() || selectedPresetId;
+      const targetId = currentUser?.uid || profile?.id || 'local-athlete';
       const updated: UserProfile = {
         ...(profile || {
-          id: currentUser.uid,
-          email: currentUser.email || '',
+          id: targetId,
+          email: currentUser?.email || '',
           level: stats.level,
           xp: stats.xp,
           rankTitle: 'Novice Observer',
@@ -88,13 +90,16 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
           isSpeedLockedToPlan,
           createdAt: new Date().toISOString(),
         }),
-        username: username.trim(),
+        username: username.trim() || 'Memory Athlete',
         avatarPresetId: selectedPresetId,
         photoUrl: finalPhoto,
         updatedAt: new Date().toISOString(),
       };
 
-      await saveUserProfile(currentUser.uid, updated);
+      if (currentUser) {
+        await saveUserProfile(currentUser.uid, updated);
+      }
+      saveLocalProfile(updated);
       onUpdateProfile(updated);
       sound.playSuccess();
       setMsg('Profile updated successfully!');
@@ -110,7 +115,10 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
 
   const handleLogout = async () => {
     sound.playClick();
-    await logoutUser();
+    if (currentUser) {
+      await logoutUser();
+    }
+    localStorage.removeItem('pmm_local_athlete_profile_v1');
     onSignOut();
     onClose();
   };

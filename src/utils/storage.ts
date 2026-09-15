@@ -1,5 +1,6 @@
 import {
   UserStats,
+  UserProfile,
   MasterRank,
   FlashSpeedOption,
   FlashSpeed,
@@ -114,6 +115,53 @@ export function saveUserStats(stats: UserStats): void {
   } catch {
     // LocalStorage failure handling
   }
+}
+
+const LOCAL_PROFILE_KEY = 'pmm_local_athlete_profile_v1';
+
+export function loadLocalProfile(): UserProfile | null {
+  try {
+    const raw = localStorage.getItem(LOCAL_PROFILE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+export function saveLocalProfile(profile: UserProfile): void {
+  try {
+    localStorage.setItem(LOCAL_PROFILE_KEY, JSON.stringify(profile));
+  } catch {
+    // ignore
+  }
+}
+
+export function createLocalAthleteProfile(username?: string, avatarPresetId = 'ayumu'): UserProfile {
+  const currentStats = loadUserStats();
+  const profile: UserProfile = {
+    id: `local-${Date.now()}`,
+    email: 'local@device.offline',
+    username: username && username.trim() ? username.trim() : 'Local Athlete',
+    photoUrl: avatarPresetId,
+    avatarPresetId: avatarPresetId,
+    level: currentStats.level || 1,
+    xp: currentStats.xp || 140,
+    rankTitle: getRankForXp(currentStats.xp || 140).currentRank.title,
+    curriculumDay: 1,
+    currentStreak: currentStats.currentStreak || 0,
+    bestStreak: currentStats.bestStreak || 0,
+    ayumuMaxNumbers: currentStats.ayumuMaxNumbers || 4,
+    matrixMaxLevel: currentStats.matrixMaxLevel || 1,
+    dualNBackMaxN: currentStats.dualNBackMaxN || 2,
+    fastestFlashMs: currentStats.fastestFlashMs || 2000,
+    detectiveHighScore: currentStats.detectiveHighScore || 0,
+    lockedFlashSpeed: 1200,
+    isSpeedLockedToPlan: true,
+    updatedAt: new Date().toISOString(),
+    createdAt: new Date().toISOString(),
+  };
+  saveLocalProfile(profile);
+  return profile;
 }
 
 export function getRankForXp(xp: number): { currentRank: MasterRank; nextRank: MasterRank | null; progressPercent: number } {

@@ -6,6 +6,7 @@ import {
   loadSavedFlashSpeed,
   saveFlashSpeed,
   getRankForXp,
+  loadLocalProfile,
 } from './utils/storage';
 import { sound } from './utils/audio';
 import { Header } from './components/Header';
@@ -69,7 +70,7 @@ export default function App() {
 
   // Firebase Auth & Cloud Sync State
   const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [currentProfile, setCurrentProfile] = useState<UserProfile | null>(null);
+  const [currentProfile, setCurrentProfile] = useState<UserProfile | null>(() => loadLocalProfile());
   const [authInitialized, setAuthInitialized] = useState(false);
 
   // Ref to prevent initial overwrite loops
@@ -128,7 +129,8 @@ export default function App() {
           console.error('Error fetching cloud profile:', err);
         }
       } else {
-        setCurrentProfile(null);
+        const local = loadLocalProfile();
+        setCurrentProfile(local);
       }
     });
 
