@@ -51,6 +51,26 @@ export const TrainingTipsModal: React.FC<TrainingTipsModalProps> = ({ isOpen, on
       actionTip:
         'Keep your tongue resting lightly against the roof of your mouth. Forbid internal speech during the flash. Let your finger instinctively navigate to the lingering visual coordinates.',
     },
+    {
+      title: '5. Dual N-Back Working Memory Expansion',
+      badge: 'Neuroplasticity',
+      icon: <Brain className="w-5 h-5 text-sky-400" />,
+      tagColor: 'text-sky-400 bg-sky-950 border-sky-800',
+      summary:
+        'Tracking a spatial position and an auditory letter simultaneously isolates executive attention, forcing the brain to discard old items and maintain new items continuously.',
+      actionTip:
+        'Use keyboard hotkeys (A for Position, L for Sound). Keep a rolling queue in your mind: as the new item arrives, drop the oldest one and mentally bump the rest.',
+    },
+    {
+      title: '6. The Major System & Spatial Memory Palace',
+      badge: 'Mnemonic Pegs',
+      icon: <Sparkles className="w-5 h-5 text-amber-400" />,
+      tagColor: 'text-amber-400 bg-amber-950 border-amber-800',
+      summary:
+        'The human brain evolved to remember physical locations and vivid objects, not abstract digits. The Major System phonetically translates digits to nouns (1=T/D, 4=R -> TIRE).',
+      actionTip:
+        'When anchoring an item at a palace locus (e.g. Sofa or Bookshelf), visualize the object interacting bizarrely with the furniture (e.g. flaming tire burning the velvet). Emotion and weirdness lock it into long-term recall.',
+    },
   ];
 
   return (

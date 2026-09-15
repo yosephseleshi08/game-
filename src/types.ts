@@ -1,4 +1,11 @@
-export type GameMode = 'eidetic-matrix' | 'ayumu-chimp' | 'symbol-detective' | 'daily-workout' | 'stats';
+export type GameMode =
+  | 'eidetic-matrix'
+  | 'ayumu-chimp'
+  | 'dual-nback'
+  | 'mnemonic-speed'
+  | 'symbol-detective'
+  | 'daily-workout'
+  | 'stats';
 
 export type FlashSpeed = 2000 | 1200 | 600 | 300 | 150;
 
@@ -22,6 +29,10 @@ export interface UserStats {
   accuracyRate: number; // percentage 0-100
   totalAttempts: number;
   totalCorrectAttempts: number;
+  // Dual N-Back & Mnemonic metrics
+  dualNBackMaxN: number;
+  mnemonicConversionCount: number;
+  cardsMastered: number;
   pqHistory: DailyPQRecord[];
 }
 
@@ -34,6 +45,7 @@ export interface DailyPQRecord {
     matrixScore: number;
     ayumuScore: number;
     detectiveScore: number;
+    nbackScore?: number;
   };
 }
 
@@ -62,6 +74,58 @@ export interface ChimpTile {
   row: number; // grid row 0..4
   col: number; // grid col 0..7
   status: 'hidden' | 'visible' | 'blanked' | 'cleared' | 'failed';
+}
+
+// Dual N-Back State
+export interface NBackTrial {
+  step: number;
+  position: number; // 0 to 8 (in 3x3 grid)
+  letter: string; // e.g. 'C', 'H', 'K', 'L', 'Q', 'R', 'S', 'T'
+  isPositionMatch: boolean;
+  isAudioMatch: boolean;
+  userClaimedPos?: boolean;
+  userClaimedAudio?: boolean;
+}
+
+export interface NBackResult {
+  n: number;
+  totalTrials: number;
+  positionAccuracy: number; // 0-100
+  audioAccuracy: number; // 0-100
+  overallScore: number;
+  recommendedAction: 'level-up' | 'maintain' | 'level-down';
+}
+
+// Mnemonic & Memory Palace
+export interface MajorPeg {
+  number: string; // e.g. "01", "14", "99"
+  phoneticRule: string; // e.g. "1 = T/D, 4 = R"
+  word: string; // e.g. "TIRE"
+  visualImage: string; // description for palace
+  category: 'Single Digit' | 'Teens' | 'Decades' | 'Code/Tech';
+}
+
+export interface PalaceLocus {
+  id: number;
+  name: string;
+  room: string;
+  defaultIcon: string;
+  itemPlaced?: string;
+  itemColor?: string;
+}
+
+// Active Spaced Repetition (SuperMemo SM-2)
+export interface SpacedCard {
+  id: string;
+  prompt: string;
+  answer: string;
+  hint: string;
+  category: string;
+  repetitions: number;
+  intervalDays: number;
+  easeFactor: number;
+  nextReviewDate: string; // ISO string
+  lastReviewedDate?: string;
 }
 
 // Symbol Detective State

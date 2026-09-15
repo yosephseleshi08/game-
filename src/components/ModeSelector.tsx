@@ -1,7 +1,7 @@
 import React from 'react';
 import { GameMode } from '../types';
 import { sound } from '../utils/audio';
-import { Grid3X3, Hash, Sparkles, Award, BarChart3 } from 'lucide-react';
+import { Grid3X3, Hash, Sparkles, Award, BarChart3, Brain, Flame } from 'lucide-react';
 
 interface ModeSelectorProps {
   activeMode: GameMode;
@@ -13,16 +13,30 @@ export const ModeSelector: React.FC<ModeSelectorProps> = ({ activeMode, onSelect
     {
       id: 'eidetic-matrix',
       label: 'Eidetic Matrix',
-      desc: 'Spatial pattern flash recall',
+      desc: 'Spatial grid flash recall',
       icon: <Grid3X3 className="w-4 h-4 text-cyan-400" />,
-      badge: 'Core',
+      badge: 'Visual',
     },
     {
       id: 'ayumu-chimp',
       label: 'Ayumu Sequence',
-      desc: 'The iconic chimpanzee test',
+      desc: 'Chimpanzee iconic benchmark',
       icon: <Hash className="w-4 h-4 text-amber-400" />,
+      badge: 'Iconic',
+    },
+    {
+      id: 'dual-nback',
+      label: 'Dual N-Back',
+      desc: 'Working memory & focus',
+      icon: <Brain className="w-4 h-4 text-sky-400" />,
       badge: 'Scientific',
+    },
+    {
+      id: 'mnemonic-speed',
+      label: 'Mnemonic & SM-2',
+      desc: 'PAO, Pegs, Palace & spaced cards',
+      icon: <Flame className="w-4 h-4 text-orange-400" />,
+      badge: 'Mnemonic',
     },
     {
       id: 'symbol-detective',

@@ -1,4 +1,12 @@
-import { UserStats, MasterRank, FlashSpeedOption, FlashSpeed } from '../types';
+import {
+  UserStats,
+  MasterRank,
+  FlashSpeedOption,
+  FlashSpeed,
+  MajorPeg,
+  PalaceLocus,
+  SpacedCard,
+} from '../types';
 
 export const FLASH_SPEED_OPTIONS: FlashSpeedOption[] = [
   { value: 2000, label: '2.0s', tag: 'Beginner', xpMultiplier: 1.0 },
@@ -60,11 +68,12 @@ export const MASTER_RANKS: MasterRank[] = [
   },
 ];
 
-const STATS_STORAGE_KEY = 'pmm_user_stats_v1';
+const STATS_STORAGE_KEY = 'pmm_user_stats_v2';
 const SPEED_STORAGE_KEY = 'pmm_flash_speed_v1';
+const CARDS_STORAGE_KEY = 'pmm_spaced_cards_v1';
 
 const defaultStats: UserStats = {
-  xp: 120,
+  xp: 140,
   level: 1,
   totalGamesPlayed: 0,
   matrixMaxLevel: 1,
@@ -76,6 +85,9 @@ const defaultStats: UserStats = {
   accuracyRate: 100,
   totalAttempts: 0,
   totalCorrectAttempts: 0,
+  dualNBackMaxN: 2,
+  mnemonicConversionCount: 0,
+  cardsMastered: 0,
   pqHistory: [],
 };
 
@@ -141,4 +153,157 @@ export function saveFlashSpeed(speed: FlashSpeed): void {
   } catch {
     // Ignored
   }
+}
+
+// Major System Pegs Reference & Drills (0-9 and top pegs)
+export const MAJOR_SYSTEM_PEGS: MajorPeg[] = [
+  { number: '0', phoneticRule: 'S / Z / soft C', word: 'SOAP', visualImage: 'A glowing bar of fragrant pink soap slipping between fingers', category: 'Single Digit' },
+  { number: '1', phoneticRule: 'T / D (1 downstroke)', word: 'TIE', visualImage: 'A giant silk red necktie wrapped around a marble pillar', category: 'Single Digit' },
+  { number: '2', phoneticRule: 'N (2 downstrokes)', word: 'NOAH', visualImage: 'Noah on the wooden ark with animals looking over the bow', category: 'Single Digit' },
+  { number: '3', phoneticRule: 'M (3 downstrokes)', word: 'MA', visualImage: 'A motherly figure holding a warm golden pie', category: 'Single Digit' },
+  { number: '4', phoneticRule: 'R (last letter of four)', word: 'RAY', visualImage: 'An intense laser beam ray burning through crystal', category: 'Single Digit' },
+  { number: '5', phoneticRule: 'L (L is 50 in Roman)', word: 'LAW', visualImage: 'A heavy brass courthouse gavel banging onto wood', category: 'Single Digit' },
+  { number: '6', phoneticRule: 'J / SH / CH / soft G', word: 'JAW', visualImage: 'A mechanical shark jaw clamping down with metallic spark', category: 'Single Digit' },
+  { number: '7', phoneticRule: 'K / Hard C / G', word: 'KEY', visualImage: 'An ornate golden antique key shining in darkness', category: 'Single Digit' },
+  { number: '8', phoneticRule: 'F / V (cursive f has 2 loops)', word: 'FOE', visualImage: 'A dark cloaked fencing rival waving an electric foil', category: 'Single Digit' },
+  { number: '9', phoneticRule: 'P / B (9 is reverse P/b)', word: 'PIE', visualImage: 'A steaming hot blackberry pie with bubbling syrup', category: 'Single Digit' },
+  // Double digits
+  { number: '10', phoneticRule: 'T + S', word: 'TOES', visualImage: 'Giant neon toes squishing through emerald jelly', category: 'Teens' },
+  { number: '14', phoneticRule: 'T + R', word: 'TIRE', visualImage: 'A flaming monster truck tire rolling through the hall', category: 'Teens' },
+  { number: '21', phoneticRule: 'N + T', word: 'NUT', visualImage: 'A colossal bronze acorn cracking open with lightning', category: 'Decades' },
+  { number: '32', phoneticRule: 'M + N', word: 'MOON', visualImage: 'A glowing crescent moon floating like a neon lamp', category: 'Decades' },
+  { number: '40', phoneticRule: 'R + S', word: 'ROSE', visualImage: 'A blooming blood-red rose dripping with liquid glass', category: 'Decades' },
+  { number: '52', phoneticRule: 'L + N', word: 'LION', visualImage: 'A majestic golden lion roaring with fire sparks', category: 'Decades' },
+  { number: '73', phoneticRule: 'K + M', word: 'CAMEL', visualImage: 'A desert camel wearing futuristic sunglasses', category: 'Decades' },
+  { number: '84', phoneticRule: 'F + R', word: 'FIRE', visualImage: 'A roaring campfire dancing to rhythmic beats', category: 'Decades' },
+  { number: '99', phoneticRule: 'P + P', word: 'PIPE', visualImage: 'A polished brass bubble pipe blowing giant iridescent orbs', category: 'Decades' },
+];
+
+// Pre-configured Memory Palace Loci
+export const DEFAULT_PALACE_LOCI: PalaceLocus[] = [
+  { id: 1, name: 'Palace Grand Entrance', room: 'Foyer', defaultIcon: 'DoorClosed' },
+  { id: 2, name: 'Crystal Chandelier', room: 'Foyer', defaultIcon: 'Lamp' },
+  { id: 3, name: 'Carved Oak Bookshelf', room: 'Study', defaultIcon: 'Book' },
+  { id: 4, name: 'Velvet Recliner Couch', room: 'Living Room', defaultIcon: 'Armchair' },
+  { id: 5, name: 'Granite Cooking Island', room: 'Kitchen', defaultIcon: 'Flame' },
+  { id: 6, name: 'Sprawling Marble Balcony', room: 'Terrace', defaultIcon: 'Sun' },
+  { id: 7, name: 'Observation Telescope', room: 'Observatory', defaultIcon: 'Telescope' },
+  { id: 8, name: 'Steaming Roman Bath', room: 'Spa', defaultIcon: 'Bath' },
+];
+
+// SuperMemo SM-2 Spaced Repetition Initial Decks
+export const DEFAULT_SPACED_CARDS: SpacedCard[] = [
+  {
+    id: 'sm-1',
+    prompt: 'Major System: What phonetic sound represents 0?',
+    answer: 'S, Z, or soft C (e.g. Zero starts with Z; S has zero downstrokes)',
+    hint: 'Think of SOAP or SEW',
+    category: 'Mnemonic Pegs',
+    repetitions: 0,
+    intervalDays: 1,
+    easeFactor: 2.5,
+    nextReviewDate: new Date().toISOString(),
+  },
+  {
+    id: 'sm-2',
+    prompt: 'Major System: What phonetic sound represents 1?',
+    answer: 'T or D (Both have 1 vertical downstroke: T, d)',
+    hint: 'Think of TIE or TEA',
+    category: 'Mnemonic Pegs',
+    repetitions: 0,
+    intervalDays: 1,
+    easeFactor: 2.5,
+    nextReviewDate: new Date().toISOString(),
+  },
+  {
+    id: 'sm-3',
+    prompt: 'Major System: What phonetic sound represents 2 and 3?',
+    answer: '2 = N (2 downstrokes), 3 = M (3 downstrokes)',
+    hint: 'Count the downstrokes of lowercase n and m',
+    category: 'Mnemonic Pegs',
+    repetitions: 0,
+    intervalDays: 1,
+    easeFactor: 2.5,
+    nextReviewDate: new Date().toISOString(),
+  },
+  {
+    id: 'sm-4',
+    prompt: 'Chimp Ayumu Advantage: Why did young chimps beat humans at 210ms flash?',
+    answer: 'Humans bottleneck visual memory by subvocalizing (saying numbers internally), whereas chimps retain a direct iconic sensory image without linguistic translation.',
+    hint: 'Subvocal suppression vs raw iconic storage',
+    category: 'Cognitive Science',
+    repetitions: 0,
+    intervalDays: 1,
+    easeFactor: 2.5,
+    nextReviewDate: new Date().toISOString(),
+  },
+  {
+    id: 'sm-5',
+    prompt: 'Visual Chunking: How many random coordinates can working memory hold vs geometric shapes?',
+    answer: '4–7 isolated coordinates vs 15+ coordinates if bounded into 1–2 geometric polygons or constellations.',
+    hint: 'Gestalt enclosure principle',
+    category: 'Cognitive Science',
+    repetitions: 0,
+    intervalDays: 1,
+    easeFactor: 2.5,
+    nextReviewDate: new Date().toISOString(),
+  },
+];
+
+export function loadSpacedCards(): SpacedCard[] {
+  try {
+    const raw = localStorage.getItem(CARDS_STORAGE_KEY);
+    if (!raw) return DEFAULT_SPACED_CARDS;
+    const parsed = JSON.parse(raw);
+    return parsed.length > 0 ? parsed : DEFAULT_SPACED_CARDS;
+  } catch {
+    return DEFAULT_SPACED_CARDS;
+  }
+}
+
+export function saveSpacedCards(cards: SpacedCard[]): void {
+  try {
+    localStorage.setItem(CARDS_STORAGE_KEY, JSON.stringify(cards));
+  } catch {
+    // Ignored
+  }
+}
+
+// SM-2 Spaced Repetition Algorithm Implementation
+// Quality rating: 0 = blackout, 1 = wrong, 2 = serious difficulty, 3 = pass with effort, 4 = good, 5 = perfect instant
+export function calculateSM2(
+  card: SpacedCard,
+  quality: 0 | 1 | 2 | 3 | 4 | 5
+): SpacedCard {
+  let { repetitions, intervalDays, easeFactor } = card;
+
+  if (quality >= 3) {
+    if (repetitions === 0) {
+      intervalDays = 1;
+    } else if (repetitions === 1) {
+      intervalDays = 6;
+    } else {
+      intervalDays = Math.round(intervalDays * easeFactor);
+    }
+    repetitions += 1;
+  } else {
+    repetitions = 0;
+    intervalDays = 1;
+  }
+
+  // Update ease factor: EF' = EF + (0.1 - (5 - q) * (0.08 + (5 - q) * 0.02))
+  easeFactor = easeFactor + (0.1 - (5 - quality) * (0.08 + (5 - quality) * 0.02));
+  if (easeFactor < 1.3) easeFactor = 1.3;
+
+  const nextDate = new Date();
+  nextDate.setDate(nextDate.getDate() + intervalDays);
+
+  return {
+    ...card,
+    repetitions,
+    intervalDays,
+    easeFactor: Math.round(easeFactor * 100) / 100,
+    nextReviewDate: nextDate.toISOString(),
+    lastReviewedDate: new Date().toISOString(),
+  };
 }

@@ -45,41 +45,59 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({ stats }) => {
       </div>
 
       {/* Primary KPI Grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
-        <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl">
-          <div className="flex items-center justify-between text-slate-400 mb-2">
-            <span className="text-xs font-semibold">Matrix Level</span>
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
+        <div className="bg-slate-900 border border-slate-800 p-3.5 rounded-2xl">
+          <div className="flex items-center justify-between text-slate-400 mb-1.5">
+            <span className="text-[11px] font-semibold">Matrix Level</span>
             <Trophy className="w-4 h-4 text-cyan-400" />
           </div>
-          <div className="text-2xl font-black text-white">Lvl {stats.matrixMaxLevel}</div>
-          <p className="text-[11px] text-slate-400 mt-1">Max spatial grid completed</p>
+          <div className="text-xl font-black text-white">Lvl {stats.matrixMaxLevel}</div>
+          <p className="text-[10px] text-slate-400 mt-0.5">Spatial grid max</p>
         </div>
 
-        <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl">
-          <div className="flex items-center justify-between text-slate-400 mb-2">
-            <span className="text-xs font-semibold">Ayumu Record</span>
+        <div className="bg-slate-900 border border-slate-800 p-3.5 rounded-2xl">
+          <div className="flex items-center justify-between text-slate-400 mb-1.5">
+            <span className="text-[11px] font-semibold">Ayumu Max</span>
             <Flame className="w-4 h-4 text-amber-400" />
           </div>
-          <div className="text-2xl font-black text-white">{stats.ayumuMaxNumbers} Digits</div>
-          <p className="text-[11px] text-slate-400 mt-1">Chimp sequence benchmark</p>
+          <div className="text-xl font-black text-white">{stats.ayumuMaxNumbers} Digits</div>
+          <p className="text-[10px] text-slate-400 mt-0.5">Chimp benchmark</p>
         </div>
 
-        <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl">
-          <div className="flex items-center justify-between text-slate-400 mb-2">
-            <span className="text-xs font-semibold">Best Streak</span>
+        <div className="bg-slate-900 border border-slate-800 p-3.5 rounded-2xl">
+          <div className="flex items-center justify-between text-slate-400 mb-1.5">
+            <span className="text-[11px] font-semibold">Dual N-Back</span>
+            <Target className="w-4 h-4 text-sky-400" />
+          </div>
+          <div className="text-xl font-black text-white">N={stats.dualNBackMaxN}</div>
+          <p className="text-[10px] text-slate-400 mt-0.5">Working memory span</p>
+        </div>
+
+        <div className="bg-slate-900 border border-slate-800 p-3.5 rounded-2xl">
+          <div className="flex items-center justify-between text-slate-400 mb-1.5">
+            <span className="text-[11px] font-semibold">Peg Speed</span>
+            <Zap className="w-4 h-4 text-orange-400" />
+          </div>
+          <div className="text-xl font-black text-white">{stats.mnemonicConversionCount} Drills</div>
+          <p className="text-[10px] text-slate-400 mt-0.5">Mnemonic automation</p>
+        </div>
+
+        <div className="bg-slate-900 border border-slate-800 p-3.5 rounded-2xl">
+          <div className="flex items-center justify-between text-slate-400 mb-1.5">
+            <span className="text-[11px] font-semibold">Best Streak</span>
             <Zap className="w-4 h-4 text-indigo-400" />
           </div>
-          <div className="text-2xl font-black text-white">{stats.bestStreak} Rounds</div>
-          <p className="text-[11px] text-slate-400 mt-1">Consecutive perfect recalls</p>
+          <div className="text-xl font-black text-white">{stats.bestStreak} Rounds</div>
+          <p className="text-[10px] text-slate-400 mt-0.5">Perfect recalls</p>
         </div>
 
-        <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl">
-          <div className="flex items-center justify-between text-slate-400 mb-2">
-            <span className="text-xs font-semibold">Fastest Flash</span>
+        <div className="bg-slate-900 border border-slate-800 p-3.5 rounded-2xl">
+          <div className="flex items-center justify-between text-slate-400 mb-1.5">
+            <span className="text-[11px] font-semibold">Fastest Flash</span>
             <Clock className="w-4 h-4 text-emerald-400" />
           </div>
-          <div className="text-2xl font-black text-white">{stats.fastestFlashMs}ms</div>
-          <p className="text-[11px] text-slate-400 mt-1">Fastest exposure cleared</p>
+          <div className="text-xl font-black text-white">{stats.fastestFlashMs}ms</div>
+          <p className="text-[10px] text-slate-400 mt-0.5">Exposure record</p>
         </div>
       </div>
 

@@ -242,6 +242,64 @@ class SoundManager {
       // Ignored
     }
   }
+
+  // Dual N-Back Audio Stimulus (Speech + Pitch Tone)
+  public playLetterStimulus(letter: string) {
+    if (this.isMuted) return;
+
+    // First try native speech synthesis for real auditory linguistic working memory
+    let spoken = false;
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      try {
+        window.speechSynthesis.cancel();
+        const utterance = new SpeechSynthesisUtterance(letter);
+        utterance.rate = 1.3;
+        utterance.pitch = 1.0;
+        utterance.volume = 0.9;
+        window.speechSynthesis.speak(utterance);
+        spoken = true;
+      } catch {
+        spoken = false;
+      }
+    }
+
+    // Also play distinct procedural tone so audio is always audible and zero latency
+    this.initCtx();
+    if (!this.ctx) return;
+
+    try {
+      const now = this.ctx.currentTime;
+      const freqMap: Record<string, number> = {
+        C: 261.63, // C4
+        H: 329.63, // E4
+        K: 392.0, // G4
+        L: 440.0, // A4
+        Q: 523.25, // C5
+        R: 587.33, // D5
+        S: 659.25, // E5
+        T: 783.99, // G5
+      };
+
+      const freq = freqMap[letter] || 440;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(freq, now);
+
+      // Volume is softer if speech was spoken
+      const vol = spoken ? 0.08 : 0.22;
+      gain.gain.setValueAtTime(vol, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.28);
+
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+      osc.start(now);
+      osc.stop(now + 0.28);
+    } catch {
+      // Ignored
+    }
+  }
 }
 
 export const sound = new SoundManager();

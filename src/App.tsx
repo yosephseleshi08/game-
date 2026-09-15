@@ -12,6 +12,8 @@ import { Header } from './components/Header';
 import { ModeSelector } from './components/ModeSelector';
 import { EideticMatrixGame } from './components/EideticMatrixGame';
 import { AyumuChimpGame } from './components/AyumuChimpGame';
+import { DualNBackGame } from './components/DualNBackGame';
+import { MnemonicSpeedGame } from './components/MnemonicSpeedGame';
 import { SymbolDetectiveGame } from './components/SymbolDetectiveGame';
 import { DailyWorkoutGame } from './components/DailyWorkoutGame';
 import { StatsDashboard } from './components/StatsDashboard';
@@ -124,6 +126,22 @@ export default function App() {
     });
   };
 
+  const handleRecordNBackMax = (level: number) => {
+    setStats((prev) => ({
+      ...prev,
+      dualNBackMaxN: Math.max(prev.dualNBackMaxN, level),
+      totalGamesPlayed: prev.totalGamesPlayed + 1,
+    }));
+  };
+
+  const handleRecordMnemonicConversion = () => {
+    setStats((prev) => ({
+      ...prev,
+      mnemonicConversionCount: prev.mnemonicConversionCount + 1,
+      totalGamesPlayed: prev.totalGamesPlayed + 1,
+    }));
+  };
+
   const handleSavePQRecord = (record: DailyPQRecord) => {
     setStats((prev) => ({
       ...prev,
@@ -192,6 +210,20 @@ export default function App() {
             onSpeedChange={handleSpeedChange}
             onAddXp={handleAddXp}
             onRecordResult={handleRecordAyumuResult}
+          />
+        )}
+
+        {activeMode === 'dual-nback' && (
+          <DualNBackGame
+            onAddXp={handleAddXp}
+            onRecordNBackMax={handleRecordNBackMax}
+          />
+        )}
+
+        {activeMode === 'mnemonic-speed' && (
+          <MnemonicSpeedGame
+            onAddXp={handleAddXp}
+            onRecordMnemonicConversion={handleRecordMnemonicConversion}
           />
         )}
 
