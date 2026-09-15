@@ -7,6 +7,8 @@ import {
   onAuthStateChanged,
   User,
   updateProfile,
+  GoogleAuthProvider,
+  signInWithPopup,
 } from 'firebase/auth';
 import {
   getFirestore,
@@ -53,6 +55,9 @@ const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 
 // Initialize Auth
 export const auth = getAuth(app);
+export const FIREBASE_PROJECT_ID = firebaseConfig.projectId;
+
+const googleProvider = new GoogleAuthProvider();
 
 // Initialize Firestore with specific database ID if provided
 export const db = firebaseConfig.firestoreDatabaseId
@@ -131,6 +136,45 @@ export async function registerWithEmailPassword(
 export async function loginWithEmailPassword(email: string, pass: string): Promise<User> {
   const credential = await signInWithEmailAndPassword(auth, email, pass);
   return credential.user;
+}
+
+/**
+ * Sign in with Google Popup (standard provider pre-configured for this project)
+ */
+export async function loginWithGoogle(): Promise<{ user: User; profile: UserProfile }> {
+  const credential = await signInWithPopup(auth, googleProvider);
+  const user = credential.user;
+
+  // Retrieve existing profile or bootstrap a new one
+  let profile = await getUserProfile(user.uid);
+  if (!profile) {
+    const defaultPreset = 'ayumu';
+    profile = {
+      id: user.uid,
+      email: user.email || '',
+      username: user.displayName || `Athlete-${user.uid.slice(0, 5)}`,
+      photoUrl: user.photoURL || defaultPreset,
+      avatarPresetId: defaultPreset,
+      level: 1,
+      xp: 0,
+      rankTitle: 'Novice Observer',
+      curriculumDay: 1,
+      currentStreak: 0,
+      bestStreak: 0,
+      ayumuMaxNumbers: 4,
+      matrixMaxLevel: 1,
+      dualNBackMaxN: 2,
+      fastestFlashMs: 2000,
+      detectiveHighScore: 0,
+      lockedFlashSpeed: 1200,
+      isSpeedLockedToPlan: true,
+      updatedAt: new Date().toISOString(),
+      createdAt: new Date().toISOString(),
+    };
+    await setDoc(doc(db, 'users', user.uid), profile);
+  }
+
+  return { user, profile };
 }
 
 /**
