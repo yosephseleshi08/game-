@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { DailyProtocolState, GameMode, ProtocolTask } from '../types';
-import { getTimeUntilNext12PM, saveDailyProtocol } from '../utils/protocol';
+import { getTimeUntilNext12AM, saveDailyProtocol } from '../utils/protocol';
 import { sound } from '../utils/audio';
 import {
   Calendar,
@@ -19,6 +19,7 @@ import {
   Info,
   Trophy,
 } from 'lucide-react';
+import { FlashSpeed } from '../types';
 
 interface DailyProtocolTrackerProps {
   protocol: DailyProtocolState;
@@ -26,6 +27,9 @@ interface DailyProtocolTrackerProps {
   onNavigateMode: (mode: GameMode) => void;
   onAddXp: (amount: number) => void;
   onOpenRoadmap?: () => void;
+  onOpenFlashPlan?: () => void;
+  currentSpeed?: FlashSpeed;
+  isSpeedLockedToPlan?: boolean;
 }
 
 export const DailyProtocolTracker: React.FC<DailyProtocolTrackerProps> = ({
@@ -34,16 +38,19 @@ export const DailyProtocolTracker: React.FC<DailyProtocolTrackerProps> = ({
   onNavigateMode,
   onAddXp,
   onOpenRoadmap,
+  onOpenFlashPlan,
+  currentSpeed,
+  isSpeedLockedToPlan,
 }) => {
-  const [timeLeft, setTimeLeft] = useState(getTimeUntilNext12PM());
+  const [timeLeft, setTimeLeft] = useState(getTimeUntilNext12AM());
 
-  // Countdown loop for 12:00 PM reset timer
+  // Countdown loop for 12:00 AM (Midnight) reset timer
   useEffect(() => {
     const timer = setInterval(() => {
-      const remaining = getTimeUntilNext12PM();
+      const remaining = getTimeUntilNext12AM();
       setTimeLeft(remaining);
       if (remaining.totalSeconds <= 0 && protocol.isLockedOut) {
-        // Automatically unlock when clock hits 12:00 PM!
+        // Automatically unlock when clock hits 12:00 AM!
         window.location.reload();
       }
     }, 1000);
@@ -101,7 +108,7 @@ export const DailyProtocolTracker: React.FC<DailyProtocolTrackerProps> = ({
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-6">
-      {/* Top Banner with Curriculum Day & 12 PM Reset Status */}
+      {/* Top Banner with Curriculum Day & 12 AM Reset Status */}
       <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 mb-6 shadow-2xl relative overflow-hidden backdrop-blur">
         <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
           <div>
@@ -118,34 +125,51 @@ export const DailyProtocolTracker: React.FC<DailyProtocolTrackerProps> = ({
             </h2>
             <p className="text-xs text-slate-300 mt-1 max-w-xl leading-relaxed">
               Automated daily mental regimen. Complete today's quota to trigger the anti-burnout lockout.
-              Your next level unlocks cleanly at <strong className="text-emerald-300">12:00 PM</strong> daily.
+              Your next level unlocks cleanly at <strong className="text-emerald-300">12:00 AM (Midnight)</strong> daily.
             </p>
-            {onOpenRoadmap && (
-              <button
-                onClick={onOpenRoadmap}
-                className="mt-3 inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-500/20 to-cyan-500/20 hover:from-amber-500/30 hover:to-cyan-500/30 border border-amber-500/30 text-amber-300 text-xs font-bold transition-all cursor-pointer shadow-sm active:scale-98"
-              >
-                <Trophy className="w-3.5 h-3.5 text-amber-400" />
-                View 365-Day Genius Roadmap & Milestone Skills
-                <span className="text-[10px] bg-amber-500/20 px-1.5 py-0.5 rounded text-amber-200">
-                  Top 0.1%
-                </span>
-              </button>
-            )}
+            <div className="flex flex-wrap items-center gap-2 mt-3">
+              {onOpenFlashPlan && (
+                <button
+                  onClick={onOpenFlashPlan}
+                  className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-gradient-to-r from-cyan-500/20 to-indigo-500/20 hover:from-cyan-500/30 hover:to-indigo-500/30 border border-cyan-500/40 text-cyan-300 text-xs font-bold transition-all cursor-pointer shadow-sm active:scale-98"
+                >
+                  <Clock className="w-3.5 h-3.5 text-cyan-400" />
+                  Flash Time Plan & Lock
+                  {currentSpeed && (
+                    <span className="text-[10px] bg-cyan-500/20 px-1.5 py-0.5 rounded text-cyan-200 font-mono">
+                      {isSpeedLockedToPlan ? `🔒 ${currentSpeed}ms Locked` : `${currentSpeed}ms`}
+                    </span>
+                  )}
+                </button>
+              )}
+
+              {onOpenRoadmap && (
+                <button
+                  onClick={onOpenRoadmap}
+                  className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-500/20 to-cyan-500/20 hover:from-amber-500/30 hover:to-cyan-500/30 border border-amber-500/30 text-amber-300 text-xs font-bold transition-all cursor-pointer shadow-sm active:scale-98"
+                >
+                  <Trophy className="w-3.5 h-3.5 text-amber-400" />
+                  View 365-Day Genius Roadmap
+                  <span className="text-[10px] bg-amber-500/20 px-1.5 py-0.5 rounded text-amber-200">
+                    Top 0.1%
+                  </span>
+                </button>
+              )}
+            </div>
           </div>
 
-          {/* 12 PM Reset Countdown Card */}
+          {/* 12 AM Reset Countdown Card */}
           <div className="bg-slate-950/80 border border-slate-800 p-3.5 rounded-2xl flex flex-col items-center min-w-[170px]">
             <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider flex items-center gap-1 mb-1">
               <Clock className="w-3 h-3 text-cyan-400" />
-              Next 12:00 PM Reset
+              Next 12:00 AM Reset
             </span>
             <div className="text-xl font-mono font-black text-cyan-400 tracking-tight">
               {String(timeLeft.hours).padStart(2, '0')}:{String(timeLeft.minutes).padStart(2, '0')}:
               {String(timeLeft.seconds).padStart(2, '0')}
             </div>
             <span className="text-[9px] text-slate-500 mt-0.5">
-              {protocol.isLockedOut ? 'Locked until 12:00 PM' : 'Unlocks new day at 12 PM'}
+              {protocol.isLockedOut ? 'Locked until 12:00 AM' : 'Unlocks new day at 12 AM'}
             </span>
           </div>
         </div>
@@ -202,7 +226,7 @@ export const DailyProtocolTracker: React.FC<DailyProtocolTrackerProps> = ({
               {String(timeLeft.hours).padStart(2, '0')}h {String(timeLeft.minutes).padStart(2, '0')}m {String(timeLeft.seconds).padStart(2, '0')}s
             </div>
             <span className="text-[10px] text-slate-500 block mt-1">
-              Guaranteed exact unlock: Tomorrow at 12:00 PM
+              Guaranteed exact unlock: Tomorrow at 12:00 AM (Midnight)
             </span>
           </div>
 
@@ -232,7 +256,7 @@ export const DailyProtocolTracker: React.FC<DailyProtocolTrackerProps> = ({
               Today's Prescribed Quota (4 Disciplines)
             </h3>
             <span className="text-xs text-slate-400">
-              Auto-locks on completion until 12:00 PM
+              Auto-locks on completion until 12:00 AM
             </span>
           </div>
 
@@ -295,7 +319,7 @@ export const DailyProtocolTracker: React.FC<DailyProtocolTrackerProps> = ({
               className="w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-400 hover:to-cyan-400 text-slate-950 font-black text-sm flex items-center justify-center gap-2 shadow-xl shadow-emerald-500/25 transition-all active:scale-98 animate-bounce-short"
             >
               <Lock className="w-4 h-4" />
-              Complete Day {protocol.curriculumDay} Protocol & Lock Until 12:00 PM (+250 XP)
+              Complete Day {protocol.curriculumDay} Protocol & Lock Until 12:00 AM (+250 XP)
             </button>
           )}
         </div>

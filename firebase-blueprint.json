@@ -1,0 +1,51 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Public gaming profile and stats for community leaderboard and player directory",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "username": { "type": "string" },
+        "photoUrl": { "type": "string" },
+        "level": { "type": "number" },
+        "xp": { "type": "number" },
+        "rankTitle": { "type": "string" },
+        "curriculumDay": { "type": "number" },
+        "currentStreak": { "type": "number" },
+        "bestStreak": { "type": "number" },
+        "ayumuMaxNumbers": { "type": "number" },
+        "matrixMaxLevel": { "type": "number" },
+        "dualNBackMaxN": { "type": "number" },
+        "fastestFlashMs": { "type": "number" },
+        "detectiveHighScore": { "type": "number" },
+        "lockedFlashSpeed": { "type": "number" },
+        "isSpeedLockedToPlan": { "type": "boolean" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["id", "username", "photoUrl", "level", "xp"]
+    },
+    "PrivateUserData": {
+      "title": "PrivateUserData",
+      "description": "Private game state and deep progress backup per user",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "statsJson": { "type": "string" },
+        "protocolJson": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["userId", "statsJson", "protocolJson"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "entity": "UserProfile",
+      "description": "Public player profile allowing all users to view and compare community memory athletes"
+    },
+    "/users/{userId}/private/{docId}": {
+      "entity": "PrivateUserData",
+      "description": "Private detailed telemetry and save state restricted strictly to the document owner"
+    }
+  }
+}

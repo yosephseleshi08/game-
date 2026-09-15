@@ -6,6 +6,7 @@ export type GameMode =
   | 'mnemonic-speed'
   | 'symbol-detective'
   | 'daily-workout'
+  | 'community'
   | 'stats';
 
 export type FlashSpeed = 2000 | 1200 | 600 | 300 | 150;
@@ -15,6 +16,45 @@ export interface FlashSpeedOption {
   label: string;
   tag: string;
   xpMultiplier: number;
+}
+
+export interface UserProfile {
+  id: string;
+  email?: string;
+  username: string;
+  photoUrl: string;
+  avatarPresetId?: string;
+  level: number;
+  xp: number;
+  rankTitle: string;
+  curriculumDay: number;
+  currentStreak: number;
+  bestStreak: number;
+  ayumuMaxNumbers: number;
+  matrixMaxLevel: number;
+  dualNBackMaxN: number;
+  fastestFlashMs: number;
+  detectiveHighScore: number;
+  lockedFlashSpeed?: FlashSpeed | null;
+  isSpeedLockedToPlan?: boolean;
+  updatedAt: string;
+  createdAt?: string;
+}
+
+export interface FlashTimePlanPhase {
+  phase: number;
+  phaseName: string;
+  daysRange: string;
+  minDay: number;
+  maxDay: number;
+  targetSpeedMs: FlashSpeed;
+  speedLabel: string;
+  tag: string;
+  title: string;
+  scientificGoal: string;
+  neuroFocus: string;
+  dailyProtocolBenchmark: string;
+  ayumuExpectation: string;
 }
 
 export interface UserStats {
@@ -162,7 +202,7 @@ export interface DetectiveQuestion {
   questionType: 'color' | 'shape' | 'count' | 'position';
 }
 
-// Daily Protocol & 12 PM Lockout Tracker
+// Daily Protocol & 12 AM (Midnight) Lockout Tracker
 export interface ProtocolTask {
   id: 'dual-nback' | 'mnemonic-pegs' | 'memory-palace' | 'eidetic-matrix';
   title: string;
@@ -175,7 +215,7 @@ export interface ProtocolTask {
 }
 
 export interface DailyProtocolState {
-  currentCycleDate: string; // The cycle key (e.g. '2026-09-15-12PM')
+  currentCycleDate: string; // The cycle key (e.g. '2026-09-15-12AM')
   isLockedOut: boolean;
   completedAt?: string;
   curriculumDay: number; // 1 to 365

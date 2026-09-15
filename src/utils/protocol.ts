@@ -3,36 +3,20 @@ import { DailyProtocolState, ProtocolTask } from '../types';
 const PROTOCOL_STORAGE_KEY = 'pmm_daily_protocol_v1';
 
 /**
- * Calculates the current 24-hour cycle identifier based on 12:00 PM (Noon) reset.
+ * Calculates the current 24-hour cycle identifier based on 12:00 AM (Midnight) reset.
  * For example:
- * If current time is Sept 15, 10:30 AM (before 12 PM), the current cycle began on Sept 14 at 12:00 PM.
- * If current time is Sept 15, 1:00 PM (after 12 PM), the current cycle began on Sept 15 at 12:00 PM.
- * The next unlock always occurs on the next 12:00 PM.
+ * Current cycle begins at 12:00 AM (00:00:00) of today.
+ * The next unlock always occurs at 12:00 AM (00:00:00) of tomorrow.
  */
 export function getCurrentCycleInfo(now = new Date()) {
   const currentYear = now.getFullYear();
   const currentMonth = now.getMonth();
   const currentDate = now.getDate();
 
-  const todayNoon = new Date(currentYear, currentMonth, currentDate, 12, 0, 0, 0);
+  const cycleStartDate = new Date(currentYear, currentMonth, currentDate, 0, 0, 0, 0);
+  const nextUnlockDate = new Date(currentYear, currentMonth, currentDate + 1, 0, 0, 0, 0);
 
-  let cycleStartDate: Date;
-  let nextUnlockDate: Date;
-
-  if (now.getTime() >= todayNoon.getTime()) {
-    // We are past today's 12:00 PM
-    cycleStartDate = todayNoon;
-    // Next unlock is tomorrow at 12:00 PM
-    nextUnlockDate = new Date(currentYear, currentMonth, currentDate + 1, 12, 0, 0, 0);
-  } else {
-    // We are before today's 12:00 PM
-    // The current cycle started yesterday at 12:00 PM
-    cycleStartDate = new Date(currentYear, currentMonth, currentDate - 1, 12, 0, 0, 0);
-    // Next unlock is today at 12:00 PM
-    nextUnlockDate = todayNoon;
-  }
-
-  const cycleKey = `${cycleStartDate.getFullYear()}-${String(cycleStartDate.getMonth() + 1).padStart(2, '0')}-${String(cycleStartDate.getDate()).padStart(2, '0')}-12PM`;
+  const cycleKey = `${cycleStartDate.getFullYear()}-${String(cycleStartDate.getMonth() + 1).padStart(2, '0')}-${String(cycleStartDate.getDate()).padStart(2, '0')}-12AM`;
 
   return {
     cycleKey,
@@ -104,7 +88,7 @@ export function loadDailyProtocol(): DailyProtocolState {
     }
     const parsed: DailyProtocolState = JSON.parse(raw);
 
-    // If the cycle has rolled over past 12:00 PM, start a new day's protocol!
+    // If the cycle has rolled over past 12:00 AM (Midnight), start a new day's protocol!
     if (parsed.currentCycleDate !== cycleKey) {
       const wasCompleted = parsed.isLockedOut || parsed.tasks.every((t) => t.isCompleted);
       const nextDay = wasCompleted ? (parsed.curriculumDay || 1) + 1 : parsed.curriculumDay || 1;
@@ -159,9 +143,9 @@ export function saveDailyProtocol(state: DailyProtocolState): void {
 }
 
 /**
- * Calculates remaining time until next 12:00 PM reset in formatted hours, minutes, seconds.
+ * Calculates remaining time until next 12:00 AM (Midnight) reset in formatted hours, minutes, seconds.
  */
-export function getTimeUntilNext12PM(): { hours: number; minutes: number; seconds: number; totalSeconds: number } {
+export function getTimeUntilNext12AM(): { hours: number; minutes: number; seconds: number; totalSeconds: number } {
   const now = new Date();
   const { nextUnlockDate } = getCurrentCycleInfo(now);
 
@@ -174,3 +158,6 @@ export function getTimeUntilNext12PM(): { hours: number; minutes: number; second
 
   return { hours, minutes, seconds, totalSeconds };
 }
+
+// Backward-compatible alias
+export const getTimeUntilNext12PM = getTimeUntilNext12AM;

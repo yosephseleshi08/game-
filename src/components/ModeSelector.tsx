@@ -1,7 +1,7 @@
 import React from 'react';
 import { GameMode } from '../types';
 import { sound } from '../utils/audio';
-import { Grid3X3, Hash, Sparkles, Award, BarChart3, Brain, Flame, CalendarCheck } from 'lucide-react';
+import { Grid3X3, Hash, Sparkles, Award, BarChart3, Brain, Flame, CalendarCheck, Users } from 'lucide-react';
 
 interface ModeSelectorProps {
   activeMode: GameMode;
@@ -14,7 +14,7 @@ export const ModeSelector: React.FC<ModeSelectorProps> = ({ activeMode, onSelect
     {
       id: 'daily-protocol',
       label: 'Daily Protocol',
-      desc: '365-Day 12 PM Lockout Plan',
+      desc: '365-Day 12 AM Lockout Plan',
       icon: <CalendarCheck className="w-4 h-4 text-emerald-400" />,
       badge: isLockedOut ? 'Locked' : 'Target',
     },
@@ -59,6 +59,13 @@ export const ModeSelector: React.FC<ModeSelectorProps> = ({ activeMode, onSelect
       desc: 'Full photographic quotient',
       icon: <Award className="w-4 h-4 text-emerald-400" />,
       badge: 'Daily',
+    },
+    {
+      id: 'community',
+      label: 'All Players',
+      desc: 'Community athlete directory',
+      icon: <Users className="w-4 h-4 text-teal-400" />,
+      badge: 'Players',
     },
     {
       id: 'stats',

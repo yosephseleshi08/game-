@@ -193,7 +193,7 @@ export const GeniusRoadmapModal: React.FC<GeniusRoadmapModalProps> = ({
           </div>
           <div className="flex items-center gap-4 text-slate-400">
             <span>
-              Target: <strong className="text-emerald-400">12:00 PM Daily Protocol</strong>
+              Target: <strong className="text-emerald-400">12:00 AM (Midnight) Protocol</strong>
             </span>
             <span className="hidden sm:inline text-slate-600">|</span>
             <span className="hidden sm:inline">
@@ -322,7 +322,7 @@ export const GeniusRoadmapModal: React.FC<GeniusRoadmapModalProps> = ({
         <div className="p-4 border-t border-slate-800 bg-slate-950 flex flex-wrap items-center justify-between gap-3 text-xs">
           <span className="text-slate-400 flex items-center gap-1.5">
             <ShieldCheck className="w-4 h-4 text-emerald-400" />
-            Consistently completing your 12:00 PM protocol ensures every milestone is achieved.
+            Consistently completing your 12:00 AM protocol ensures every milestone is achieved.
           </span>
           <button
             onClick={onClose}

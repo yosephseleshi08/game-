@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { GameMode, FlashSpeed, UserStats, DailyPQRecord } from './types';
+import React, { useState, useEffect, useRef } from 'react';
+import { GameMode, FlashSpeed, UserStats, DailyPQRecord, UserProfile } from './types';
 import {
   loadUserStats,
   saveUserStats,
@@ -20,29 +20,181 @@ import { DailyProtocolTracker } from './components/DailyProtocolTracker';
 import { StatsDashboard } from './components/StatsDashboard';
 import { TrainingTipsModal } from './components/TrainingTipsModal';
 import { GeniusRoadmapModal } from './components/GeniusRoadmapModal';
+import { FlashTimePlanModal } from './components/FlashTimePlanModal';
+import { AuthModal } from './components/AuthModal';
+import { UserProfileModal } from './components/UserProfileModal';
+import { CommunityPlayersView } from './components/CommunityPlayersView';
 import { loadDailyProtocol, saveDailyProtocol } from './utils/protocol';
-import { Award, Sparkles, X } from 'lucide-react';
+import { getPlanSpeedForDay } from './utils/flashPlan';
+import {
+  subscribeToAuth,
+  getUserProfile,
+  saveUserProfile,
+  loadUserCloudData,
+  saveUserCloudData,
+} from './utils/firebase';
+import { User } from 'firebase/auth';
+import { Award, Sparkles, X, ShieldCheck } from 'lucide-react';
 
 export default function App() {
   const [stats, setStats] = useState<UserStats>(() => loadUserStats());
-  const [currentSpeed, setCurrentSpeed] = useState<FlashSpeed>(() => loadSavedFlashSpeed());
   const [protocol, setProtocol] = useState(() => loadDailyProtocol());
+
+  // 365-Day Flash Speed Lock State
+  const [isSpeedLockedToPlan, setIsSpeedLockedToPlan] = useState<boolean>(() => {
+    const savedLock = localStorage.getItem('eidetic_speed_locked_plan');
+    return savedLock !== null ? savedLock === 'true' : true;
+  });
+
+  const [currentSpeed, setCurrentSpeed] = useState<FlashSpeed>(() => {
+    const savedSpeed = loadSavedFlashSpeed();
+    return savedSpeed;
+  });
+
   const [activeMode, setActiveMode] = useState<GameMode>('daily-protocol');
+
+  // Modals
   const [isTipsModalOpen, setIsTipsModalOpen] = useState(false);
   const [isRoadmapModalOpen, setIsRoadmapModalOpen] = useState(false);
+  const [isFlashPlanOpen, setIsFlashPlanOpen] = useState(false);
+  const [isAuthOpen, setIsAuthOpen] = useState(false);
+  const [authMode, setAuthMode] = useState<'signin' | 'signup'>('signin');
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+
+  // Audio State
   const [isSoundMuted, setIsSoundMuted] = useState(sound.isMuted);
 
   // Level Up Toast
   const [levelUpAlert, setLevelUpAlert] = useState<{ oldLevel: number; newLevel: number; title: string } | null>(null);
 
-  // Auto-sync stats to localStorage
+  // Firebase Auth & Cloud Sync State
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [currentProfile, setCurrentProfile] = useState<UserProfile | null>(null);
+  const [authInitialized, setAuthInitialized] = useState(false);
+
+  // Ref to prevent initial overwrite loops
+  const isSyncingFromCloud = useRef(false);
+
+  // 1. Subscribe to Firebase Auth
+  useEffect(() => {
+    const unsubscribe = subscribeToAuth(async (user) => {
+      setCurrentUser(user);
+      setAuthInitialized(true);
+
+      if (user) {
+        try {
+          // Fetch public profile
+          const profile = await getUserProfile(user.uid);
+          if (profile) {
+            setCurrentProfile(profile);
+            if (profile.lockedFlashSpeed) {
+              setCurrentSpeed(profile.lockedFlashSpeed);
+              saveFlashSpeed(profile.lockedFlashSpeed);
+            }
+            if (typeof profile.isSpeedLockedToPlan === 'boolean') {
+              setIsSpeedLockedToPlan(profile.isSpeedLockedToPlan);
+              localStorage.setItem('eidetic_speed_locked_plan', String(profile.isSpeedLockedToPlan));
+            }
+          }
+
+          // Fetch private cloud data (stats, protocol)
+          const cloudData = await loadUserCloudData(user.uid);
+          if (cloudData) {
+            isSyncingFromCloud.current = true;
+            if (cloudData.stats) {
+              setStats((prev) => ({
+                ...prev,
+                ...cloudData.stats,
+                // keep the higher of local or cloud xp to avoid any regression
+                xp: Math.max(prev.xp, cloudData.stats?.xp || 0),
+                level: Math.max(prev.level, cloudData.stats?.level || 1),
+                bestStreak: Math.max(prev.bestStreak, cloudData.stats?.bestStreak || 0),
+                ayumuMaxNumbers: Math.max(prev.ayumuMaxNumbers, cloudData.stats?.ayumuMaxNumbers || 4),
+                matrixMaxLevel: Math.max(prev.matrixMaxLevel, cloudData.stats?.matrixMaxLevel || 4),
+              }));
+            }
+            if (cloudData.protocol) {
+              setProtocol((prev) => ({
+                ...prev,
+                ...cloudData.protocol,
+                curriculumDay: Math.max(prev.curriculumDay, cloudData.protocol?.curriculumDay || 1),
+              }));
+            }
+            setTimeout(() => {
+              isSyncingFromCloud.current = false;
+            }, 500);
+          }
+        } catch (err) {
+          console.error('Error fetching cloud profile:', err);
+        }
+      } else {
+        setCurrentProfile(null);
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  // 2. Auto-sync stats to local storage & cloud
   useEffect(() => {
     saveUserStats(stats);
-  }, [stats]);
+
+    if (currentUser && !isSyncingFromCloud.current) {
+      const syncTimeout = setTimeout(() => {
+        saveUserCloudData(currentUser.uid, stats, protocol).catch(console.error);
+
+        // Also keep public profile updated with key leaderboard stats
+        if (currentProfile) {
+          const rank = getRankForXp(stats.xp).currentRank;
+          const updatedProfile: UserProfile = {
+            ...currentProfile,
+            level: stats.level,
+            xp: stats.xp,
+            rankTitle: rank.title,
+            curriculumDay: protocol.curriculumDay,
+            currentStreak: stats.currentStreak,
+            bestStreak: stats.bestStreak,
+            ayumuMaxNumbers: stats.ayumuMaxNumbers,
+            matrixMaxLevel: stats.matrixMaxLevel,
+            dualNBackMaxN: stats.dualNBackMaxN,
+            fastestFlashMs: stats.fastestFlashMs,
+            detectiveHighScore: stats.detectiveHighScore,
+            lockedFlashSpeed: currentSpeed,
+            isSpeedLockedToPlan,
+            updatedAt: new Date().toISOString(),
+          };
+          saveUserProfile(currentUser.uid, updatedProfile).catch(console.error);
+        }
+      }, 1500);
+
+      return () => clearTimeout(syncTimeout);
+    }
+  }, [stats, protocol, currentUser, currentSpeed, isSpeedLockedToPlan]);
+
+  // 3. Keep speed locked to curriculum day if lock is enabled
+  useEffect(() => {
+    if (isSpeedLockedToPlan) {
+      const planSpeed = getPlanSpeedForDay(protocol.curriculumDay);
+      if (currentSpeed !== planSpeed) {
+        setCurrentSpeed(planSpeed);
+        saveFlashSpeed(planSpeed);
+      }
+    }
+  }, [protocol.curriculumDay, isSpeedLockedToPlan]);
 
   const handleSpeedChange = (newSpeed: FlashSpeed) => {
     setCurrentSpeed(newSpeed);
     saveFlashSpeed(newSpeed);
+  };
+
+  const handleToggleLockToPlan = (locked: boolean) => {
+    setIsSpeedLockedToPlan(locked);
+    localStorage.setItem('eidetic_speed_locked_plan', String(locked));
+    if (locked) {
+      const planSpeed = getPlanSpeedForDay(protocol.curriculumDay);
+      setCurrentSpeed(planSpeed);
+      saveFlashSpeed(planSpeed);
+    }
   };
 
   const handleToggleSound = () => {
@@ -223,13 +375,20 @@ export default function App() {
     }));
   };
 
+  const openAuth = (mode: 'signin' | 'signup' = 'signin') => {
+    setAuthMode(mode);
+    setIsAuthOpen(true);
+  };
+
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-cyan-500 selection:text-slate-950">
       {/* Top Header */}
       <Header
         stats={stats}
         currentSpeed={currentSpeed}
+        isSpeedLockedToPlan={isSpeedLockedToPlan}
         onSpeedChange={handleSpeedChange}
+        onOpenFlashPlan={() => setIsFlashPlanOpen(true)}
         onOpenTips={() => setIsTipsModalOpen(true)}
         onOpenRoadmap={() => setIsRoadmapModalOpen(true)}
         activeMode={activeMode}
@@ -238,6 +397,10 @@ export default function App() {
         onToggleSound={handleToggleSound}
         curriculumDay={protocol.curriculumDay}
         isLockedOut={protocol.isLockedOut}
+        currentUser={currentUser}
+        currentProfile={currentProfile}
+        onOpenAuth={openAuth}
+        onOpenProfile={() => setIsProfileOpen(true)}
       />
 
       {/* Mode Navigation Tabs */}
@@ -266,7 +429,7 @@ export default function App() {
             </div>
             <button
               onClick={() => setLevelUpAlert(null)}
-              className="p-1.5 rounded-lg bg-slate-950/10 hover:bg-slate-950/20 text-slate-950"
+              className="p-1.5 rounded-lg bg-slate-950/10 hover:bg-slate-950/20 text-slate-950 cursor-pointer"
             >
               <X className="w-4 h-4" />
             </button>
@@ -283,6 +446,9 @@ export default function App() {
             onNavigateMode={setActiveMode}
             onAddXp={handleAddXp}
             onOpenRoadmap={() => setIsRoadmapModalOpen(true)}
+            onOpenFlashPlan={() => setIsFlashPlanOpen(true)}
+            currentSpeed={currentSpeed}
+            isSpeedLockedToPlan={isSpeedLockedToPlan}
           />
         )}
 
@@ -335,8 +501,59 @@ export default function App() {
           />
         )}
 
+        {activeMode === 'community' && (
+          <CommunityPlayersView
+            currentUser={currentUser}
+            currentProfile={currentProfile}
+            currentStats={stats}
+            currentSpeed={currentSpeed}
+            isSpeedLockedToPlan={isSpeedLockedToPlan}
+            curriculumDay={protocol.curriculumDay}
+            onOpenAuth={openAuth}
+            onOpenProfile={() => setIsProfileOpen(true)}
+          />
+        )}
+
         {activeMode === 'stats' && <StatsDashboard stats={stats} />}
       </main>
+
+      {/* 365-Day Flash Time Plan & Speed Lock Modal */}
+      <FlashTimePlanModal
+        isOpen={isFlashPlanOpen}
+        onClose={() => setIsFlashPlanOpen(false)}
+        currentDay={protocol.curriculumDay}
+        currentSpeed={currentSpeed}
+        isSpeedLockedToPlan={isSpeedLockedToPlan}
+        onToggleLockToPlan={handleToggleLockToPlan}
+        onSetSpeed={handleSpeedChange}
+      />
+
+      {/* Sign In & Create Account Modal */}
+      <AuthModal
+        isOpen={isAuthOpen}
+        onClose={() => setIsAuthOpen(false)}
+        initialMode={authMode}
+        onAuthSuccess={(profile) => {
+          if (profile) setCurrentProfile(profile);
+        }}
+      />
+
+      {/* User Profile & Account Settings Modal */}
+      <UserProfileModal
+        isOpen={isProfileOpen}
+        onClose={() => setIsProfileOpen(false)}
+        currentUser={currentUser}
+        profile={currentProfile}
+        stats={stats}
+        currentSpeed={currentSpeed}
+        isSpeedLockedToPlan={isSpeedLockedToPlan}
+        curriculumDay={protocol.curriculumDay}
+        onUpdateProfile={(updated) => setCurrentProfile(updated)}
+        onSignOut={() => {
+          setCurrentUser(null);
+          setCurrentProfile(null);
+        }}
+      />
 
       {/* Scientific Technique Guide Modal */}
       <TrainingTipsModal
@@ -354,7 +571,7 @@ export default function App() {
       {/* Footer */}
       <footer className="border-t border-slate-900 bg-slate-950 py-4 px-4 text-center text-xs text-slate-500">
         <p>
-          Photographic Memory Master • Eidetic & Iconic Memory Cognitive Training Laboratory
+          Photographic Memory Master • 365-Day Retinal Snapshot & Iconic Flash Laboratory
         </p>
       </footer>
     </div>
