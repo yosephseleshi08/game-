@@ -89,6 +89,12 @@ const defaultStats: UserStats = {
   mnemonicConversionCount: 0,
   cardsMastered: 0,
   pqHistory: [],
+  progressHistory: [
+    { id: 'baseline-1', timestamp: new Date(Date.now() - 6 * 86400000).toISOString(), displayDate: 'Day 1', ayumuMax: 4, dualNBackMaxN: 2, matrixLevel: 1 },
+    { id: 'baseline-2', timestamp: new Date(Date.now() - 4 * 86400000).toISOString(), displayDate: 'Day 3', ayumuMax: 5, dualNBackMaxN: 2, matrixLevel: 2 },
+    { id: 'baseline-3', timestamp: new Date(Date.now() - 2 * 86400000).toISOString(), displayDate: 'Day 5', ayumuMax: 6, dualNBackMaxN: 3, matrixLevel: 3 },
+    { id: 'baseline-4', timestamp: new Date().toISOString(), displayDate: 'Today', ayumuMax: 6, dualNBackMaxN: 3, matrixLevel: 4 },
+  ],
 };
 
 export function loadUserStats(): UserStats {

@@ -19,6 +19,7 @@ import { DailyWorkoutGame } from './components/DailyWorkoutGame';
 import { DailyProtocolTracker } from './components/DailyProtocolTracker';
 import { StatsDashboard } from './components/StatsDashboard';
 import { TrainingTipsModal } from './components/TrainingTipsModal';
+import { GeniusRoadmapModal } from './components/GeniusRoadmapModal';
 import { loadDailyProtocol, saveDailyProtocol } from './utils/protocol';
 import { Award, Sparkles, X } from 'lucide-react';
 
@@ -28,6 +29,7 @@ export default function App() {
   const [protocol, setProtocol] = useState(() => loadDailyProtocol());
   const [activeMode, setActiveMode] = useState<GameMode>('daily-protocol');
   const [isTipsModalOpen, setIsTipsModalOpen] = useState(false);
+  const [isRoadmapModalOpen, setIsRoadmapModalOpen] = useState(false);
   const [isSoundMuted, setIsSoundMuted] = useState(sound.isMuted);
 
   // Level Up Toast
@@ -78,6 +80,21 @@ export default function App() {
       const newMaxDigits = isSuccess ? Math.max(prev.ayumuMaxNumbers, digitsCount) : prev.ayumuMaxNumbers;
       const newFastest = isSuccess ? Math.min(prev.fastestFlashMs, currentSpeed) : prev.fastestFlashMs;
 
+      const updatedHistory = [...(prev.progressHistory || [])];
+      if (isSuccess && digitsCount > prev.ayumuMaxNumbers) {
+        const now = new Date();
+        const displayDate = now.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+        updatedHistory.push({
+          id: 'ayumu-' + Date.now(),
+          timestamp: now.toISOString(),
+          displayDate,
+          ayumuMax: newMaxDigits,
+          dualNBackMaxN: prev.dualNBackMaxN,
+          matrixLevel: prev.matrixMaxLevel,
+          notes: `New Ayumu Peak: ${digitsCount} digits`,
+        });
+      }
+
       return {
         ...prev,
         totalGamesPlayed: prev.totalGamesPlayed + 1,
@@ -87,6 +104,7 @@ export default function App() {
         currentStreak: newStreak,
         bestStreak: newBestStreak,
         fastestFlashMs: newFastest,
+        progressHistory: updatedHistory,
       };
     });
   };
@@ -110,11 +128,29 @@ export default function App() {
   };
 
   const handleRecordNBackMax = (level: number) => {
-    setStats((prev) => ({
-      ...prev,
-      dualNBackMaxN: Math.max(prev.dualNBackMaxN, level),
-      totalGamesPlayed: prev.totalGamesPlayed + 1,
-    }));
+    setStats((prev) => {
+      const updatedHistory = [...(prev.progressHistory || [])];
+      if (level > prev.dualNBackMaxN) {
+        const now = new Date();
+        const displayDate = now.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+        updatedHistory.push({
+          id: 'nback-' + Date.now(),
+          timestamp: now.toISOString(),
+          displayDate,
+          ayumuMax: prev.ayumuMaxNumbers,
+          dualNBackMaxN: level,
+          matrixLevel: prev.matrixMaxLevel,
+          notes: `New Dual N-Back Peak: N=${level}`,
+        });
+      }
+
+      return {
+        ...prev,
+        dualNBackMaxN: Math.max(prev.dualNBackMaxN, level),
+        totalGamesPlayed: prev.totalGamesPlayed + 1,
+        progressHistory: updatedHistory,
+      };
+    });
     // Auto-advance daily protocol Dual N-Back task
     setProtocol((prev) => {
       if (prev.isLockedOut) return prev;
@@ -195,6 +231,7 @@ export default function App() {
         currentSpeed={currentSpeed}
         onSpeedChange={handleSpeedChange}
         onOpenTips={() => setIsTipsModalOpen(true)}
+        onOpenRoadmap={() => setIsRoadmapModalOpen(true)}
         activeMode={activeMode}
         onSelectMode={setActiveMode}
         isSoundMuted={isSoundMuted}
@@ -245,6 +282,7 @@ export default function App() {
             onUpdateProtocol={setProtocol}
             onNavigateMode={setActiveMode}
             onAddXp={handleAddXp}
+            onOpenRoadmap={() => setIsRoadmapModalOpen(true)}
           />
         )}
 
@@ -304,6 +342,13 @@ export default function App() {
       <TrainingTipsModal
         isOpen={isTipsModalOpen}
         onClose={() => setIsTipsModalOpen(false)}
+      />
+
+      {/* 365-Day Genius Roadmap & Milestone Modal */}
+      <GeniusRoadmapModal
+        isOpen={isRoadmapModalOpen}
+        onClose={() => setIsRoadmapModalOpen(false)}
+        currentDay={protocol.curriculumDay}
       />
 
       {/* Footer */}

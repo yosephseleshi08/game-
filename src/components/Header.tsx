@@ -3,12 +3,14 @@ import { UserStats, FlashSpeed, GameMode } from '../types';
 import { getRankForXp, FLASH_SPEED_OPTIONS } from '../utils/storage';
 import { sound } from '../utils/audio';
 import { Camera, Volume2, VolumeX, BookOpen, Flame, Award, Zap, Clock, CalendarCheck, Lock } from 'lucide-react';
+import { AmbientSoundscapePlayer } from './AmbientSoundscapePlayer';
 
 interface HeaderProps {
   stats: UserStats;
   currentSpeed: FlashSpeed;
   onSpeedChange: (speed: FlashSpeed) => void;
   onOpenTips: () => void;
+  onOpenRoadmap?: () => void;
   activeMode: GameMode;
   onSelectMode: (mode: GameMode) => void;
   isSoundMuted: boolean;
@@ -22,6 +24,7 @@ export const Header: React.FC<HeaderProps> = ({
   currentSpeed,
   onSpeedChange,
   onOpenTips,
+  onOpenRoadmap,
   activeMode,
   onSelectMode,
   isSoundMuted,
@@ -126,6 +129,9 @@ export const Header: React.FC<HeaderProps> = ({
             </select>
           </div>
 
+          {/* Ambient Soundscape Player (Brown Noise & Binaural Beats) */}
+          <AmbientSoundscapePlayer />
+
           {/* Sound Toggle */}
           <button
             onClick={() => {
@@ -152,6 +158,21 @@ export const Header: React.FC<HeaderProps> = ({
             <BookOpen className="w-3.5 h-3.5 text-indigo-400" />
             <span className="hidden md:inline">Master Techniques</span>
           </button>
+
+          {/* 365 Genius Roadmap Button */}
+          {onOpenRoadmap && (
+            <button
+              onClick={() => {
+                sound.playClick();
+                onOpenRoadmap();
+              }}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 font-bold text-xs transition-all shadow-sm cursor-pointer"
+              title="View the 365-Day Genius Roadmap"
+            >
+              <Award className="w-3.5 h-3.5 text-amber-400" />
+              <span className="hidden lg:inline">Genius Roadmap</span>
+            </button>
+          )}
         </div>
       </div>
     </header>

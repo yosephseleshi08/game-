@@ -35,6 +35,17 @@ export interface UserStats {
   mnemonicConversionCount: number;
   cardsMastered: number;
   pqHistory: DailyPQRecord[];
+  progressHistory?: ProgressHistoryEntry[];
+}
+
+export interface ProgressHistoryEntry {
+  id: string;
+  timestamp: string; // ISO string
+  displayDate: string; // formatted e.g. "Sep 15" or "Day 1"
+  ayumuMax: number;
+  dualNBackMaxN: number;
+  matrixLevel?: number;
+  notes?: string;
 }
 
 export interface DailyPQRecord {

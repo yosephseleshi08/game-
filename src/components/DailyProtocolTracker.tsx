@@ -17,6 +17,7 @@ import {
   RotateCcw,
   Sparkles,
   Info,
+  Trophy,
 } from 'lucide-react';
 
 interface DailyProtocolTrackerProps {
@@ -24,6 +25,7 @@ interface DailyProtocolTrackerProps {
   onUpdateProtocol: (updated: DailyProtocolState) => void;
   onNavigateMode: (mode: GameMode) => void;
   onAddXp: (amount: number) => void;
+  onOpenRoadmap?: () => void;
 }
 
 export const DailyProtocolTracker: React.FC<DailyProtocolTrackerProps> = ({
@@ -31,6 +33,7 @@ export const DailyProtocolTracker: React.FC<DailyProtocolTrackerProps> = ({
   onUpdateProtocol,
   onNavigateMode,
   onAddXp,
+  onOpenRoadmap,
 }) => {
   const [timeLeft, setTimeLeft] = useState(getTimeUntilNext12PM());
 
@@ -117,6 +120,18 @@ export const DailyProtocolTracker: React.FC<DailyProtocolTrackerProps> = ({
               Automated daily mental regimen. Complete today's quota to trigger the anti-burnout lockout.
               Your next level unlocks cleanly at <strong className="text-emerald-300">12:00 PM</strong> daily.
             </p>
+            {onOpenRoadmap && (
+              <button
+                onClick={onOpenRoadmap}
+                className="mt-3 inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-500/20 to-cyan-500/20 hover:from-amber-500/30 hover:to-cyan-500/30 border border-amber-500/30 text-amber-300 text-xs font-bold transition-all cursor-pointer shadow-sm active:scale-98"
+              >
+                <Trophy className="w-3.5 h-3.5 text-amber-400" />
+                View 365-Day Genius Roadmap & Milestone Skills
+                <span className="text-[10px] bg-amber-500/20 px-1.5 py-0.5 rounded text-amber-200">
+                  Top 0.1%
+                </span>
+              </button>
+            )}
           </div>
 
           {/* 12 PM Reset Countdown Card */}
