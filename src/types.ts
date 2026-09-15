@@ -1,4 +1,5 @@
 export type GameMode =
+  | 'daily-protocol'
   | 'eidetic-matrix'
   | 'ayumu-chimp'
   | 'dual-nback'
@@ -149,3 +150,26 @@ export interface DetectiveQuestion {
   targetCol?: number;
   questionType: 'color' | 'shape' | 'count' | 'position';
 }
+
+// Daily Protocol & 12 PM Lockout Tracker
+export interface ProtocolTask {
+  id: 'dual-nback' | 'mnemonic-pegs' | 'memory-palace' | 'eidetic-matrix';
+  title: string;
+  discipline: string;
+  targetDescription: string;
+  targetCount: number;
+  currentCount: number;
+  isCompleted: boolean;
+  gameMode: GameMode;
+}
+
+export interface DailyProtocolState {
+  currentCycleDate: string; // The cycle key (e.g. '2026-09-15-12PM')
+  isLockedOut: boolean;
+  completedAt?: string;
+  curriculumDay: number; // 1 to 365
+  currentPhase: number; // 1 to 4
+  tasks: ProtocolTask[];
+  history: Record<string, { completed: boolean; score: number; completedAt: string }>;
+}
+

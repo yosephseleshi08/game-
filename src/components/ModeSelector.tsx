@@ -1,15 +1,23 @@
 import React from 'react';
 import { GameMode } from '../types';
 import { sound } from '../utils/audio';
-import { Grid3X3, Hash, Sparkles, Award, BarChart3, Brain, Flame } from 'lucide-react';
+import { Grid3X3, Hash, Sparkles, Award, BarChart3, Brain, Flame, CalendarCheck } from 'lucide-react';
 
 interface ModeSelectorProps {
   activeMode: GameMode;
   onSelectMode: (mode: GameMode) => void;
+  isLockedOut?: boolean;
 }
 
-export const ModeSelector: React.FC<ModeSelectorProps> = ({ activeMode, onSelectMode }) => {
+export const ModeSelector: React.FC<ModeSelectorProps> = ({ activeMode, onSelectMode, isLockedOut }) => {
   const modes: { id: GameMode; label: string; desc: string; icon: React.ReactNode; badge?: string }[] = [
+    {
+      id: 'daily-protocol',
+      label: 'Daily Protocol',
+      desc: '365-Day 12 PM Lockout Plan',
+      icon: <CalendarCheck className="w-4 h-4 text-emerald-400" />,
+      badge: isLockedOut ? 'Locked' : 'Target',
+    },
     {
       id: 'eidetic-matrix',
       label: 'Eidetic Matrix',

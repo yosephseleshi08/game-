@@ -16,14 +16,17 @@ import { DualNBackGame } from './components/DualNBackGame';
 import { MnemonicSpeedGame } from './components/MnemonicSpeedGame';
 import { SymbolDetectiveGame } from './components/SymbolDetectiveGame';
 import { DailyWorkoutGame } from './components/DailyWorkoutGame';
+import { DailyProtocolTracker } from './components/DailyProtocolTracker';
 import { StatsDashboard } from './components/StatsDashboard';
 import { TrainingTipsModal } from './components/TrainingTipsModal';
+import { loadDailyProtocol, saveDailyProtocol } from './utils/protocol';
 import { Award, Sparkles, X } from 'lucide-react';
 
 export default function App() {
   const [stats, setStats] = useState<UserStats>(() => loadUserStats());
   const [currentSpeed, setCurrentSpeed] = useState<FlashSpeed>(() => loadSavedFlashSpeed());
-  const [activeMode, setActiveMode] = useState<GameMode>('eidetic-matrix');
+  const [protocol, setProtocol] = useState(() => loadDailyProtocol());
+  const [activeMode, setActiveMode] = useState<GameMode>('daily-protocol');
   const [isTipsModalOpen, setIsTipsModalOpen] = useState(false);
   const [isSoundMuted, setIsSoundMuted] = useState(sound.isMuted);
 
@@ -64,26 +67,6 @@ export default function App() {
         ...prev,
         xp: newXp,
         level: newRank.level,
-      };
-    });
-  };
-
-  const handleRecordMatrixResult = (isSuccess: boolean, level: number) => {
-    setStats((prev) => {
-      const newStreak = isSuccess ? prev.currentStreak + 1 : 0;
-      const newBestStreak = Math.max(prev.bestStreak, newStreak);
-      const newMaxLevel = isSuccess ? Math.max(prev.matrixMaxLevel, level) : prev.matrixMaxLevel;
-      const newFastest = isSuccess ? Math.min(prev.fastestFlashMs, currentSpeed) : prev.fastestFlashMs;
-
-      return {
-        ...prev,
-        totalGamesPlayed: prev.totalGamesPlayed + 1,
-        totalAttempts: prev.totalAttempts + 1,
-        totalCorrectAttempts: prev.totalCorrectAttempts + (isSuccess ? 1 : 0),
-        matrixMaxLevel: newMaxLevel,
-        currentStreak: newStreak,
-        bestStreak: newBestStreak,
-        fastestFlashMs: newFastest,
       };
     });
   };
@@ -132,6 +115,16 @@ export default function App() {
       dualNBackMaxN: Math.max(prev.dualNBackMaxN, level),
       totalGamesPlayed: prev.totalGamesPlayed + 1,
     }));
+    // Auto-advance daily protocol Dual N-Back task
+    setProtocol((prev) => {
+      if (prev.isLockedOut) return prev;
+      const updatedTasks = prev.tasks.map((t) =>
+        t.id === 'dual-nback' ? { ...t, currentCount: t.currentCount + 1, isCompleted: true } : t
+      );
+      const updated = { ...prev, tasks: updatedTasks };
+      saveDailyProtocol(updated);
+      return updated;
+    });
   };
 
   const handleRecordMnemonicConversion = () => {
@@ -140,6 +133,51 @@ export default function App() {
       mnemonicConversionCount: prev.mnemonicConversionCount + 1,
       totalGamesPlayed: prev.totalGamesPlayed + 1,
     }));
+    // Auto-advance daily protocol Mnemonic Pegs task
+    setProtocol((prev) => {
+      if (prev.isLockedOut) return prev;
+      const updatedTasks = prev.tasks.map((t) => {
+        if (t.id === 'mnemonic-pegs') {
+          const nextCount = t.currentCount + 1;
+          return { ...t, currentCount: nextCount, isCompleted: nextCount >= t.targetCount };
+        }
+        return t;
+      });
+      const updated = { ...prev, tasks: updatedTasks };
+      saveDailyProtocol(updated);
+      return updated;
+    });
+  };
+
+  const handleRecordMatrixResult = (isSuccess: boolean, level: number) => {
+    if (isSuccess && level >= 4) {
+      setProtocol((prev) => {
+        if (prev.isLockedOut) return prev;
+        const updatedTasks = prev.tasks.map((t) =>
+          t.id === 'eidetic-matrix' ? { ...t, currentCount: Math.max(t.currentCount, level), isCompleted: true } : t
+        );
+        const updated = { ...prev, tasks: updatedTasks };
+        saveDailyProtocol(updated);
+        return updated;
+      });
+    }
+    setStats((prev) => {
+      const newStreak = isSuccess ? prev.currentStreak + 1 : 0;
+      const newBestStreak = Math.max(prev.bestStreak, newStreak);
+      const newMaxLevel = isSuccess ? Math.max(prev.matrixMaxLevel, level) : prev.matrixMaxLevel;
+      const newFastest = isSuccess ? Math.min(prev.fastestFlashMs, currentSpeed) : prev.fastestFlashMs;
+
+      return {
+        ...prev,
+        totalGamesPlayed: prev.totalGamesPlayed + 1,
+        totalAttempts: prev.totalAttempts + 1,
+        totalCorrectAttempts: prev.totalCorrectAttempts + (isSuccess ? 1 : 0),
+        matrixMaxLevel: newMaxLevel,
+        currentStreak: newStreak,
+        bestStreak: newBestStreak,
+        fastestFlashMs: newFastest,
+      };
+    });
   };
 
   const handleSavePQRecord = (record: DailyPQRecord) => {
@@ -161,10 +199,16 @@ export default function App() {
         onSelectMode={setActiveMode}
         isSoundMuted={isSoundMuted}
         onToggleSound={handleToggleSound}
+        curriculumDay={protocol.curriculumDay}
+        isLockedOut={protocol.isLockedOut}
       />
 
       {/* Mode Navigation Tabs */}
-      <ModeSelector activeMode={activeMode} onSelectMode={setActiveMode} />
+      <ModeSelector
+        activeMode={activeMode}
+        onSelectMode={setActiveMode}
+        isLockedOut={protocol.isLockedOut}
+      />
 
       {/* Level Up Banner Alert */}
       {levelUpAlert && (
@@ -195,6 +239,15 @@ export default function App() {
 
       {/* Primary Dynamic View */}
       <main className="flex-1 w-full pb-12">
+        {activeMode === 'daily-protocol' && (
+          <DailyProtocolTracker
+            protocol={protocol}
+            onUpdateProtocol={setProtocol}
+            onNavigateMode={setActiveMode}
+            onAddXp={handleAddXp}
+          />
+        )}
+
         {activeMode === 'eidetic-matrix' && (
           <EideticMatrixGame
             currentSpeed={currentSpeed}

@@ -2,7 +2,7 @@ import React from 'react';
 import { UserStats, FlashSpeed, GameMode } from '../types';
 import { getRankForXp, FLASH_SPEED_OPTIONS } from '../utils/storage';
 import { sound } from '../utils/audio';
-import { Camera, Volume2, VolumeX, BookOpen, Flame, Award, Zap, Clock } from 'lucide-react';
+import { Camera, Volume2, VolumeX, BookOpen, Flame, Award, Zap, Clock, CalendarCheck, Lock } from 'lucide-react';
 
 interface HeaderProps {
   stats: UserStats;
@@ -13,6 +13,8 @@ interface HeaderProps {
   onSelectMode: (mode: GameMode) => void;
   isSoundMuted: boolean;
   onToggleSound: () => void;
+  curriculumDay?: number;
+  isLockedOut?: boolean;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -20,8 +22,12 @@ export const Header: React.FC<HeaderProps> = ({
   currentSpeed,
   onSpeedChange,
   onOpenTips,
+  activeMode,
+  onSelectMode,
   isSoundMuted,
   onToggleSound,
+  curriculumDay = 1,
+  isLockedOut = false,
 }) => {
   const { currentRank, nextRank, progressPercent } = getRankForXp(stats.xp);
 
@@ -30,7 +36,10 @@ export const Header: React.FC<HeaderProps> = ({
       <div className="max-w-6xl mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-4">
         {/* Brand & Identity */}
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-500 to-indigo-600 flex items-center justify-center shadow-md shadow-cyan-500/20 ring-1 ring-cyan-400/30">
+          <div
+            onClick={() => onSelectMode('daily-protocol')}
+            className="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-500 to-indigo-600 flex items-center justify-center shadow-md shadow-cyan-500/20 ring-1 ring-cyan-400/30 cursor-pointer"
+          >
             <Camera className="w-5 h-5 text-white animate-pulse" />
           </div>
           <div>
@@ -38,9 +47,17 @@ export const Header: React.FC<HeaderProps> = ({
               <h1 className="text-lg font-bold tracking-tight text-white flex items-center gap-1.5">
                 Photographic Memory <span className="text-cyan-400 font-extrabold">Master</span>
               </h1>
-              <span className="text-[10px] uppercase font-semibold px-2 py-0.5 rounded-full bg-cyan-950/80 border border-cyan-500/40 text-cyan-300">
-                Eidetic Engine
-              </span>
+              <button
+                onClick={() => onSelectMode('daily-protocol')}
+                className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded-full border flex items-center gap-1 cursor-pointer transition-all ${
+                  isLockedOut
+                    ? 'bg-rose-950/80 border-rose-500/50 text-rose-300'
+                    : 'bg-emerald-950/80 border-emerald-500/50 text-emerald-300'
+                }`}
+              >
+                {isLockedOut ? <Lock className="w-3 h-3" /> : <CalendarCheck className="w-3 h-3" />}
+                Day {curriculumDay} {isLockedOut ? 'Locked' : 'Protocol'}
+              </button>
             </div>
             <p className="text-xs text-slate-400">
               Train retinal snapshot, rapid spatial recall & cognitive flash retention
