@@ -39,7 +39,7 @@ export const DualNBackGame: React.FC<DualNBackGameProps> = ({
     );
   }
 
-  const [n, setN] = useState<number>(() => Math.min(2, dayLimit.maxN)); // Default N=2 or max allowed
+  const [n, setN] = useState<number>(() => dayLimit.defaultN || 1); // Default to prescribed day target (N=1 for Days 1-3)
   const [stage, setStage] = useState<'idle' | 'countdown' | 'running' | 'summary'>('idle');
   const [currentTrialIdx, setCurrentTrialIdx] = useState<number>(-1);
   const [activeCell, setActiveCell] = useState<number | null>(null);
@@ -253,10 +253,10 @@ export const DualNBackGame: React.FC<DualNBackGameProps> = ({
     }
 
     const posAccuracy = Math.round(
-      ((posHits + posCorrectRejections) / (validTrialsCount * 2 || 1)) * 100
+      ((posHits + posCorrectRejections) / (validTrialsCount || 1)) * 100
     );
     const audAccuracy = Math.round(
-      ((audHits + audCorrectRejections) / (validTrialsCount * 2 || 1)) * 100
+      ((audHits + audCorrectRejections) / (validTrialsCount || 1)) * 100
     );
     const overallScore = Math.round((posAccuracy + audAccuracy) / 2);
 
@@ -280,7 +280,9 @@ export const DualNBackGame: React.FC<DualNBackGameProps> = ({
     const xpReward = Math.round(overallScore * n * 0.85);
     onAddXp(xpReward);
 
-    if (overallScore >= 75) {
+    // N=1 calibration clears at 60% accuracy; higher N requires 70%
+    const passThreshold = n === 1 ? 60 : 70;
+    if (overallScore >= passThreshold) {
       sound.playSuccess();
       onRecordNBackMax(n);
     } else {
@@ -302,7 +304,7 @@ export const DualNBackGame: React.FC<DualNBackGameProps> = ({
                 Scientific Jaeggi Protocol
               </span>
               <span className="text-[10px] bg-slate-800 text-cyan-300 font-mono px-2 py-0.5 rounded border border-slate-700">
-                Day {curriculumDay} Max: N={dayLimit.maxN}
+                {curriculumDay < 4 ? `Day ${curriculumDay} Target: N=1 (Calibration)` : `Day ${curriculumDay} Target: N=${dayLimit.targetN}`}
               </span>
               <span className="text-[10px] bg-emerald-950/60 text-emerald-300 font-medium px-2 py-0.5 rounded border border-emerald-800/60">
                 Unlimited Attempts
@@ -313,7 +315,9 @@ export const DualNBackGame: React.FC<DualNBackGameProps> = ({
             </h2>
             <p className="text-xs text-slate-400 mt-0.5">
               Simultaneously track spatial grid positions and auditory letters from{' '}
-              <strong className="text-cyan-300 font-bold">{n} steps back</strong>.
+              <strong className="text-cyan-300 font-bold">
+                {n === 1 ? '1 step back (immediate consecutive repeat)' : `${n} steps back`}
+              </strong>.
             </p>
           </div>
 
@@ -455,18 +459,33 @@ export const DualNBackGame: React.FC<DualNBackGameProps> = ({
 
           {/* Action / Launch Controls */}
           {stage === 'idle' && (
-            <button
-              onClick={startRound}
-              className="w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-cyan-500 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 text-slate-950 font-black text-sm flex items-center justify-center gap-2 shadow-lg shadow-cyan-500/25 transition-all active:scale-98"
-            >
-              <Play className="w-5 h-5 fill-slate-950" />
-              Begin Dual N-{n} Test (16 Trials)
-            </button>
+            <div className="w-full space-y-3">
+              {n === 1 && (
+                <div className="w-full bg-cyan-950/40 border border-cyan-800/60 rounded-2xl p-3.5 text-xs text-slate-300">
+                  <div className="flex items-center gap-2 text-cyan-300 font-bold mb-1">
+                    <Sparkles className="w-4 h-4 text-cyan-400" />
+                    Day {curriculumDay} Beginner Calibration Guide (N=1)
+                  </div>
+                  <p className="leading-relaxed text-slate-300 text-[11px]">
+                    Press <strong className="text-cyan-300 font-semibold">Position Match (A)</strong> whenever the blue square is in the exact same cell as the immediately preceding trial. Press <strong className="text-indigo-300 font-semibold">Audio Match (L)</strong> if you hear the exact same letter twice in a row. Achieving 60%+ accuracy completes today&apos;s working memory quota!
+                  </p>
+                </div>
+              )}
+              <button
+                onClick={startRound}
+                className="w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-cyan-500 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 text-slate-950 font-black text-sm flex items-center justify-center gap-2 shadow-lg shadow-cyan-500/25 transition-all active:scale-98 cursor-pointer"
+              >
+                <Play className="w-5 h-5 fill-slate-950" />
+                Begin Dual N-{n} Test (16 Trials)
+              </button>
+            </div>
           )}
 
           {stage === 'running' && (
-            <p className="text-xs text-slate-400 text-center animate-pulse">
-              Does current position or sound match {n} step{n > 1 ? 's' : ''} ago?
+            <p className="text-xs text-slate-300 text-center animate-pulse font-medium">
+              {n === 1
+                ? 'Did the position or letter just repeat from the immediate previous trial?'
+                : `Does current position or sound match ${n} steps ago?`}
             </p>
           )}
 

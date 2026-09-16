@@ -32,20 +32,25 @@ export function getMaxAyumuDigitsForDay(day: number): {
 }
 
 export function getMaxDualNBackForDay(day: number): {
+  targetN: number;
   maxN: number;
   nextUnlockDay: number | null;
   allowedN: number[];
+  defaultN: number;
 } {
+  if (day < 4) {
+    return { targetN: 1, maxN: 2, nextUnlockDay: 4, allowedN: [1, 2], defaultN: 1 };
+  }
   if (day < 21) {
-    return { maxN: 2, nextUnlockDay: 21, allowedN: [1, 2] };
+    return { targetN: 2, maxN: 2, nextUnlockDay: 21, allowedN: [1, 2], defaultN: 2 };
   }
   if (day < 61) {
-    return { maxN: 3, nextUnlockDay: 61, allowedN: [1, 2, 3] };
+    return { targetN: 3, maxN: 3, nextUnlockDay: 61, allowedN: [1, 2, 3], defaultN: 3 };
   }
   if (day < 121) {
-    return { maxN: 4, nextUnlockDay: 121, allowedN: [1, 2, 3, 4] };
+    return { targetN: 4, maxN: 4, nextUnlockDay: 121, allowedN: [1, 2, 3, 4], defaultN: 4 };
   }
-  return { maxN: 5, nextUnlockDay: null, allowedN: [1, 2, 3, 4, 5] };
+  return { targetN: 5, maxN: 5, nextUnlockDay: null, allowedN: [1, 2, 3, 4, 5], defaultN: 5 };
 }
 
 export function getPegTargetForDay(day: number): {

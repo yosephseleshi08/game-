@@ -71,7 +71,10 @@ export function generateTasksForDay(day: number): ProtocolTask[] {
       id: 'dual-nback',
       title: 'Dual N-Back Working Memory',
       discipline: 'Fluid Focus & Prefrontal Cortex',
-      targetDescription: `Complete 1 test round (16 trials) at N=${nBackConfig.maxN} (Day ${day} cap)`,
+      targetDescription:
+        day < 4
+          ? `Complete 1 test round (16 trials) at N=1 (Day ${day} foundational calibration; N=2 unlocks Day 4)`
+          : `Complete 1 test round (16 trials) at N=${nBackConfig.targetN} (Day ${day} cap)`,
       targetCount: 1,
       currentCount: 0,
       maxAllowedLevel: nBackConfig.maxN,
@@ -175,6 +178,25 @@ export function loadDailyProtocol(): DailyProtocolState {
       };
       saveDailyProtocol(upgradedProtocol);
       return upgradedProtocol;
+    }
+
+    // Upgrade Day 1–3 Dual N-Back target if it was generated with older N=2 text
+    if ((parsed.curriculumDay || 1) < 4 && parsed.tasks) {
+      let modified = false;
+      const updatedTasks = parsed.tasks.map((task) => {
+        if (task.id === 'dual-nback' && task.targetDescription?.includes('N=2')) {
+          modified = true;
+          return {
+            ...task,
+            targetDescription: `Complete 1 test round (16 trials) at N=1 (Day ${parsed.curriculumDay || 1} foundational calibration; N=2 unlocks Day 4)`,
+          };
+        }
+        return task;
+      });
+      if (modified) {
+        parsed.tasks = updatedTasks;
+        saveDailyProtocol(parsed);
+      }
     }
 
     return parsed;
