@@ -684,12 +684,15 @@ export default function App() {
             onSpeedChange={handleSpeedChange}
             onAddXp={handleAddXp}
             onRecordResult={handleRecordDetectiveResult}
+            curriculumDay={protocol.curriculumDay}
+            playerLevel={stats.level}
           />
         )}
 
         {activeMode === 'daily-workout' && (
           <DailyWorkoutGame
             stats={stats}
+            curriculumDay={protocol.curriculumDay}
             onAddXp={handleAddXp}
             onSavePQRecord={handleSavePQRecord}
           />

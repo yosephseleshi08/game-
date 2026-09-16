@@ -1,37 +1,70 @@
 import React, { useState, useEffect } from 'react';
 import { UserStats, DailyPQRecord } from '../types';
 import { sound } from '../utils/audio';
-import { Award, CheckCircle, Sparkles, Play, Flame, Shield, ArrowRight, RotateCcw } from 'lucide-react';
+import { getDailyPQAdaptiveConfig } from '../utils/dayRestrictions';
+import {
+  Award,
+  CheckCircle,
+  Sparkles,
+  Play,
+  Flame,
+  Shield,
+  Star,
+  Heart,
+  Zap,
+  Diamond,
+  ArrowRight,
+  RotateCcw,
+  Clock,
+  Sliders,
+} from 'lucide-react';
 
 interface DailyWorkoutGameProps {
   stats: UserStats;
+  curriculumDay?: number;
   onAddXp: (amount: number) => void;
   onSavePQRecord: (record: DailyPQRecord) => void;
 }
 
 type Stage = 'intro' | 'round-1-matrix' | 'round-2-ayumu' | 'round-3-detective' | 'certificate';
 
+interface DetectiveQuestionData {
+  prompt: string;
+  options: string[];
+  answer: string;
+  chosen?: string;
+  shape: string;
+  color: string;
+  shapeIcon: 'star' | 'shield' | 'diamond' | 'zap' | 'heart';
+  colorObj: { name: string; bg: string; text: string; border: string; hex: string };
+}
+
 export const DailyWorkoutGame: React.FC<DailyWorkoutGameProps> = ({
   stats,
+  curriculumDay = 1,
   onAddXp,
   onSavePQRecord,
 }) => {
+  const pqConfig = getDailyPQAdaptiveConfig(curriculumDay, stats.level);
+
   const [stage, setStage] = useState<Stage>('intro');
   const [subStage, setSubStage] = useState<'countdown' | 'flashing' | 'input' | 'scored'>('countdown');
   const [countdown, setCountdown] = useState(3);
 
-  // Round 1 (Matrix 4x4, 5 targets)
+  // Round 1 (Matrix 4x4, adaptive targets)
   const [matrixTargets, setMatrixTargets] = useState<number[]>([]);
   const [matrixSelected, setMatrixSelected] = useState<number[]>([]);
   const [matrixScore, setMatrixScore] = useState(0);
 
-  // Round 2 (Ayumu 7 digits)
-  const [ayumuTiles, setAyumuTiles] = useState<{ id: number; val: number; cell: number; status: 'revealed' | 'blanked' | 'cleared' | 'failed' }[]>([]);
+  // Round 2 (Ayumu adaptive digits)
+  const [ayumuTiles, setAyumuTiles] = useState<
+    { id: number; val: number; cell: number; status: 'revealed' | 'blanked' | 'cleared' | 'failed' }[]
+  >([]);
   const [ayumuExpected, setAyumuExpected] = useState(1);
   const [ayumuScore, setAyumuScore] = useState(0);
 
   // Round 3 (Symbol snapshot)
-  const [detectiveQuestion, setDetectiveQuestion] = useState<{ prompt: string; options: string[]; answer: string; chosen?: string } | null>(null);
+  const [detectiveQuestion, setDetectiveQuestion] = useState<DetectiveQuestionData | null>(null);
   const [detectiveScore, setDetectiveScore] = useState(0);
 
   const [finalPQ, setFinalPQ] = useState<number | null>(null);
@@ -58,7 +91,7 @@ export const DailyWorkoutGame: React.FC<DailyWorkoutGameProps> = ({
   const initRound1 = () => {
     setStage('round-1-matrix');
     const targets: number[] = [];
-    while (targets.length < 5) {
+    while (targets.length < pqConfig.matrixTargets) {
       const r = Math.floor(Math.random() * 16);
       if (!targets.includes(r)) targets.push(r);
     }
@@ -70,7 +103,7 @@ export const DailyWorkoutGame: React.FC<DailyWorkoutGameProps> = ({
       sound.playFlash();
       setTimeout(() => {
         setSubStage('input');
-      }, 700);
+      }, pqConfig.matrixFlashMs);
     });
   };
 
@@ -86,7 +119,7 @@ export const DailyWorkoutGame: React.FC<DailyWorkoutGameProps> = ({
       const pts = Math.round((hits / matrixTargets.length) * 50);
       setMatrixScore(pts);
       setSubStage('scored');
-      if (hits >= 4) sound.playSuccess();
+      if (hits >= matrixTargets.length - 1) sound.playSuccess();
       else sound.playError();
     }
   };
@@ -95,7 +128,7 @@ export const DailyWorkoutGame: React.FC<DailyWorkoutGameProps> = ({
   const initRound2 = () => {
     setStage('round-2-ayumu');
     const chosenCells: number[] = [];
-    while (chosenCells.length < 7) {
+    while (chosenCells.length < pqConfig.ayumuDigits) {
       const c = Math.floor(Math.random() * 24); // 6x4 = 24 cells
       if (!chosenCells.includes(c)) chosenCells.push(c);
     }
@@ -114,7 +147,7 @@ export const DailyWorkoutGame: React.FC<DailyWorkoutGameProps> = ({
       setTimeout(() => {
         setAyumuTiles((prev) => prev.map((t) => ({ ...t, status: 'blanked' })));
         setSubStage('input');
-      }, 900);
+      }, pqConfig.ayumuFlashMs);
     });
   };
 
@@ -124,21 +157,21 @@ export const DailyWorkoutGame: React.FC<DailyWorkoutGameProps> = ({
     if (!tile || tile.status === 'cleared') return;
 
     if (tile.val === ayumuExpected) {
-      sound.playChimpStep(tile.val, 7);
+      sound.playChimpStep(tile.val, pqConfig.ayumuDigits);
       const next = ayumuExpected + 1;
       setAyumuExpected(next);
       setAyumuTiles((prev) =>
         prev.map((t) => (t.id === tileId ? { ...t, status: 'cleared' } : t))
       );
 
-      if (next > 7) {
+      if (next > pqConfig.ayumuDigits) {
         sound.playSuccess();
         setAyumuScore(60);
         setSubStage('scored');
       }
     } else {
       sound.playError();
-      const scoredVal = Math.round(((ayumuExpected - 1) / 7) * 60);
+      const scoredVal = Math.round(((ayumuExpected - 1) / pqConfig.ayumuDigits) * 60);
       setAyumuScore(scoredVal);
       setAyumuTiles((prev) =>
         prev.map((t) => (t.id === tileId ? { ...t, status: 'failed' } : { ...t, status: 'revealed' }))
@@ -150,18 +183,37 @@ export const DailyWorkoutGame: React.FC<DailyWorkoutGameProps> = ({
   // Start Stage 3: Detective
   const initRound3 = () => {
     setStage('round-3-detective');
-    const shapes = ['STAR', 'SHIELD', 'DIAMOND', 'ZAP', 'HEART'];
-    const colors = ['EMERALD', 'AMBER', 'CYAN', 'ROSE', 'PURPLE'];
+    const shapes: { name: string; icon: 'star' | 'shield' | 'diamond' | 'zap' | 'heart' }[] = [
+      { name: 'STAR', icon: 'star' },
+      { name: 'SHIELD', icon: 'shield' },
+      { name: 'DIAMOND', icon: 'diamond' },
+      { name: 'ZAP', icon: 'zap' },
+      { name: 'HEART', icon: 'heart' },
+    ];
+    const colors: { name: string; bg: string; text: string; border: string; hex: string }[] = [
+      { name: 'EMERALD', bg: 'bg-emerald-500/20', text: 'text-emerald-400', border: 'border-emerald-500', hex: '#10b981' },
+      { name: 'AMBER', bg: 'bg-amber-500/20', text: 'text-amber-400', border: 'border-amber-500', hex: '#f59e0b' },
+      { name: 'CYAN', bg: 'bg-cyan-500/20', text: 'text-cyan-400', border: 'border-cyan-500', hex: '#06b6d4' },
+      { name: 'ROSE', bg: 'bg-rose-500/20', text: 'text-rose-400', border: 'border-rose-500', hex: '#f43f5e' },
+      { name: 'PURPLE', bg: 'bg-purple-500/20', text: 'text-purple-400', border: 'border-purple-500', hex: '#a855f7' },
+    ];
 
-    const targetShape = shapes[Math.floor(Math.random() * shapes.length)];
-    const targetColor = colors[Math.floor(Math.random() * colors.length)];
+    const targetShapeObj = shapes[Math.floor(Math.random() * shapes.length)];
+    const targetColorObj = colors[Math.floor(Math.random() * colors.length)];
 
-    const options = [targetColor, ...colors.filter((c) => c !== targetColor).slice(0, 3)].sort(() => 0.5 - Math.random());
+    const options = [
+      targetColorObj.name,
+      ...colors.filter((c) => c.name !== targetColorObj.name).map((c) => c.name).slice(0, 3),
+    ].sort(() => 0.5 - Math.random());
 
     setDetectiveQuestion({
-      prompt: `In the center of the snapshot, what color was the ${targetShape}?`,
+      prompt: `In the center of the snapshot, what color was the ${targetShapeObj.name}?`,
       options,
-      answer: targetColor,
+      answer: targetColorObj.name,
+      shape: targetShapeObj.name,
+      color: targetColorObj.name,
+      shapeIcon: targetShapeObj.icon,
+      colorObj: targetColorObj,
     });
 
     startCountdownThen(() => {
@@ -169,7 +221,7 @@ export const DailyWorkoutGame: React.FC<DailyWorkoutGameProps> = ({
       sound.playFlash();
       setTimeout(() => {
         setSubStage('input');
-      }, 1000);
+      }, pqConfig.detectiveFlashMs);
     });
   };
 
@@ -222,11 +274,40 @@ export const DailyWorkoutGame: React.FC<DailyWorkoutGameProps> = ({
     setStage('certificate');
   };
 
+  const renderDetectiveIcon = (
+    icon: 'star' | 'shield' | 'diamond' | 'zap' | 'heart',
+    textColor = 'text-amber-400'
+  ) => {
+    switch (icon) {
+      case 'star':
+        return <Star className={`w-12 h-12 ${textColor} fill-current`} />;
+      case 'shield':
+        return <Shield className={`w-12 h-12 ${textColor} fill-current`} />;
+      case 'diamond':
+        return <Diamond className={`w-12 h-12 ${textColor} fill-current`} />;
+      case 'zap':
+        return <Zap className={`w-12 h-12 ${textColor} fill-current`} />;
+      case 'heart':
+        return <Heart className={`w-12 h-12 ${textColor} fill-current`} />;
+    }
+  };
+
   return (
     <div className="max-w-4xl mx-auto px-4 py-6">
       {/* Introduction Card */}
       {stage === 'intro' && (
         <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl text-center max-w-2xl mx-auto">
+          {/* Status Tier Badge */}
+          <div className="flex flex-wrap items-center justify-center gap-2 mb-3">
+            <span className={`text-xs font-bold uppercase tracking-wider px-3 py-1 rounded-full border ${pqConfig.tierBadgeColor} flex items-center gap-1.5`}>
+              <Sliders className="w-3.5 h-3.5" />
+              {pqConfig.tierName} Status Tier (Day {curriculumDay} • Lv {stats.level})
+            </span>
+            <span className="text-xs bg-slate-800 text-slate-300 px-2.5 py-1 rounded-full border border-slate-700">
+              Player-Adaptive Timing
+            </span>
+          </div>
+
           <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-emerald-500 to-teal-700 flex items-center justify-center mx-auto mb-4 shadow-lg shadow-emerald-500/20 ring-1 ring-emerald-400/40">
             <Award className="w-8 h-8 text-white" />
           </div>
@@ -234,25 +315,42 @@ export const DailyWorkoutGame: React.FC<DailyWorkoutGameProps> = ({
           <h2 className="text-2xl font-black text-white mb-2">
             Daily Photographic Quotient (PQ) Assessment
           </h2>
-          <p className="text-sm text-slate-300 max-w-md mx-auto mb-6 leading-relaxed">
-            Take the standardized 3-discipline evaluation: Flash Matrix, Ayumu Sequential Recall, and Chromatic Detail to compute your certified Photographic Quotient.
+          <p className="text-sm text-slate-300 max-w-md mx-auto mb-3 leading-relaxed">
+            Take the calibrated 3-discipline evaluation: Flash Matrix, Ayumu Sequential Recall, and Chromatic Detail to compute your certified Photographic Quotient.
           </p>
+
+          {/* Adaptive Notice */}
+          <div className="bg-emerald-950/40 border border-emerald-800/50 rounded-2xl p-3.5 mb-6 text-xs text-emerald-300/90 text-left flex items-start gap-2.5">
+            <Sparkles className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+            <div>
+              <strong className="text-emerald-200 block mb-0.5 font-bold">
+                Auto-Calibrated for Your Current Status:
+              </strong>
+              {pqConfig.tierSummary} Timings will naturally scale up as you progress through future curriculum days.
+            </div>
+          </div>
 
           <div className="grid grid-cols-3 gap-3 mb-8 text-left">
             <div className="bg-slate-800/80 border border-slate-700/80 p-3 rounded-xl">
               <span className="text-[10px] uppercase font-bold text-cyan-400 block mb-1">Part 1</span>
               <span className="text-xs font-semibold text-white block">Spatial Matrix</span>
-              <span className="text-[11px] text-slate-400">700ms flash</span>
+              <span className="text-[11px] text-cyan-300 font-mono font-bold">
+                {(pqConfig.matrixFlashMs / 1000).toFixed(1)}s flash • {pqConfig.matrixTargets} targets
+              </span>
             </div>
             <div className="bg-slate-800/80 border border-slate-700/80 p-3 rounded-xl">
               <span className="text-[10px] uppercase font-bold text-amber-400 block mb-1">Part 2</span>
               <span className="text-xs font-semibold text-white block">Ayumu Sequence</span>
-              <span className="text-[11px] text-slate-400">7 digits recall</span>
+              <span className="text-[11px] text-amber-300 font-mono font-bold">
+                {pqConfig.ayumuDigits} digits • {(pqConfig.ayumuFlashMs / 1000).toFixed(1)}s flash
+              </span>
             </div>
             <div className="bg-slate-800/80 border border-slate-700/80 p-3 rounded-xl">
               <span className="text-[10px] uppercase font-bold text-purple-400 block mb-1">Part 3</span>
               <span className="text-xs font-semibold text-white block">Color Snapshot</span>
-              <span className="text-[11px] text-slate-400">Feature binding</span>
+              <span className="text-[11px] text-purple-300 font-mono font-bold">
+                {(pqConfig.detectiveFlashMs / 1000).toFixed(1)}s feature snapshot
+              </span>
             </div>
           </div>
 
@@ -261,7 +359,7 @@ export const DailyWorkoutGame: React.FC<DailyWorkoutGameProps> = ({
             className="w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-slate-950 font-black text-sm flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20 transition-all active:scale-98"
           >
             <Play className="w-5 h-5 fill-slate-950" />
-            Begin Certified Assessment (+150 XP)
+            Begin Calibrated Assessment (+150 XP)
           </button>
         </div>
       )}
@@ -273,12 +371,18 @@ export const DailyWorkoutGame: React.FC<DailyWorkoutGameProps> = ({
             <span className="font-bold text-cyan-400 uppercase tracking-wider">
               Stage 1 of 3: Spatial Matrix
             </span>
-            <span className="text-slate-400">5 Targets</span>
+            <div className="flex items-center gap-2">
+              <span className="text-xs bg-slate-800 text-cyan-300 font-mono px-2 py-0.5 rounded border border-slate-700">
+                {(pqConfig.matrixFlashMs / 1000).toFixed(1)}s Exposure
+              </span>
+              <span className="text-slate-400 font-mono">{pqConfig.matrixTargets} Targets</span>
+            </div>
           </div>
 
           {subStage === 'countdown' && (
             <div className="py-16">
               <div className="text-6xl font-black text-white animate-pulse">{countdown}</div>
+              <p className="text-xs text-slate-400 mt-2">Prepare for spatial matrix snapshot...</p>
             </div>
           )}
 
@@ -311,9 +415,15 @@ export const DailyWorkoutGame: React.FC<DailyWorkoutGameProps> = ({
                 })}
               </div>
 
+              {subStage === 'flashing' && (
+                <div className="text-xs text-cyan-300 font-bold animate-pulse">
+                  Absorbing {pqConfig.matrixTargets} locations...
+                </div>
+              )}
+
               {subStage === 'input' && (
                 <p className="text-xs text-slate-300 mb-2">
-                  Select the 5 locations from your mental image ({5 - matrixSelected.length} remaining)
+                  Select the {pqConfig.matrixTargets} locations from your mental image ({pqConfig.matrixTargets - matrixSelected.length} remaining)
                 </p>
               )}
 
@@ -335,19 +445,25 @@ export const DailyWorkoutGame: React.FC<DailyWorkoutGameProps> = ({
         </div>
       )}
 
-      {/* Round 2: Ayumu 7 Digits */}
+      {/* Round 2: Ayumu Sequence */}
       {stage === 'round-2-ayumu' && (
         <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl max-w-xl mx-auto text-center relative">
           <div className="flex justify-between items-center mb-4 text-xs">
             <span className="font-bold text-amber-400 uppercase tracking-wider">
               Stage 2 of 3: Ayumu Sequence
             </span>
-            <span className="text-slate-400">7 Digits (1 to 7)</span>
+            <div className="flex items-center gap-2">
+              <span className="text-xs bg-slate-800 text-amber-300 font-mono px-2 py-0.5 rounded border border-slate-700">
+                {(pqConfig.ayumuFlashMs / 1000).toFixed(1)}s Exposure
+              </span>
+              <span className="text-slate-400 font-mono">{pqConfig.ayumuDigits} Digits (1 to {pqConfig.ayumuDigits})</span>
+            </div>
           </div>
 
           {subStage === 'countdown' && (
             <div className="py-16">
               <div className="text-6xl font-black text-white animate-pulse">{countdown}</div>
+              <p className="text-xs text-slate-400 mt-2">Locate numbers 1 through {pqConfig.ayumuDigits}...</p>
             </div>
           )}
 
@@ -386,9 +502,15 @@ export const DailyWorkoutGame: React.FC<DailyWorkoutGameProps> = ({
                 })}
               </div>
 
+              {subStage === 'flashing' && (
+                <div className="text-xs text-amber-300 font-bold animate-pulse">
+                  Memorizing locations 1 through {pqConfig.ayumuDigits}...
+                </div>
+              )}
+
               {subStage === 'input' && (
                 <p className="text-xs text-slate-300 mb-2">
-                  Tap number <strong className="text-amber-400 text-sm font-black">{ayumuExpected}</strong> of 7
+                  Tap number <strong className="text-amber-400 text-sm font-black">{ayumuExpected}</strong> of {pqConfig.ayumuDigits}
                 </p>
               )}
 
@@ -417,20 +539,36 @@ export const DailyWorkoutGame: React.FC<DailyWorkoutGameProps> = ({
             <span className="font-bold text-purple-400 uppercase tracking-wider">
               Stage 3 of 3: Chromatic Detail
             </span>
-            <span className="text-slate-400">Feature Recall</span>
+            <div className="flex items-center gap-2">
+              <span className="text-xs bg-slate-800 text-purple-300 font-mono px-2 py-0.5 rounded border border-slate-700">
+                {(pqConfig.detectiveFlashMs / 1000).toFixed(1)}s Snapshot
+              </span>
+              <span className="text-slate-400">Feature Recall</span>
+            </div>
           </div>
 
           {subStage === 'countdown' && (
             <div className="py-16">
               <div className="text-6xl font-black text-white animate-pulse">{countdown}</div>
+              <p className="text-xs text-slate-400 mt-2">Observe the symbol and color...</p>
             </div>
           )}
 
-          {subStage === 'flashing' && (
+          {subStage === 'flashing' && detectiveQuestion && (
             <div className="py-8 flex flex-col items-center justify-center">
-              <div className="w-24 h-24 rounded-2xl bg-amber-500/20 border-2 border-amber-500 flex flex-col items-center justify-center animate-pulse">
-                <Shield className="w-10 h-10 text-amber-400 fill-amber-400" />
-                <span className="text-[10px] font-bold text-amber-300 mt-1">AMBER SHIELD</span>
+              <div
+                className={`w-28 h-28 rounded-2xl ${detectiveQuestion.colorObj?.bg || 'bg-amber-500/20'} border-2 ${
+                  detectiveQuestion.colorObj?.border || 'border-amber-500'
+                } flex flex-col items-center justify-center animate-pulse shadow-xl shadow-purple-500/10`}
+              >
+                {renderDetectiveIcon(detectiveQuestion.shapeIcon, detectiveQuestion.colorObj?.text)}
+                <span
+                  className={`text-[11px] font-black tracking-wider uppercase mt-2 ${
+                    detectiveQuestion.colorObj?.text || 'text-amber-300'
+                  }`}
+                >
+                  {detectiveQuestion.color} {detectiveQuestion.shape}
+                </span>
               </div>
             </div>
           )}
@@ -483,7 +621,7 @@ export const DailyWorkoutGame: React.FC<DailyWorkoutGameProps> = ({
             Photographic Quotient
           </h2>
           <p className="text-xs text-slate-400 mb-6">
-            Measured against standard adult eidetic & iconic memory distributions
+            Measured against calibrated eidetic & iconic memory benchmarks for {pqConfig.tierName} status
           </p>
 
           {/* Big Score Gauge */}
@@ -514,10 +652,10 @@ export const DailyWorkoutGame: React.FC<DailyWorkoutGameProps> = ({
 
           <p className="text-xs text-slate-300 mb-6 bg-slate-800/60 border border-slate-700/60 p-3 rounded-xl leading-relaxed">
             {finalPQ >= 140
-              ? 'Outstanding! Your iconic memory retention ranks in the top 3% percentile, capturing high visual density with minimal saccadic distortion.'
+              ? 'Outstanding! Your iconic memory retention ranks in the top tier, capturing high visual density with minimal saccadic distortion.'
               : finalPQ >= 115
-              ? 'Strong visual capture! Your retinal snapshot preservation is above average. Push exposure speeds to 300ms to train true eidetic flash.'
-              : 'Solid baseline. Focus on suppressing internal subvocal counting to let raw visual sensory data flow directly to motor memory.'}
+              ? 'Strong visual capture! Your retinal snapshot preservation is excellent. You are mastering your current tier.'
+              : 'Solid baseline. Focus on taking a full-frame mental photo before the tiles fade.'}
           </p>
 
           <button

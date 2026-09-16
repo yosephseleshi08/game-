@@ -2,13 +2,32 @@ import React, { useState, useEffect, useRef } from 'react';
 import { FlashSpeed, SymbolShape, SymbolColor, DetectiveItem, DetectiveQuestion } from '../types';
 import { sound } from '../utils/audio';
 import { FLASH_SPEED_OPTIONS } from '../utils/storage';
-import { Play, RotateCcw, Sparkles, CheckCircle2, AlertCircle, Shield, Star, Heart, Zap, Triangle, Circle, Square, Diamond } from 'lucide-react';
+import { getDetectiveAdaptiveConfig } from '../utils/dayRestrictions';
+import {
+  Play,
+  RotateCcw,
+  Sparkles,
+  CheckCircle2,
+  AlertCircle,
+  Shield,
+  Star,
+  Heart,
+  Zap,
+  Triangle,
+  Circle,
+  Square,
+  Diamond,
+  Sliders,
+  Clock,
+} from 'lucide-react';
 
 interface SymbolDetectiveGameProps {
   currentSpeed: FlashSpeed;
   onSpeedChange: (speed: FlashSpeed) => void;
   onAddXp: (amount: number) => void;
   onRecordResult: (isSuccess: boolean, score: number) => void;
+  curriculumDay?: number;
+  playerLevel?: number;
 }
 
 const SHAPES: SymbolShape[] = ['star', 'shield', 'heart', 'zap', 'triangle', 'circle', 'square', 'diamond'];
@@ -46,8 +65,12 @@ export const SymbolDetectiveGame: React.FC<SymbolDetectiveGameProps> = ({
   currentSpeed,
   onAddXp,
   onRecordResult,
+  curriculumDay = 1,
+  playerLevel = 1,
 }) => {
   const GRID_SIZE = 3; // 3x3 = 9 items
+  const adaptiveConfig = getDetectiveAdaptiveConfig(curriculumDay, playerLevel);
+
   const [stage, setStage] = useState<'idle' | 'countdown' | 'flashing' | 'question' | 'result'>('idle');
   const [countdown, setCountdown] = useState(3);
   const [items, setItems] = useState<DetectiveItem[]>([]);
@@ -56,12 +79,23 @@ export const SymbolDetectiveGame: React.FC<SymbolDetectiveGameProps> = ({
   const [isCorrect, setIsCorrect] = useState(false);
   const [score, setScore] = useState(0);
 
+  // Adaptive timing state with manual speed options
+  const [selectedSpeedMs, setSelectedSpeedMs] = useState<number>(adaptiveConfig.flashTimeMs);
+  const [flashProgress, setFlashProgress] = useState(100);
+
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const currentOption = FLASH_SPEED_OPTIONS.find((o) => o.value === currentSpeed) || FLASH_SPEED_OPTIONS[1];
+
+  // Update speed default if curriculumDay or playerLevel changes
+  useEffect(() => {
+    setSelectedSpeedMs(adaptiveConfig.flashTimeMs);
+  }, [curriculumDay, playerLevel]);
 
   useEffect(() => {
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
+      if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
     };
   }, []);
 
@@ -83,7 +117,6 @@ export const SymbolDetectiveGame: React.FC<SymbolDetectiveGameProps> = ({
     let q: DetectiveQuestion;
 
     if (chosenType === 'position') {
-      // "What symbol was located at Row R, Col C?"
       const targetItem = board[Math.floor(Math.random() * board.length)];
       const otherShapes = SHAPES.filter((s) => s !== targetItem.shape);
       const shuffledOptions = [targetItem.shape, ...otherShapes.slice(0, 3)].sort(() => 0.5 - Math.random());
@@ -97,7 +130,6 @@ export const SymbolDetectiveGame: React.FC<SymbolDetectiveGameProps> = ({
         questionType: 'position',
       };
     } else if (chosenType === 'color') {
-      // Find an item with unique shape or pick one
       const targetItem = board[Math.floor(Math.random() * board.length)];
       const otherColors = COLORS.filter((c) => c.name !== targetItem.color).map((c) => c.name);
       const shuffledOptions = [targetItem.color, ...otherColors.slice(0, 3)].sort(() => 0.5 - Math.random());
@@ -111,7 +143,6 @@ export const SymbolDetectiveGame: React.FC<SymbolDetectiveGameProps> = ({
         questionType: 'color',
       };
     } else {
-      // Shape at specific location
       const targetItem = board[Math.floor(Math.random() * board.length)];
       const otherShapes = SHAPES.filter((s) => s !== targetItem.shape);
       const shuffledOptions = [targetItem.shape, ...otherShapes.slice(0, 3)].sort(() => 0.5 - Math.random());
@@ -131,6 +162,8 @@ export const SymbolDetectiveGame: React.FC<SymbolDetectiveGameProps> = ({
 
   const startRound = () => {
     if (timerRef.current) clearTimeout(timerRef.current);
+    if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
+
     const { board, q } = generateBoardAndQuestion();
     setItems(board);
     setQuestion(q);
@@ -138,6 +171,7 @@ export const SymbolDetectiveGame: React.FC<SymbolDetectiveGameProps> = ({
     setIsCorrect(false);
     setStage('countdown');
     setCountdown(3);
+    setFlashProgress(100);
     sound.playTick();
 
     let count = 3;
@@ -156,10 +190,25 @@ export const SymbolDetectiveGame: React.FC<SymbolDetectiveGameProps> = ({
   const triggerExposure = () => {
     setStage('flashing');
     sound.playFlash();
+    setFlashProgress(100);
+
+    const startTime = Date.now();
+    const duration = selectedSpeedMs;
+
+    progressIntervalRef.current = setInterval(() => {
+      const elapsed = Date.now() - startTime;
+      const remainingPct = Math.max(0, 100 - (elapsed / duration) * 100);
+      setFlashProgress(remainingPct);
+      if (remainingPct <= 0 && progressIntervalRef.current) {
+        clearInterval(progressIntervalRef.current);
+      }
+    }, 40);
 
     timerRef.current = setTimeout(() => {
+      if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
+      setFlashProgress(0);
       setStage('question');
-    }, Math.max(1200, currentSpeed));
+    }, duration);
   };
 
   const handleSelectOption = (option: string) => {
@@ -190,9 +239,23 @@ export const SymbolDetectiveGame: React.FC<SymbolDetectiveGameProps> = ({
       <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 mb-6 shadow-xl relative overflow-hidden backdrop-blur">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
-            <div className="flex items-center gap-2 mb-1">
+            <div className="flex flex-wrap items-center gap-2 mb-1">
               <span className="text-xs font-bold uppercase tracking-wider text-purple-400 bg-purple-950/80 px-2.5 py-0.5 rounded-full border border-purple-800/60 flex items-center gap-1">
                 Chromatic Feature Snapshot
+              </span>
+              <span
+                className={`text-[10px] font-bold px-2 py-0.5 rounded border ${
+                  adaptiveConfig.tierName === 'Beginner'
+                    ? 'bg-emerald-950/80 text-emerald-300 border-emerald-600/70'
+                    : adaptiveConfig.tierName === 'Intermediate'
+                    ? 'bg-cyan-950/80 text-cyan-300 border-cyan-600/70'
+                    : 'bg-amber-950/80 text-amber-300 border-amber-600/70'
+                }`}
+              >
+                {adaptiveConfig.tierName} Status • Day {curriculumDay} (Lv {playerLevel})
+              </span>
+              <span className="text-[10px] bg-slate-800 text-purple-300 px-2 py-0.5 rounded border border-slate-700 font-mono">
+                Exposure: {(selectedSpeedMs / 1000).toFixed(1)}s
               </span>
               <span className="text-xs text-slate-400">
                 Score: <strong className="text-white">{score}</strong>
@@ -216,6 +279,41 @@ export const SymbolDetectiveGame: React.FC<SymbolDetectiveGameProps> = ({
       {/* Main Board */}
       <div className="flex flex-col items-center">
         <div className="relative p-6 bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl flex flex-col items-center w-full max-w-[540px]">
+          {/* Timing Selector / Control (shown in idle state) */}
+          {stage === 'idle' && (
+            <div className="w-full bg-slate-950/70 border border-slate-800 rounded-2xl p-3.5 mb-5 text-left animate-fade-in">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
+                  <Sliders className="w-3.5 h-3.5 text-purple-400" />
+                  Calibrated Exposure Speed:
+                </span>
+                <span className="text-xs font-mono font-bold text-purple-300">
+                  {(selectedSpeedMs / 1000).toFixed(1)}s
+                </span>
+              </div>
+
+              <div className="grid grid-cols-3 gap-2">
+                {adaptiveConfig.availableSpeeds.map((opt) => (
+                  <button
+                    key={opt.value}
+                    onClick={() => setSelectedSpeedMs(opt.value)}
+                    className={`py-2 px-2 rounded-xl text-[11px] font-bold border transition-all ${
+                      selectedSpeedMs === opt.value
+                        ? 'bg-purple-600/30 border-purple-500 text-white shadow-sm ring-1 ring-purple-400/50'
+                        : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200 hover:border-slate-700'
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+
+              <p className="text-[10px] text-slate-400 mt-2 leading-relaxed">
+                {adaptiveConfig.description}
+              </p>
+            </div>
+          )}
+
           {/* Countdown */}
           {stage === 'countdown' && (
             <div className="absolute inset-0 bg-slate-950/85 z-20 rounded-3xl flex flex-col items-center justify-center backdrop-blur-xs">
@@ -225,6 +323,9 @@ export const SymbolDetectiveGame: React.FC<SymbolDetectiveGameProps> = ({
               <div className="text-6xl font-black text-white animate-pulse">
                 {countdown}
               </div>
+              <p className="text-xs text-slate-400 mt-2 font-mono">
+                {(selectedSpeedMs / 1000).toFixed(1)}s exposure incoming...
+              </p>
             </div>
           )}
 
@@ -280,6 +381,22 @@ export const SymbolDetectiveGame: React.FC<SymbolDetectiveGameProps> = ({
             })}
           </div>
 
+          {/* Flash Exposure Progress Bar */}
+          {stage === 'flashing' && (
+            <div className="w-full max-w-[400px] mt-3 animate-fade-in">
+              <div className="flex justify-between items-center text-[10px] text-purple-300 font-bold mb-1">
+                <span>Absorbing Shape & Color Matrix...</span>
+                <span className="font-mono">{(selectedSpeedMs / 1000).toFixed(1)}s</span>
+              </div>
+              <div className="w-full bg-slate-800/80 h-2 rounded-full overflow-hidden border border-slate-700/50">
+                <div
+                  className="bg-gradient-to-r from-purple-500 via-fuchsia-400 to-indigo-400 h-full transition-all duration-75 ease-linear"
+                  style={{ width: `${flashProgress}%` }}
+                />
+              </div>
+            </div>
+          )}
+
           {/* Question / Interaction Panel */}
           <div className="w-full mt-6 flex flex-col items-center">
             {stage === 'idle' && (
@@ -288,14 +405,8 @@ export const SymbolDetectiveGame: React.FC<SymbolDetectiveGameProps> = ({
                 className="w-full py-3.5 px-6 rounded-xl bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-400 hover:to-indigo-500 text-white font-bold text-sm flex items-center justify-center gap-2 shadow-lg shadow-purple-500/20 transition-all active:scale-98"
               >
                 <Play className="w-4 h-4 fill-white" />
-                Snapshot 3x3 Feature Grid
+                Snapshot 3x3 Feature Grid ({(selectedSpeedMs / 1000).toFixed(1)}s)
               </button>
-            )}
-
-            {stage === 'flashing' && (
-              <div className="text-center text-xs text-purple-300 font-medium animate-pulse">
-                Snapshotting colors and shapes simultaneously...
-              </div>
             )}
 
             {stage === 'question' && question && (
@@ -392,9 +503,9 @@ export const SymbolDetectiveGame: React.FC<SymbolDetectiveGameProps> = ({
             <Sparkles className="w-4 h-4" />
           </div>
           <div>
-            <span className="font-semibold text-white">Binding Feature Theory</span>
+            <span className="font-semibold text-white">Binding Feature Theory & Acclimation</span>
             <p className="text-slate-400 mt-0.5 leading-relaxed">
-              In neuroscience, the brain processes color (V4 area) and shape (lateral occipital cortex) through separate visual streams before "binding" them. By practicing simultaneous chromatic and geometric recall, you strengthen the synesthetic binding loop in the parietal cortex.
+              In neuroscience, the brain processes color (V4 area) and shape (lateral occipital cortex) through separate visual streams before "binding" them. Beginner timing starts with generous exposure (~3.8s) to establish neural pathways without panic, and progressively tightens as synaptic speed increases.
             </p>
           </div>
         </div>
