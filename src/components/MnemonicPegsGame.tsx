@@ -18,6 +18,7 @@ import {
 interface MnemonicPegsGameProps {
   curriculumDay: number;
   isLockedOut?: boolean;
+  isFreeTraining?: boolean;
   onAddXp: (amount: number) => void;
   onRecordMnemonicConversion: () => void;
   onCompletePegLevel?: () => void;
@@ -29,6 +30,7 @@ interface MnemonicPegsGameProps {
 export const MnemonicPegsGame: React.FC<MnemonicPegsGameProps> = ({
   curriculumDay,
   isLockedOut = false,
+  isFreeTraining = false,
   onAddXp,
   onRecordMnemonicConversion,
   onCompletePegLevel,
@@ -37,11 +39,20 @@ export const MnemonicPegsGame: React.FC<MnemonicPegsGameProps> = ({
   completedLevelsToday = 0,
 }) => {
   const pegConfig = getPegTargetForDay(curriculumDay);
+  const [freePracticeActive, setFreePracticeActive] = useState(isFreeTraining);
+  const [freeRange, setFreeRange] = useState<'day' | '0-9' | '0-19' | '0-49' | 'all'>('day');
 
-  // Filter available pegs based on today's curriculum day max number
+  // Filter available pegs based on today's curriculum day max number or free range
   const eligiblePegs = MAJOR_SYSTEM_PEGS.filter((p) => {
     const num = parseInt(p.number, 10);
-    return !isNaN(num) && num <= pegConfig.maxNumber;
+    if (isNaN(num)) return true;
+    if (freePracticeActive && freeRange !== 'day') {
+      if (freeRange === '0-9') return num <= 9;
+      if (freeRange === '0-19') return num <= 19;
+      if (freeRange === '0-49') return num <= 49;
+      if (freeRange === 'all') return true;
+    }
+    return num <= pegConfig.maxNumber;
   });
 
   const [currentPeg, setCurrentPeg] = useState<MajorPeg | null>(null);
@@ -53,12 +64,13 @@ export const MnemonicPegsGame: React.FC<MnemonicPegsGameProps> = ({
   const [isCheatSheetOpen, setIsCheatSheetOpen] = useState(false);
 
   // If user or day is fully locked out
-  if (isLockedOut) {
+  if (isLockedOut && !freePracticeActive) {
     return (
       <StrictDayLockoutView
         curriculumDay={curriculumDay}
         gameTitle="Mnemonic Peg Drills"
         onNavigateMode={onNavigateMode}
+        onUnlockFreeTraining={() => setFreePracticeActive(true)}
       />
     );
   }
@@ -121,18 +133,33 @@ export const MnemonicPegsGame: React.FC<MnemonicPegsGameProps> = ({
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
             <div className="flex flex-wrap items-center gap-2 mb-1">
-              <span className="text-xs font-bold uppercase tracking-wider text-amber-400 bg-amber-950/80 px-2.5 py-0.5 rounded-full border border-amber-800/60 flex items-center gap-1">
-                <Flame className="w-3.5 h-3.5" /> Step 4 of 6 • Major System Drills
-              </span>
+              {freePracticeActive ? (
+                <span className="text-xs font-black uppercase tracking-wider text-slate-950 bg-gradient-to-r from-amber-400 to-yellow-300 px-3 py-0.5 rounded-full shadow-sm flex items-center gap-1">
+                  <Sparkles className="w-3 h-3 text-slate-950" />
+                  Free Training Session • Unlimited Practice
+                </span>
+              ) : (
+                <span className="text-xs font-bold uppercase tracking-wider text-amber-400 bg-amber-950/80 px-2.5 py-0.5 rounded-full border border-amber-800/60 flex items-center gap-1">
+                  <Flame className="w-3.5 h-3.5" /> Step 4 of 6 • Major System Drills
+                </span>
+              )}
               <span className="text-[10px] bg-amber-950/70 text-amber-300 font-bold px-2 py-0.5 rounded border border-amber-700/60">
                 100% Perfect Strike Required
               </span>
-              <span className="text-[10px] bg-cyan-950/70 text-cyan-300 font-bold px-2 py-0.5 rounded border border-cyan-700/60">
-                2 Levels Required ({completedLevelsToday}/2 Cleared)
-              </span>
-              <span className="text-xs text-slate-400 font-mono">
-                Day {curriculumDay} Cap: {pegConfig.label}
-              </span>
+              {!freePracticeActive && (
+                <span className="text-[10px] bg-cyan-950/70 text-cyan-300 font-bold px-2 py-0.5 rounded border border-cyan-700/60">
+                  2 Levels Required ({completedLevelsToday}/2 Cleared)
+                </span>
+              )}
+              {!freePracticeActive ? (
+                <span className="text-xs text-slate-400 font-mono">
+                  Day {curriculumDay} Cap: {pegConfig.label}
+                </span>
+              ) : (
+                <span className="text-[10px] bg-emerald-950 text-emerald-300 font-bold px-2 py-0.5 rounded border border-emerald-700">
+                  All Pegs Unlocked
+                </span>
+              )}
             </div>
             <h2 className="text-xl font-extrabold text-white flex items-center gap-2">
               Mnemonic Peg Speed Conversions
@@ -141,6 +168,38 @@ export const MnemonicPegsGame: React.FC<MnemonicPegsGameProps> = ({
               Rapidly transform digits into vivid phonetically-encoded objects. Level requirement: 
               <strong className="text-amber-300 ml-1">{pegConfig.targetCount} unbroken conversions</strong> with 100% precision. Any mistake resets the level streak.
             </p>
+
+            {/* Range selection in Free Practice */}
+            {freePracticeActive && (
+              <div className="mt-2.5 flex items-center gap-2 overflow-x-auto pb-1">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider shrink-0">
+                  Peg Pool:
+                </span>
+                {[
+                  { key: 'day', label: `Day ${curriculumDay} (${pegConfig.label})` },
+                  { key: '0-9', label: 'Single 0-9' },
+                  { key: '0-19', label: 'Teens 0-19' },
+                  { key: '0-49', label: 'Mid 0-49' },
+                  { key: 'all', label: 'All 00-99 (100 Pegs)' },
+                ].map((opt) => (
+                  <button
+                    key={opt.key}
+                    onClick={() => {
+                      sound.playClick();
+                      setFreeRange(opt.key as any);
+                      nextPegDrill();
+                    }}
+                    className={`px-2 py-0.5 rounded text-[11px] font-bold transition-all cursor-pointer ${
+                      freeRange === opt.key
+                        ? 'bg-amber-500 text-slate-950'
+                        : 'bg-slate-800 hover:bg-slate-700 text-slate-300'
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Today's Quota Progress */}

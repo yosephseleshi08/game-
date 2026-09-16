@@ -257,15 +257,24 @@ export const DailyProtocolTracker: React.FC<DailyProtocolTrackerProps> = ({
 
           <div className="mt-5 flex flex-wrap items-center justify-center gap-3">
             <button
+              id="goto-free-training-from-protocol-btn"
+              onClick={() => onNavigateMode('free-training')}
+              className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 text-slate-950 font-black text-xs sm:text-sm shadow-xl shadow-cyan-500/25 transition-all cursor-pointer active:scale-98"
+            >
+              <Zap className="w-4 h-4 fill-slate-950" />
+              Have Free Time? Train All Steps Freely (Brain Gym)
+            </button>
+
+            <button
               id="view-locked-milestone-btn"
               onClick={() => {
                 if (onOpenMilestone) onOpenMilestone();
                 else setIsMilestoneModalOpen(true);
               }}
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500/20 via-cyan-500/20 to-amber-500/20 hover:from-emerald-500/30 hover:to-cyan-500/30 border border-emerald-500/40 text-emerald-300 font-bold text-xs shadow-lg transition-all cursor-pointer active:scale-98"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 font-bold text-xs shadow-lg transition-all cursor-pointer active:scale-98"
             >
               <Trophy className="w-4 h-4 text-amber-400" />
-              View Day {protocol.curriculumDay} Milestone Celebration & 60-Day Progress 🎊
+              Day {protocol.curriculumDay} Milestone & 60-Day Map 🎊
             </button>
           </div>
         </div>

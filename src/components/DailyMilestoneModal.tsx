@@ -27,6 +27,7 @@ interface DailyMilestoneModalProps {
   tasks: ProtocolTask[];
   isLockedOut: boolean;
   onFinalizeProtocol?: () => void;
+  onOpenFreeTraining?: () => void;
 }
 
 export const DailyMilestoneModal: React.FC<DailyMilestoneModalProps> = ({
@@ -37,6 +38,7 @@ export const DailyMilestoneModal: React.FC<DailyMilestoneModalProps> = ({
   tasks,
   isLockedOut,
   onFinalizeProtocol,
+  onOpenFreeTraining,
 }) => {
   const triggerConfettiExplosion = useCallback(() => {
     // Sound fanfare
@@ -355,6 +357,23 @@ export const DailyMilestoneModal: React.FC<DailyMilestoneModalProps> = ({
             </button>
           )}
         </div>
+
+        {/* Free Training Alternative to Doom Scrolling */}
+        {onOpenFreeTraining && (
+          <div className="mt-4 pt-4 border-t border-slate-800 text-center">
+            <button
+              id="milestone-to-free-training-btn"
+              onClick={() => {
+                onClose();
+                onOpenFreeTraining();
+              }}
+              className="w-full py-2.5 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 border border-cyan-500/40 hover:border-cyan-400 text-cyan-300 font-bold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer"
+            >
+              <Zap className="w-3.5 h-3.5 text-cyan-400" />
+              Don't Doom Scroll TikTok! Train All Steps Freely in the Brain Gym ➔
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

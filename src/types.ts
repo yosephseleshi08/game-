@@ -1,5 +1,6 @@
 export type GameMode =
   | 'daily-protocol'
+  | 'free-training'
   | 'eidetic-matrix'
   | 'ayumu-chimp'
   | 'dual-nback'
@@ -10,6 +11,14 @@ export type GameMode =
   | 'daily-workout'
   | 'community'
   | 'stats';
+
+export interface FreeTrainingSessionStats {
+  totalMinutesPracticed: number;
+  totalRepsCompleted: number;
+  doomScrollMinutesSaved: number;
+  sessionsCount: number;
+  lastSessionDate: string;
+}
 
 export type FlashSpeed = 2000 | 1200 | 600 | 300 | 150;
 

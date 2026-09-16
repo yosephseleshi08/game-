@@ -18,6 +18,8 @@ import {
 interface MemoryPalaceGameProps {
   curriculumDay: number;
   isLockedOut?: boolean;
+  isFreeTraining?: boolean;
+  initialLoci?: number;
   onAddXp: (amount: number) => void;
   onCompletePalaceStep: () => void;
   onNavigateMode: (mode: GameMode) => void;
@@ -39,6 +41,8 @@ const MEMORY_ITEMS_POOL = [
 export const MemoryPalaceGame: React.FC<MemoryPalaceGameProps> = ({
   curriculumDay,
   isLockedOut = false,
+  isFreeTraining = false,
+  initialLoci,
   onAddXp,
   onCompletePalaceStep,
   onNavigateMode,
@@ -46,6 +50,8 @@ export const MemoryPalaceGame: React.FC<MemoryPalaceGameProps> = ({
   completedLevelsToday = 0,
 }) => {
   const palaceConfig = getPalaceConfigForDay(curriculumDay);
+  const [freePracticeActive, setFreePracticeActive] = useState(isFreeTraining);
+  const [selectedLociCount, setSelectedLociCount] = useState<number>(() => initialLoci || palaceConfig.lociCount);
 
   const [palaceLoci] = useState<PalaceLocus[]>(DEFAULT_PALACE_LOCI);
   const [stage, setStage] = useState<'setup' | 'flashing' | 'recalling' | 'review'>('setup');
@@ -54,19 +60,22 @@ export const MemoryPalaceGame: React.FC<MemoryPalaceGameProps> = ({
   const [userRecalls, setUserRecalls] = useState<Record<number, string>>({});
   const [palaceScore, setPalaceScore] = useState<number | null>(null);
 
-  if (isLockedOut) {
+  if (isLockedOut && !freePracticeActive) {
     return (
       <StrictDayLockoutView
         curriculumDay={curriculumDay}
         gameTitle="Memory Palace Locus Walkthrough"
         onNavigateMode={onNavigateMode}
+        onUnlockFreeTraining={() => setFreePracticeActive(true)}
       />
     );
   }
 
+  const effectiveLociCount = freePracticeActive ? selectedLociCount : palaceConfig.lociCount;
+
   const startPalaceTour = () => {
-    // Take lociCount stations based on today's curriculum day
-    const activeLoci = palaceLoci.slice(0, palaceConfig.lociCount);
+    // Take lociCount stations based on chosen count
+    const activeLoci = palaceLoci.slice(0, effectiveLociCount);
     // Shuffle pool items
     const shuffledPool = [...MEMORY_ITEMS_POOL].sort(() => 0.5 - Math.random());
 
@@ -136,35 +145,75 @@ export const MemoryPalaceGame: React.FC<MemoryPalaceGameProps> = ({
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
             <div className="flex flex-wrap items-center gap-2 mb-1">
-              <span className="text-xs font-bold uppercase tracking-wider text-amber-400 bg-amber-950/80 px-2.5 py-0.5 rounded-full border border-amber-800/60 flex items-center gap-1">
-                <Castle className="w-3.5 h-3.5" /> Step 5 of 6 • Method of Loci
-              </span>
+              {freePracticeActive ? (
+                <span className="text-xs font-black uppercase tracking-wider text-slate-950 bg-gradient-to-r from-amber-400 to-orange-300 px-3 py-0.5 rounded-full shadow-sm flex items-center gap-1">
+                  <Sparkles className="w-3 h-3 text-slate-950" />
+                  Free Training Session • Unlimited Practice
+                </span>
+              ) : (
+                <span className="text-xs font-bold uppercase tracking-wider text-amber-400 bg-amber-950/80 px-2.5 py-0.5 rounded-full border border-amber-800/60 flex items-center gap-1">
+                  <Castle className="w-3.5 h-3.5" /> Step 5 of 6 • Method of Loci
+                </span>
+              )}
               <span className="text-[10px] bg-amber-950/70 text-amber-300 font-bold px-2 py-0.5 rounded border border-amber-700/60">
                 100% Perfect Strike Required
               </span>
-              <span className="text-[10px] bg-cyan-950/70 text-cyan-300 font-bold px-2 py-0.5 rounded border border-cyan-700/60">
-                2 Levels Required ({completedLevelsToday}/2 Cleared)
-              </span>
-              <span className="text-xs text-slate-400 font-mono">
-                Day {curriculumDay} Scope: {palaceConfig.label}
-              </span>
+              {!freePracticeActive && (
+                <span className="text-[10px] bg-cyan-950/70 text-cyan-300 font-bold px-2 py-0.5 rounded border border-cyan-700/60">
+                  2 Levels Required ({completedLevelsToday}/2 Cleared)
+                </span>
+              )}
+              {!freePracticeActive ? (
+                <span className="text-xs text-slate-400 font-mono">
+                  Day {curriculumDay} Scope: {palaceConfig.label}
+                </span>
+              ) : (
+                <span className="text-[10px] bg-emerald-950 text-emerald-300 font-bold px-2 py-0.5 rounded border border-emerald-700">
+                  All Palace Stations Unlocked
+                </span>
+              )}
             </div>
             <h2 className="text-xl font-extrabold text-white flex items-center gap-2">
               Digital Memory Palace Walkthrough
             </h2>
             <p className="text-xs text-slate-400 mt-0.5 max-w-xl">
-              Anchor high-contrast visual cues to physical loci in the mental villa. Today&apos;s route: 
-              <strong className="text-amber-300 ml-1">{palaceConfig.lociCount} stations</strong>. 100% recall across 2 complete levels required to pass.
+              Anchor high-contrast visual cues to physical loci in the mental villa. Active route: 
+              <strong className="text-amber-300 ml-1">{effectiveLociCount} stations</strong>. 100% recall required to pass.
             </p>
+
+            {/* Loci Picker in Free Practice */}
+            {freePracticeActive && stage === 'setup' && (
+              <div className="mt-2.5 flex items-center gap-2 overflow-x-auto pb-1">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider shrink-0">
+                  Stations:
+                </span>
+                {[3, 4, 5, 6, 7, 8, 10, 12].map((cnt) => (
+                  <button
+                    key={cnt}
+                    onClick={() => {
+                      sound.playClick();
+                      setSelectedLociCount(cnt);
+                    }}
+                    className={`px-2.5 py-0.5 rounded text-[11px] font-mono font-bold transition-all cursor-pointer ${
+                      selectedLociCount === cnt
+                        ? 'bg-amber-500 text-slate-950'
+                        : 'bg-slate-800 hover:bg-slate-700 text-slate-300'
+                    }`}
+                  >
+                    {cnt} Loci
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           <div className="bg-slate-950/80 border border-slate-800 px-4 py-2.5 rounded-2xl flex items-center gap-3">
             <div className="text-right">
               <div className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
-                Day {curriculumDay} Target
+                {freePracticeActive ? 'Practice Loci' : `Day ${curriculumDay} Target`}
               </div>
               <div className="text-lg font-black text-amber-400 font-mono">
-                {palaceConfig.lociCount} Loci
+                {effectiveLociCount} Loci
               </div>
             </div>
             {isTaskCompleteToday && (

@@ -14,6 +14,7 @@ import {
   Castle,
   Layers,
   Zap,
+  Infinity,
 } from 'lucide-react';
 
 interface ModeSelectorProps {
@@ -29,7 +30,14 @@ export const ModeSelector: React.FC<ModeSelectorProps> = ({ activeMode, onSelect
       label: 'Daily Protocol',
       desc: '6-Step 12 AM Lockout Plan',
       icon: <CalendarCheck className="w-4 h-4 text-emerald-400" />,
-      badge: isLockedOut ? 'Locked' : '6 Steps',
+      badge: isLockedOut ? 'Mastered' : 'Daily',
+    },
+    {
+      id: 'free-training',
+      label: 'Free Training Hub',
+      desc: 'All 6 Steps Unrestricted',
+      icon: <Infinity className="w-4 h-4 text-cyan-400" />,
+      badge: 'Brain Gym',
     },
     {
       id: 'eidetic-matrix',

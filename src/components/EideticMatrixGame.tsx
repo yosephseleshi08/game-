@@ -20,6 +20,8 @@ interface EideticMatrixGameProps {
   currentSpeed: FlashSpeed;
   curriculumDay: number;
   isLockedOut?: boolean;
+  isFreeTraining?: boolean;
+  initialLevel?: number;
   onSpeedChange: (speed: FlashSpeed) => void;
   onAddXp: (amount: number) => void;
   onRecordResult: (isSuccess: boolean, level: number) => void;
@@ -50,6 +52,8 @@ export const EideticMatrixGame: React.FC<EideticMatrixGameProps> = ({
   currentSpeed,
   curriculumDay,
   isLockedOut = false,
+  isFreeTraining = false,
+  initialLevel,
   onSpeedChange,
   onAddXp,
   onRecordResult,
@@ -58,18 +62,20 @@ export const EideticMatrixGame: React.FC<EideticMatrixGameProps> = ({
   completedLevelsToday = 0,
 }) => {
   const dayLimit = getMaxMatrixLevelForDay(curriculumDay);
+  const [freePracticeActive, setFreePracticeActive] = useState(isFreeTraining);
 
-  if (isLockedOut) {
+  if (isLockedOut && !freePracticeActive) {
     return (
       <StrictDayLockoutView
         curriculumDay={curriculumDay}
         gameTitle="Eidetic Matrix Recall"
         onNavigateMode={onNavigateMode}
+        onUnlockFreeTraining={() => setFreePracticeActive(true)}
       />
     );
   }
 
-  const [level, setLevel] = useState(1);
+  const [level, setLevel] = useState(initialLevel || 1);
   const [stage, setStage] = useState<Stage>('idle');
   const [countdown, setCountdown] = useState(3);
   const [targetCells, setTargetCells] = useState<Set<number>>(new Set());
@@ -196,21 +202,36 @@ export const EideticMatrixGame: React.FC<EideticMatrixGameProps> = ({
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
             <div className="flex flex-wrap items-center gap-2 mb-1">
-              <span className="text-xs font-bold uppercase tracking-wider text-cyan-400 bg-cyan-950/80 px-2.5 py-0.5 rounded-full border border-cyan-800/60">
-                Step 1 of 6 • Spatial Flash
-              </span>
+              {freePracticeActive ? (
+                <span className="text-xs font-black uppercase tracking-wider text-slate-950 bg-gradient-to-r from-cyan-400 to-indigo-300 px-3 py-0.5 rounded-full shadow-sm flex items-center gap-1">
+                  <Sparkles className="w-3 h-3 text-slate-950" />
+                  Free Training Session • Unlimited Practice
+                </span>
+              ) : (
+                <span className="text-xs font-bold uppercase tracking-wider text-cyan-400 bg-cyan-950/80 px-2.5 py-0.5 rounded-full border border-cyan-800/60">
+                  Step 1 of 6 • Spatial Flash
+                </span>
+              )}
               <span className="text-[10px] bg-amber-950/70 text-amber-300 font-bold px-2 py-0.5 rounded border border-amber-700/60">
                 100% Perfect Strike Required
               </span>
-              <span className="text-[10px] bg-cyan-950/70 text-cyan-300 font-bold px-2 py-0.5 rounded border border-cyan-700/60">
-                2 Levels Required ({completedLevelsToday}/2 Cleared)
-              </span>
+              {!freePracticeActive && (
+                <span className="text-[10px] bg-cyan-950/70 text-cyan-300 font-bold px-2 py-0.5 rounded border border-cyan-700/60">
+                  2 Levels Required ({completedLevelsToday}/2 Cleared)
+                </span>
+              )}
               <span className="text-xs text-slate-400">
                 Level <strong className="text-white">{level}</strong>
               </span>
-              <span className="text-[10px] bg-slate-800 text-cyan-300 font-mono px-2 py-0.5 rounded border border-slate-700">
-                Day {curriculumDay} Max: Level {dayLimit.maxLevel}
-              </span>
+              {!freePracticeActive ? (
+                <span className="text-[10px] bg-slate-800 text-cyan-300 font-mono px-2 py-0.5 rounded border border-slate-700">
+                  Day {curriculumDay} Max: Level {dayLimit.maxLevel}
+                </span>
+              ) : (
+                <span className="text-[10px] bg-emerald-950 text-emerald-300 font-bold px-2 py-0.5 rounded border border-emerald-700">
+                  Level Caps Unlocked
+                </span>
+              )}
             </div>
             <h2 className="text-xl font-extrabold text-white flex items-center gap-2">
               Eidetic Matrix Recall
@@ -218,6 +239,32 @@ export const EideticMatrixGame: React.FC<EideticMatrixGameProps> = ({
             <p className="text-xs text-slate-400 mt-0.5">
               Snapshot <strong className="text-cyan-300">{config.targetsCount}</strong> glowing tiles in the {config.size}x{config.size} matrix after the flash. 100% flawless recall required to pass.
             </p>
+
+            {/* Free Level Picker Quick-Bar */}
+            {freePracticeActive && (
+              <div className="mt-2.5 flex items-center gap-2 overflow-x-auto pb-1">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider shrink-0">
+                  Jump Level:
+                </span>
+                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 15].map((lvl) => (
+                  <button
+                    key={lvl}
+                    onClick={() => {
+                      sound.playClick();
+                      setLevel(lvl);
+                      setStage('idle');
+                    }}
+                    className={`px-2 py-0.5 rounded text-[11px] font-mono font-bold transition-all cursor-pointer ${
+                      level === lvl
+                        ? 'bg-cyan-500 text-slate-950'
+                        : 'bg-slate-800 hover:bg-slate-700 text-slate-300'
+                    }`}
+                  >
+                    L{lvl}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           <div className="flex items-center gap-3">
@@ -374,14 +421,20 @@ export const EideticMatrixGame: React.FC<EideticMatrixGameProps> = ({
                 <p className="text-xs text-slate-300 mb-4">
                   Retained {config.targetsCount} tiles in {currentSpeed}ms exposure (+{Math.round((35 + config.targetsCount * 5) * currentOption.xpMultiplier)} XP)
                 </p>
-                {level >= dayLimit.maxLevel ? (
+                {level >= dayLimit.maxLevel && !freePracticeActive ? (
                   <div className="mb-4 p-3 rounded-xl bg-amber-950/70 border border-amber-800/80 text-center">
                     <span className="text-xs font-bold text-amber-300 flex items-center justify-center gap-1.5 mb-1">
-                      <Lock className="w-3.5 h-3.5" /> Day {curriculumDay} Matrix Level Cap Reached ({level})
+                      <Lock className="w-3.5 h-3.5" /> Day {curriculumDay} Daily Protocol Level Cap Reached ({level})
                     </span>
                     <p className="text-[11px] text-slate-300">
-                      Level {level + 1} is strictly locked until Day {dayLimit.nextUnlockDay || 'tomorrow'} to maintain optimal cognitive recovery.
+                      You can continue to higher levels freely right now by switching to Free Practice Mode.
                     </p>
+                    <button
+                      onClick={() => setFreePracticeActive(true)}
+                      className="mt-2 py-1 px-3 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs cursor-pointer"
+                    >
+                      Enable Free Practice (Unlock All Levels)
+                    </button>
                   </div>
                 ) : null}
 
@@ -394,7 +447,7 @@ export const EideticMatrixGame: React.FC<EideticMatrixGameProps> = ({
                     Review Flash
                   </button>
 
-                  {level >= dayLimit.maxLevel ? (
+                  {level >= dayLimit.maxLevel && !freePracticeActive ? (
                     <button
                       onClick={retryRound}
                       className="flex-2 py-2.5 px-6 rounded-xl bg-slate-800 hover:bg-slate-700 text-cyan-300 font-bold text-xs border border-cyan-800/60 transition-all flex items-center justify-center gap-1.5 cursor-pointer"

@@ -18,6 +18,7 @@ import {
 interface SpacedRepetitionGameProps {
   curriculumDay: number;
   isLockedOut?: boolean;
+  isFreeTraining?: boolean;
   onAddXp: (amount: number) => void;
   onCardReviewed: () => void;
   onCompleteSpacedLevel?: () => void;
@@ -29,6 +30,7 @@ interface SpacedRepetitionGameProps {
 export const SpacedRepetitionGame: React.FC<SpacedRepetitionGameProps> = ({
   curriculumDay,
   isLockedOut = false,
+  isFreeTraining = false,
   onAddXp,
   onCardReviewed,
   onCompleteSpacedLevel,
@@ -37,6 +39,7 @@ export const SpacedRepetitionGame: React.FC<SpacedRepetitionGameProps> = ({
   completedLevelsToday = 0,
 }) => {
   const spacedConfig = getSpacedCardQuotaForDay(curriculumDay);
+  const [freePracticeActive, setFreePracticeActive] = useState(isFreeTraining);
 
   const [cards, setCards] = useState<SpacedCard[]>(() => loadSpacedCards());
   const [currentCardIndex, setCurrentCardIndex] = useState<number>(0);
@@ -44,12 +47,13 @@ export const SpacedRepetitionGame: React.FC<SpacedRepetitionGameProps> = ({
   const [levelStreak, setLevelStreak] = useState<number>(0);
   const [strikeBroken, setStrikeBroken] = useState<boolean>(false);
 
-  if (isLockedOut) {
+  if (isLockedOut && !freePracticeActive) {
     return (
       <StrictDayLockoutView
         curriculumDay={curriculumDay}
         gameTitle="Spaced Repetition SM-2"
         onNavigateMode={onNavigateMode}
+        onUnlockFreeTraining={() => setFreePracticeActive(true)}
       />
     );
   }
@@ -104,18 +108,33 @@ export const SpacedRepetitionGame: React.FC<SpacedRepetitionGameProps> = ({
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
             <div className="flex flex-wrap items-center gap-2 mb-1">
-              <span className="text-xs font-bold uppercase tracking-wider text-purple-400 bg-purple-950/80 px-2.5 py-0.5 rounded-full border border-purple-800/60 flex items-center gap-1">
-                <Layers className="w-3.5 h-3.5" /> Step 6 of 6 • Active Recall
-              </span>
+              {freePracticeActive ? (
+                <span className="text-xs font-black uppercase tracking-wider text-slate-950 bg-gradient-to-r from-purple-400 to-pink-300 px-3 py-0.5 rounded-full shadow-sm flex items-center gap-1">
+                  <Sparkles className="w-3 h-3 text-slate-950" />
+                  Free Training Session • Unlimited Practice
+                </span>
+              ) : (
+                <span className="text-xs font-bold uppercase tracking-wider text-purple-400 bg-purple-950/80 px-2.5 py-0.5 rounded-full border border-purple-800/60 flex items-center gap-1">
+                  <Layers className="w-3.5 h-3.5" /> Step 6 of 6 • Active Recall
+                </span>
+              )}
               <span className="text-[10px] bg-amber-950/70 text-amber-300 font-bold px-2 py-0.5 rounded border border-amber-700/60">
                 100% Perfect Strike Required
               </span>
-              <span className="text-[10px] bg-cyan-950/70 text-cyan-300 font-bold px-2 py-0.5 rounded border border-cyan-700/60">
-                2 Levels Required ({completedLevelsToday}/2 Cleared)
-              </span>
-              <span className="text-xs text-slate-400 font-mono">
-                Day {curriculumDay} Scope: {spacedConfig.label}
-              </span>
+              {!freePracticeActive && (
+                <span className="text-[10px] bg-cyan-950/70 text-cyan-300 font-bold px-2 py-0.5 rounded border border-cyan-700/60">
+                  2 Levels Required ({completedLevelsToday}/2 Cleared)
+                </span>
+              )}
+              {!freePracticeActive ? (
+                <span className="text-xs text-slate-400 font-mono">
+                  Day {curriculumDay} Scope: {spacedConfig.label}
+                </span>
+              ) : (
+                <span className="text-[10px] bg-emerald-950 text-emerald-300 font-bold px-2 py-0.5 rounded border border-emerald-700">
+                  Continuous Recall Active
+                </span>
+              )}
             </div>
             <h2 className="text-xl font-extrabold text-white flex items-center gap-2">
               Spaced Repetition SM-2 Flashcards

@@ -7,6 +7,7 @@ import {
   MajorPeg,
   PalaceLocus,
   SpacedCard,
+  FreeTrainingSessionStats,
 } from '../types';
 
 export const FLASH_SPEED_OPTIONS: FlashSpeedOption[] = [
@@ -361,3 +362,45 @@ export function calculateSM2(
     lastReviewedDate: new Date().toISOString(),
   };
 }
+
+const FREE_TRAINING_STATS_KEY = 'pmm_free_training_stats_v1';
+
+const defaultFreeTrainingStats: FreeTrainingSessionStats = {
+  totalMinutesPracticed: 0,
+  totalRepsCompleted: 0,
+  doomScrollMinutesSaved: 0,
+  sessionsCount: 0,
+  lastSessionDate: new Date().toISOString(),
+};
+
+export function loadFreeTrainingStats(): FreeTrainingSessionStats {
+  try {
+    const raw = localStorage.getItem(FREE_TRAINING_STATS_KEY);
+    if (!raw) return defaultFreeTrainingStats;
+    return { ...defaultFreeTrainingStats, ...JSON.parse(raw) };
+  } catch {
+    return defaultFreeTrainingStats;
+  }
+}
+
+export function saveFreeTrainingStats(stats: FreeTrainingSessionStats): void {
+  try {
+    localStorage.setItem(FREE_TRAINING_STATS_KEY, JSON.stringify(stats));
+  } catch {
+    // ignore
+  }
+}
+
+export function recordFreeTrainingSession(minutes: number, reps: number): FreeTrainingSessionStats {
+  const current = loadFreeTrainingStats();
+  const updated: FreeTrainingSessionStats = {
+    totalMinutesPracticed: current.totalMinutesPracticed + minutes,
+    totalRepsCompleted: current.totalRepsCompleted + reps,
+    doomScrollMinutesSaved: current.doomScrollMinutesSaved + Math.round(minutes * 1.5),
+    sessionsCount: current.sessionsCount + 1,
+    lastSessionDate: new Date().toISOString(),
+  };
+  saveFreeTrainingStats(updated);
+  return updated;
+}
+

@@ -8,6 +8,8 @@ import { Play, RotateCcw, Brain, Check, X, Award, ChevronUp, ChevronDown, Volume
 interface DualNBackGameProps {
   curriculumDay: number;
   isLockedOut?: boolean;
+  isFreeTraining?: boolean;
+  initialN?: number;
   onAddXp: (amount: number) => void;
   onRecordNBackMax: (level: number) => void;
   onNavigateMode: (mode: GameMode) => void;
@@ -23,6 +25,8 @@ const INTER_TRIAL_INTERVAL_MS = 2200;
 export const DualNBackGame: React.FC<DualNBackGameProps> = ({
   curriculumDay,
   isLockedOut = false,
+  isFreeTraining = false,
+  initialN,
   onAddXp,
   onRecordNBackMax,
   onNavigateMode,
@@ -30,24 +34,26 @@ export const DualNBackGame: React.FC<DualNBackGameProps> = ({
   completedRoundsToday = 0,
 }) => {
   const dayLimit = getMaxDualNBackForDay(curriculumDay);
+  const [freePracticeActive, setFreePracticeActive] = useState(isFreeTraining);
 
-  if (isLockedOut) {
+  if (isLockedOut && !freePracticeActive) {
     return (
       <StrictDayLockoutView
         curriculumDay={curriculumDay}
         gameTitle="Dual N-Back Laboratory"
         onNavigateMode={onNavigateMode}
+        onUnlockFreeTraining={() => setFreePracticeActive(true)}
       />
     );
   }
 
-  const [n, setN] = useState<number>(() => Math.min(dayLimit.maxN, dayLimit.defaultN || 1));
+  const [n, setN] = useState<number>(() => initialN || Math.min(dayLimit.maxN, dayLimit.defaultN || 1));
 
   useEffect(() => {
-    if (n > dayLimit.maxN) {
+    if (!freePracticeActive && n > dayLimit.maxN) {
       setN(dayLimit.maxN);
     }
-  }, [dayLimit.maxN, n]);
+  }, [dayLimit.maxN, n, freePracticeActive]);
   const [stage, setStage] = useState<'idle' | 'countdown' | 'running' | 'summary'>('idle');
   const [currentTrialIdx, setCurrentTrialIdx] = useState<number>(-1);
   const [activeCell, setActiveCell] = useState<number | null>(null);
@@ -306,18 +312,33 @@ export const DualNBackGame: React.FC<DualNBackGameProps> = ({
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
             <div className="flex flex-wrap items-center gap-2 mb-1">
-              <span className="text-xs font-bold uppercase tracking-wider text-cyan-400 bg-cyan-950/80 px-2.5 py-0.5 rounded-full border border-cyan-800/60 flex items-center gap-1">
-                <Brain className="w-3.5 h-3.5" /> Step 3 of 6 • Dual N-Back
-              </span>
+              {freePracticeActive ? (
+                <span className="text-xs font-black uppercase tracking-wider text-slate-950 bg-gradient-to-r from-cyan-400 to-indigo-300 px-3 py-0.5 rounded-full shadow-sm flex items-center gap-1">
+                  <Sparkles className="w-3 h-3 text-slate-950" />
+                  Free Training Session • Unlimited Practice
+                </span>
+              ) : (
+                <span className="text-xs font-bold uppercase tracking-wider text-cyan-400 bg-cyan-950/80 px-2.5 py-0.5 rounded-full border border-cyan-800/60 flex items-center gap-1">
+                  <Brain className="w-3.5 h-3.5" /> Step 3 of 6 • Dual N-Back
+                </span>
+              )}
               <span className="text-[10px] bg-amber-950/70 text-amber-300 font-bold px-2 py-0.5 rounded border border-amber-700/60">
                 100% Perfect Strike Required
               </span>
-              <span className="text-[10px] bg-cyan-950/70 text-cyan-300 font-bold px-2 py-0.5 rounded border border-cyan-700/60">
-                2 Rounds Required ({completedRoundsToday}/2 Cleared)
-              </span>
-              <span className="text-[10px] bg-slate-800 text-cyan-300 font-mono px-2 py-0.5 rounded border border-slate-700">
-                {curriculumDay < 4 ? `Day ${curriculumDay} Target: N=1 (Calibration)` : `Day ${curriculumDay} Target: N=${dayLimit.targetN}`}
-              </span>
+              {!freePracticeActive && (
+                <span className="text-[10px] bg-cyan-950/70 text-cyan-300 font-bold px-2 py-0.5 rounded border border-cyan-700/60">
+                  2 Rounds Required ({completedRoundsToday}/2 Cleared)
+                </span>
+              )}
+              {!freePracticeActive ? (
+                <span className="text-[10px] bg-slate-800 text-cyan-300 font-mono px-2 py-0.5 rounded border border-slate-700">
+                  {curriculumDay < 4 ? `Day ${curriculumDay} Target: N=1 (Calibration)` : `Day ${curriculumDay} Target: N=${dayLimit.targetN}`}
+                </span>
+              ) : (
+                <span className="text-[10px] bg-emerald-950 text-emerald-300 font-bold px-2 py-0.5 rounded border border-emerald-700">
+                  All N-Levels Unlocked
+                </span>
+              )}
             </div>
             <h2 className="text-xl font-extrabold text-white flex items-center gap-2">
               Dual N-Back Laboratory
@@ -330,12 +351,12 @@ export const DualNBackGame: React.FC<DualNBackGameProps> = ({
             </p>
           </div>
 
-          {/* Level Selector N=1..4 */}
+          {/* Level Selector N=1..5 */}
           <div className="flex items-center gap-2 bg-slate-800/80 border border-slate-700 p-1.5 rounded-xl">
             <span className="text-xs text-slate-400 pl-2 font-medium">N-Level:</span>
             <div className="flex items-center gap-1">
-              {[1, 2, 3, 4].map((level) => {
-                const isLocked = level > dayLimit.maxN;
+              {[1, 2, 3, 4, 5].map((level) => {
+                const isLocked = !freePracticeActive && level > dayLimit.maxN;
                 return (
                   <button
                     key={level}
@@ -346,7 +367,7 @@ export const DualNBackGame: React.FC<DualNBackGameProps> = ({
                       setStage('idle');
                     }}
                     disabled={stage === 'running' || isLocked}
-                    title={isLocked ? `Strictly locked for Day ${curriculumDay}. N=2 unlocks Day 4.` : undefined}
+                    title={isLocked ? `Strictly locked for Day ${curriculumDay}. Switch to Free Training to practice any N level.` : undefined}
                     className={`px-3 py-1 rounded-lg text-xs font-black transition-all flex items-center gap-1 ${
                       isLocked
                         ? 'text-slate-600 bg-slate-900/50 cursor-not-allowed border border-slate-800 opacity-60'

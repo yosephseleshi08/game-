@@ -29,6 +29,7 @@ import { AuthModal } from './components/AuthModal';
 import { UserProfileModal } from './components/UserProfileModal';
 import { CommunityPlayersView } from './components/CommunityPlayersView';
 import { DailyMilestoneModal } from './components/DailyMilestoneModal';
+import { FreeTrainingView } from './components/FreeTrainingView';
 import { loadDailyProtocol, saveDailyProtocol } from './utils/protocol';
 import { getPlanSpeedForDay } from './utils/flashPlan';
 import {
@@ -57,6 +58,23 @@ export default function App() {
   });
 
   const [activeMode, setActiveMode] = useState<GameMode>('daily-protocol');
+
+  // Free Training State & Level Overrides
+  const [freeTrainingConfig, setFreeTrainingConfig] = useState<{
+    isFree: boolean;
+    level?: number;
+    digits?: number;
+    nBack?: number;
+    loci?: number;
+  } | null>(null);
+
+  const handleStartStepWithConfig = (
+    mode: GameMode,
+    config?: { level?: number; digits?: number; nBack?: number; loci?: number }
+  ) => {
+    setFreeTrainingConfig({ isFree: true, ...config });
+    setActiveMode(mode);
+  };
 
   // Modals
   const [isTipsModalOpen, setIsTipsModalOpen] = useState(false);
@@ -573,11 +591,62 @@ export default function App() {
 
       {/* Primary Dynamic View */}
       <main className="flex-1 w-full pb-12">
+        {/* Free Practice Active Banner */}
+        {freeTrainingConfig?.isFree &&
+          !['daily-protocol', 'free-training', 'community', 'stats'].includes(activeMode) && (
+            <div className="max-w-4xl mx-auto px-4 pt-3 pb-1">
+              <div className="bg-gradient-to-r from-cyan-950/90 via-slate-900 to-indigo-950/90 border border-cyan-500/40 rounded-2xl p-3 flex flex-wrap items-center justify-between gap-3 shadow-lg">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-cyan-500/20 text-cyan-400 flex items-center justify-center border border-cyan-500/30">
+                    <Sparkles className="w-4 h-4 text-cyan-300" />
+                  </div>
+                  <div>
+                    <span className="text-xs font-black uppercase tracking-wider text-cyan-300 flex items-center gap-1.5">
+                      Free Training Mode Active
+                      <span className="text-[10px] bg-cyan-900/80 text-cyan-200 px-2 py-0.5 rounded font-mono font-bold">
+                        12 AM Lockout Bypassed
+                      </span>
+                    </span>
+                    <p className="text-[11px] text-slate-300">
+                      Unlimited attempts & unlocked level caps. Train deliberate memory instead of doom scrolling.
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => {
+                      sound.playClick();
+                      setActiveMode('free-training');
+                    }}
+                    className="px-3 py-1.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 text-xs font-bold transition-all shadow cursor-pointer flex items-center gap-1"
+                  >
+                    Training Hub
+                  </button>
+                  <button
+                    onClick={() => {
+                      sound.playClick();
+                      setFreeTrainingConfig(null);
+                      setActiveMode('daily-protocol');
+                    }}
+                    className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold transition-all cursor-pointer"
+                  >
+                    Back to Daily
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
         {activeMode === 'daily-protocol' && (
           <DailyProtocolTracker
             protocol={protocol}
             onUpdateProtocol={setProtocol}
-            onNavigateMode={setActiveMode}
+            onNavigateMode={(mode) => {
+              if (mode === 'free-training') {
+                setFreeTrainingConfig({ isFree: true });
+              }
+              setActiveMode(mode);
+            }}
             onAddXp={handleAddXp}
             onOpenRoadmap={() => setIsRoadmapModalOpen(true)}
             onOpenFlashPlan={() => setIsFlashPlanOpen(true)}
@@ -587,11 +656,27 @@ export default function App() {
           />
         )}
 
+        {activeMode === 'free-training' && (
+          <FreeTrainingView
+            curriculumDay={protocol.curriculumDay}
+            currentSpeed={currentSpeed}
+            onSpeedChange={handleSpeedChange}
+            onNavigateMode={(mode) => {
+              setFreeTrainingConfig({ isFree: true });
+              setActiveMode(mode);
+            }}
+            onStartStepWithConfig={handleStartStepWithConfig}
+            onAddXp={handleAddXp}
+          />
+        )}
+
         {activeMode === 'eidetic-matrix' && (
           <EideticMatrixGame
             currentSpeed={currentSpeed}
             curriculumDay={protocol.curriculumDay}
             isLockedOut={protocol.isLockedOut}
+            isFreeTraining={freeTrainingConfig?.isFree}
+            initialLevel={freeTrainingConfig?.level}
             onSpeedChange={handleSpeedChange}
             onAddXp={handleAddXp}
             onRecordResult={handleRecordMatrixResult}
@@ -606,6 +691,8 @@ export default function App() {
             currentSpeed={currentSpeed}
             curriculumDay={protocol.curriculumDay}
             isLockedOut={protocol.isLockedOut}
+            isFreeTraining={freeTrainingConfig?.isFree}
+            initialDigits={freeTrainingConfig?.digits}
             onSpeedChange={handleSpeedChange}
             onAddXp={handleAddXp}
             onRecordResult={handleRecordAyumuResult}
@@ -619,6 +706,8 @@ export default function App() {
           <DualNBackGame
             curriculumDay={protocol.curriculumDay}
             isLockedOut={protocol.isLockedOut}
+            isFreeTraining={freeTrainingConfig?.isFree}
+            initialN={freeTrainingConfig?.nBack}
             onAddXp={handleAddXp}
             onRecordNBackMax={handleRecordNBackMax}
             onNavigateMode={setActiveMode}
@@ -631,6 +720,7 @@ export default function App() {
           <MnemonicPegsGame
             curriculumDay={protocol.curriculumDay}
             isLockedOut={protocol.isLockedOut}
+            isFreeTraining={freeTrainingConfig?.isFree}
             onAddXp={handleAddXp}
             onRecordMnemonicConversion={handleRecordMnemonicConversion}
             onCompletePegLevel={handleCompletePegLevel}
@@ -644,6 +734,8 @@ export default function App() {
           <MemoryPalaceGame
             curriculumDay={protocol.curriculumDay}
             isLockedOut={protocol.isLockedOut}
+            isFreeTraining={freeTrainingConfig?.isFree}
+            initialLoci={freeTrainingConfig?.loci}
             onAddXp={handleAddXp}
             onCompletePalaceStep={handleCompletePalaceStep}
             onNavigateMode={setActiveMode}
@@ -656,6 +748,7 @@ export default function App() {
           <SpacedRepetitionGame
             curriculumDay={protocol.curriculumDay}
             isLockedOut={protocol.isLockedOut}
+            isFreeTraining={freeTrainingConfig?.isFree}
             onAddXp={handleAddXp}
             onCardReviewed={handleCardReviewed}
             onCompleteSpacedLevel={handleCompleteSpacedLevel}
@@ -774,6 +867,11 @@ export default function App() {
         tasks={protocol.tasks}
         isLockedOut={protocol.isLockedOut}
         onFinalizeProtocol={handleFinalizeDailyProtocol}
+        onOpenFreeTraining={() => {
+          setIsMilestoneModalOpen(false);
+          setFreeTrainingConfig({ isFree: true });
+          setActiveMode('free-training');
+        }}
       />
 
       {/* Footer */}
