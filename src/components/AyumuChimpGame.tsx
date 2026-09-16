@@ -15,6 +15,7 @@ interface AyumuChimpGameProps {
   onRecordResult: (isSuccess: boolean, numbersCount: number) => void;
   onNavigateMode: (mode: GameMode) => void;
   isTaskCompleteToday?: boolean;
+  completedLevelsToday?: number;
 }
 
 interface TileData {
@@ -35,6 +36,7 @@ export const AyumuChimpGame: React.FC<AyumuChimpGameProps> = ({
   onRecordResult,
   onNavigateMode,
   isTaskCompleteToday = false,
+  completedLevelsToday = 0,
 }) => {
   const dayLimit = getMaxAyumuDigitsForDay(curriculumDay);
 
@@ -198,9 +200,15 @@ export const AyumuChimpGame: React.FC<AyumuChimpGameProps> = ({
       <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 mb-6 shadow-xl relative overflow-hidden backdrop-blur">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
-            <div className="flex items-center gap-2 mb-1">
+            <div className="flex flex-wrap items-center gap-2 mb-1">
               <span className="text-xs font-bold uppercase tracking-wider text-amber-400 bg-amber-950/80 px-2.5 py-0.5 rounded-full border border-amber-800/60 flex items-center gap-1">
                 <Flame className="w-3.5 h-3.5" /> Step 2 of 6 • Sequence
+              </span>
+              <span className="text-[10px] bg-amber-950/70 text-amber-300 font-bold px-2 py-0.5 rounded border border-amber-700/60">
+                100% Perfect Strike Required
+              </span>
+              <span className="text-[10px] bg-cyan-950/70 text-cyan-300 font-bold px-2 py-0.5 rounded border border-cyan-700/60">
+                2 Levels Required ({completedLevelsToday}/2 Cleared)
               </span>
               <span className="text-xs text-slate-400">
                 Digits: <strong className="text-white">{digitsCount}</strong>
@@ -208,15 +216,12 @@ export const AyumuChimpGame: React.FC<AyumuChimpGameProps> = ({
               <span className="text-[10px] bg-slate-800 text-amber-300 font-mono px-2 py-0.5 rounded border border-slate-700">
                 Day {curriculumDay} Max: {dayLimit.maxDigits}
               </span>
-              <span className="text-[10px] bg-emerald-950/60 text-emerald-300 font-medium px-2 py-0.5 rounded border border-emerald-800/60">
-                Unlimited Attempts
-              </span>
             </div>
             <h2 className="text-xl font-extrabold text-white flex items-center gap-2">
               Ayumu Chimpanzee Test
             </h2>
             <p className="text-xs text-slate-400 mt-0.5">
-              Snapshot the numbers 1 through {digitsCount} across the board. Once blanked, tap them in exact sequence.
+              Snapshot the numbers 1 through {digitsCount} across the board. Once blanked, tap them in exact unbroken sequence. 100% accuracy required to pass.
             </p>
           </div>
 
@@ -384,7 +389,10 @@ export const AyumuChimpGame: React.FC<AyumuChimpGameProps> = ({
               <div className="w-full text-center animate-fade-in">
                 <div className="flex items-center justify-center gap-2 text-emerald-400 font-bold text-base mb-1">
                   <Sparkles className="w-5 h-5" />
-                  Sequence Mastered!
+                  100% PERFECT STRIKE ACHIEVED!
+                </div>
+                <div className="bg-emerald-950/70 border border-emerald-600/60 rounded-xl p-2.5 mb-3 text-xs text-emerald-200">
+                  Flawless sequence: 1 through {digitsCount} tapped with 100% accuracy. Level Cleared ({Math.min(2, completedLevelsToday + 1)}/2 Completed)!
                 </div>
                 <p className="text-xs text-slate-300 mb-4">
                   Recalled {digitsCount} scattered digits in {(finishTimeMs / 1000).toFixed(2)}s (+{Math.round(digitsCount * 18 * currentOption.xpMultiplier)} XP)
@@ -422,7 +430,10 @@ export const AyumuChimpGame: React.FC<AyumuChimpGameProps> = ({
               <div className="w-full text-center animate-fade-in">
                 <div className="flex items-center justify-center gap-2 text-rose-400 font-bold text-base mb-1">
                   <AlertTriangle className="w-5 h-5" />
-                  Sequence Interrupted at #{failedNum}
+                  STRIKE BROKEN — LEVEL NOT PASSED
+                </div>
+                <div className="bg-rose-950/70 border border-rose-600/60 rounded-xl p-2.5 mb-3 text-xs text-rose-200">
+                  Sequence interrupted at #{failedNum}. 100% Perfect Strike Required — zero errors allowed.
                 </div>
                 <p className="text-xs text-slate-400 mb-4">
                   Review the revealed board above to recalibrate your spatial index. You have unlimited retries—practice until you pass today's level!

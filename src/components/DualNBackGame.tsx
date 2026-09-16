@@ -3,7 +3,7 @@ import { NBackTrial, NBackResult, GameMode } from '../types';
 import { sound } from '../utils/audio';
 import { getMaxDualNBackForDay } from '../utils/dayRestrictions';
 import { StrictDayLockoutView } from './StrictDayLockoutView';
-import { Play, RotateCcw, Brain, Check, X, Award, ChevronUp, ChevronDown, Volume2, Sparkles, Lock } from 'lucide-react';
+import { Play, RotateCcw, Brain, Check, X, Award, ChevronUp, ChevronDown, Volume2, Sparkles, Lock, CheckCircle2, AlertCircle } from 'lucide-react';
 
 interface DualNBackGameProps {
   curriculumDay: number;
@@ -12,6 +12,7 @@ interface DualNBackGameProps {
   onRecordNBackMax: (level: number) => void;
   onNavigateMode: (mode: GameMode) => void;
   isTaskCompleteToday?: boolean;
+  completedRoundsToday?: number;
 }
 
 const LETTERS = ['C', 'H', 'K', 'L', 'Q', 'R', 'S', 'T'];
@@ -26,6 +27,7 @@ export const DualNBackGame: React.FC<DualNBackGameProps> = ({
   onRecordNBackMax,
   onNavigateMode,
   isTaskCompleteToday = false,
+  completedRoundsToday = 0,
 }) => {
   const dayLimit = getMaxDualNBackForDay(curriculumDay);
 
@@ -39,7 +41,13 @@ export const DualNBackGame: React.FC<DualNBackGameProps> = ({
     );
   }
 
-  const [n, setN] = useState<number>(() => dayLimit.defaultN || 1); // Default to prescribed day target (N=1 for Days 1-3)
+  const [n, setN] = useState<number>(() => Math.min(dayLimit.maxN, dayLimit.defaultN || 1));
+
+  useEffect(() => {
+    if (n > dayLimit.maxN) {
+      setN(dayLimit.maxN);
+    }
+  }, [dayLimit.maxN, n]);
   const [stage, setStage] = useState<'idle' | 'countdown' | 'running' | 'summary'>('idle');
   const [currentTrialIdx, setCurrentTrialIdx] = useState<number>(-1);
   const [activeCell, setActiveCell] = useState<number | null>(null);
@@ -280,9 +288,10 @@ export const DualNBackGame: React.FC<DualNBackGameProps> = ({
     const xpReward = Math.round(overallScore * n * 0.85);
     onAddXp(xpReward);
 
-    // N=1 calibration clears at 60% accuracy; higher N requires 70%
-    const passThreshold = n === 1 ? 60 : 70;
-    if (overallScore >= passThreshold) {
+    // 100% PERFECT STRIKE REQUIREMENT:
+    // User requirement: "if i don't make it 100% or perfect strike i will not pass"
+    const isPerfectStrike = posAccuracy === 100 && audAccuracy === 100 && overallScore === 100;
+    if (isPerfectStrike) {
       sound.playSuccess();
       onRecordNBackMax(n);
     } else {
@@ -296,18 +305,18 @@ export const DualNBackGame: React.FC<DualNBackGameProps> = ({
       <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 mb-6 shadow-xl relative backdrop-blur">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
-            <div className="flex items-center gap-2 mb-1">
+            <div className="flex flex-wrap items-center gap-2 mb-1">
               <span className="text-xs font-bold uppercase tracking-wider text-cyan-400 bg-cyan-950/80 px-2.5 py-0.5 rounded-full border border-cyan-800/60 flex items-center gap-1">
                 <Brain className="w-3.5 h-3.5" /> Step 3 of 6 • Dual N-Back
               </span>
-              <span className="text-xs text-slate-400">
-                Scientific Jaeggi Protocol
+              <span className="text-[10px] bg-amber-950/70 text-amber-300 font-bold px-2 py-0.5 rounded border border-amber-700/60">
+                100% Perfect Strike Required
+              </span>
+              <span className="text-[10px] bg-cyan-950/70 text-cyan-300 font-bold px-2 py-0.5 rounded border border-cyan-700/60">
+                2 Rounds Required ({completedRoundsToday}/2 Cleared)
               </span>
               <span className="text-[10px] bg-slate-800 text-cyan-300 font-mono px-2 py-0.5 rounded border border-slate-700">
                 {curriculumDay < 4 ? `Day ${curriculumDay} Target: N=1 (Calibration)` : `Day ${curriculumDay} Target: N=${dayLimit.targetN}`}
-              </span>
-              <span className="text-[10px] bg-emerald-950/60 text-emerald-300 font-medium px-2 py-0.5 rounded border border-emerald-800/60">
-                Unlimited Attempts
               </span>
             </div>
             <h2 className="text-xl font-extrabold text-white flex items-center gap-2">
@@ -337,17 +346,18 @@ export const DualNBackGame: React.FC<DualNBackGameProps> = ({
                       setStage('idle');
                     }}
                     disabled={stage === 'running' || isLocked}
-                    title={isLocked ? `Strictly locked for Day ${curriculumDay}. Unlocks Day ${dayLimit.nextUnlockDay}.` : undefined}
+                    title={isLocked ? `Strictly locked for Day ${curriculumDay}. N=2 unlocks Day 4.` : undefined}
                     className={`px-3 py-1 rounded-lg text-xs font-black transition-all flex items-center gap-1 ${
                       isLocked
-                        ? 'text-slate-600 bg-slate-900/50 cursor-not-allowed border border-slate-800'
+                        ? 'text-slate-600 bg-slate-900/50 cursor-not-allowed border border-slate-800 opacity-60'
                         : n === level
                         ? 'bg-cyan-500 text-slate-950 shadow-md shadow-cyan-500/30 cursor-pointer'
                         : 'text-slate-400 hover:text-white hover:bg-slate-700 cursor-pointer'
                     }`}
                   >
-                    {isLocked ? <Lock className="w-2.5 h-2.5 text-slate-500" /> : null}
+                    {isLocked ? <Lock className="w-2.5 h-2.5 text-amber-500/80" /> : null}
                     N={level}
+                    {isLocked && level === 2 ? <span className="text-[9px] text-amber-400/90 ml-0.5 font-normal">(Day 4)</span> : null}
                   </button>
                 );
               })}
@@ -464,10 +474,10 @@ export const DualNBackGame: React.FC<DualNBackGameProps> = ({
                 <div className="w-full bg-cyan-950/40 border border-cyan-800/60 rounded-2xl p-3.5 text-xs text-slate-300">
                   <div className="flex items-center gap-2 text-cyan-300 font-bold mb-1">
                     <Sparkles className="w-4 h-4 text-cyan-400" />
-                    Day {curriculumDay} Beginner Calibration Guide (N=1)
+                    Day {curriculumDay} Foundational Calibration Guide (N=1)
                   </div>
                   <p className="leading-relaxed text-slate-300 text-[11px]">
-                    Press <strong className="text-cyan-300 font-semibold">Position Match (A)</strong> whenever the blue square is in the exact same cell as the immediately preceding trial. Press <strong className="text-indigo-300 font-semibold">Audio Match (L)</strong> if you hear the exact same letter twice in a row. Achieving 60%+ accuracy completes today&apos;s working memory quota!
+                    Press <strong className="text-cyan-300 font-semibold">Position Match (A)</strong> whenever the blue square repeats the position from the immediate preceding trial. Press <strong className="text-indigo-300 font-semibold">Audio Match (L)</strong> if you hear the same letter twice consecutively. A <strong className="text-amber-300 font-semibold">100% Perfect Strike (0 errors) across 2 test rounds</strong> is required to pass today&apos;s daily protocol!
                   </p>
                 </div>
               )}
@@ -517,6 +527,29 @@ export const DualNBackGame: React.FC<DualNBackGameProps> = ({
                   </span>
                 </div>
               </div>
+
+              {/* Perfect Strike Pass / Fail Result Banner */}
+              {result.overallScore === 100 ? (
+                <div className="bg-emerald-950/80 border border-emerald-500/70 p-3.5 rounded-xl mb-4 text-xs text-emerald-200 text-center">
+                  <div className="flex items-center justify-center gap-1.5 font-black text-sm text-emerald-300 mb-1">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                    100% PERFECT STRIKE ACHIEVED!
+                  </div>
+                  <p className="text-[11px] leading-relaxed">
+                    Zero position misses and zero audio errors. Round credited toward today&apos;s 2-round quota ({Math.min(2, (completedRoundsToday || 0) + 1)}/2 Completed)!
+                  </p>
+                </div>
+              ) : (
+                <div className="bg-rose-950/80 border border-rose-500/70 p-3.5 rounded-xl mb-4 text-xs text-rose-200 text-center">
+                  <div className="flex items-center justify-center gap-1.5 font-black text-sm text-rose-300 mb-1">
+                    <AlertCircle className="w-4 h-4 text-rose-400" />
+                    ROUND FAILED — 100% PERFECT STRIKE REQUIRED
+                  </div>
+                  <p className="text-[11px] leading-relaxed">
+                    Achieved {result.overallScore}%. Protocol mandates 100% flawless accuracy (0 misses & 0 false alarms) across both modalities to pass. Unlimited retries—retry for 100%!
+                  </p>
+                </div>
+              )}
 
               {/* Recommended Adaptive Action */}
               <div className="bg-slate-800/70 border border-slate-700/80 p-3 rounded-xl mb-4 text-xs text-slate-300">

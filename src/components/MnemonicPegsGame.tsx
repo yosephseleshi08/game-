@@ -20,8 +20,10 @@ interface MnemonicPegsGameProps {
   isLockedOut?: boolean;
   onAddXp: (amount: number) => void;
   onRecordMnemonicConversion: () => void;
+  onCompletePegLevel?: () => void;
   onNavigateMode: (mode: GameMode) => void;
   isTaskCompleteToday?: boolean;
+  completedLevelsToday?: number;
 }
 
 export const MnemonicPegsGame: React.FC<MnemonicPegsGameProps> = ({
@@ -29,8 +31,10 @@ export const MnemonicPegsGame: React.FC<MnemonicPegsGameProps> = ({
   isLockedOut = false,
   onAddXp,
   onRecordMnemonicConversion,
+  onCompletePegLevel,
   onNavigateMode,
   isTaskCompleteToday = false,
+  completedLevelsToday = 0,
 }) => {
   const pegConfig = getPegTargetForDay(curriculumDay);
 
@@ -45,7 +49,7 @@ export const MnemonicPegsGame: React.FC<MnemonicPegsGameProps> = ({
   const [pegStartTime, setPegStartTime] = useState<number>(0);
   const [pegReactionMs, setPegReactionMs] = useState<number | null>(null);
   const [pegStreak, setPegStreak] = useState<number>(0);
-  const [completedCount, setCompletedCount] = useState<number>(0);
+  const [strikeBroken, setStrikeBroken] = useState<boolean>(false);
   const [isCheatSheetOpen, setIsCheatSheetOpen] = useState(false);
 
   // If user or day is fully locked out
@@ -84,24 +88,31 @@ export const MnemonicPegsGame: React.FC<MnemonicPegsGameProps> = ({
       sound.playSuccess();
       const speedBonus = elapsed < 1200 ? 15 : 5;
       onAddXp(20 + speedBonus);
-      setPegStreak((s) => s + 1);
-      const nextCount = completedCount + 1;
-      setCompletedCount(nextCount);
+      setStrikeBroken(false);
       onRecordMnemonicConversion();
 
-      if (nextCount === pegConfig.targetCount) {
+      const nextStreak = pegStreak + 1;
+      setPegStreak(nextStreak);
+
+      // Check if current level is cleared with 100% perfect unbroken strike
+      if (nextStreak >= pegConfig.targetCount) {
         sound.playLevelUp();
+        setPegStreak(0);
+        if (onCompletePegLevel) {
+          onCompletePegLevel();
+        }
       }
 
       setTimeout(nextPegDrill, 450);
     } else {
       sound.playError();
       setPegStreak(0);
+      setStrikeBroken(true);
       setTimeout(nextPegDrill, 900);
     }
   };
 
-  const isQuotaReached = completedCount >= pegConfig.targetCount || isTaskCompleteToday;
+  const isQuotaReached = completedLevelsToday >= 2 || isTaskCompleteToday;
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-6">
@@ -109,24 +120,26 @@ export const MnemonicPegsGame: React.FC<MnemonicPegsGameProps> = ({
       <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 mb-6 shadow-xl relative backdrop-blur">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
-            <div className="flex items-center gap-2 mb-1">
+            <div className="flex flex-wrap items-center gap-2 mb-1">
               <span className="text-xs font-bold uppercase tracking-wider text-amber-400 bg-amber-950/80 px-2.5 py-0.5 rounded-full border border-amber-800/60 flex items-center gap-1">
                 <Flame className="w-3.5 h-3.5" /> Step 4 of 6 • Major System Drills
               </span>
+              <span className="text-[10px] bg-amber-950/70 text-amber-300 font-bold px-2 py-0.5 rounded border border-amber-700/60">
+                100% Perfect Strike Required
+              </span>
+              <span className="text-[10px] bg-cyan-950/70 text-cyan-300 font-bold px-2 py-0.5 rounded border border-cyan-700/60">
+                2 Levels Required ({completedLevelsToday}/2 Cleared)
+              </span>
               <span className="text-xs text-slate-400 font-mono">
                 Day {curriculumDay} Cap: {pegConfig.label}
-              </span>
-              <span className="text-[10px] bg-emerald-950/60 text-emerald-300 font-medium px-2 py-0.5 rounded border border-emerald-800/60">
-                Unlimited Attempts
               </span>
             </div>
             <h2 className="text-xl font-extrabold text-white flex items-center gap-2">
               Mnemonic Peg Speed Conversions
             </h2>
             <p className="text-xs text-slate-400 mt-0.5 max-w-xl">
-              Rapidly transform digits into vivid phonetically-encoded objects. Today's training dosage: 
-              <strong className="text-amber-300 ml-1">{pegConfig.targetCount} conversions</strong>. 
-              Higher number pegs (00–99) unlock as you progress in future curriculum days.
+              Rapidly transform digits into vivid phonetically-encoded objects. Level requirement: 
+              <strong className="text-amber-300 ml-1">{pegConfig.targetCount} unbroken conversions</strong> with 100% precision. Any mistake resets the level streak.
             </p>
           </div>
 
@@ -134,10 +147,10 @@ export const MnemonicPegsGame: React.FC<MnemonicPegsGameProps> = ({
           <div className="bg-slate-950/80 border border-slate-800 px-4 py-2.5 rounded-2xl flex items-center gap-3">
             <div className="text-right">
               <div className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
-                Day {curriculumDay} Quota
+                Daily Progress
               </div>
               <div className="text-lg font-black text-amber-400 font-mono">
-                {completedCount} / {pegConfig.targetCount}
+                {completedLevelsToday} / 2 Levels
               </div>
             </div>
             {isQuotaReached && (
@@ -153,9 +166,11 @@ export const MnemonicPegsGame: React.FC<MnemonicPegsGameProps> = ({
       <div className="flex flex-col items-center">
         <div className="relative p-6 sm:p-8 bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl flex flex-col items-center w-full max-w-[540px]">
           {/* Status bar */}
-          <div className="w-full flex justify-between items-center mb-6 text-xs">
-            <span className="text-slate-400">
-              Streak: <strong className="text-amber-400 font-bold">{pegStreak}</strong>
+          <div className="w-full flex justify-between items-center mb-4 text-xs">
+            <span className="text-slate-300">
+              Level {Math.min(2, completedLevelsToday + 1)} Strike:{' '}
+              <strong className="text-amber-400 font-black text-sm">{pegStreak}</strong>
+              <span className="text-slate-400 font-mono"> / {pegConfig.targetCount} in a row</span>
             </span>
             <button
               onClick={() => setIsCheatSheetOpen(!isCheatSheetOpen)}
@@ -166,6 +181,13 @@ export const MnemonicPegsGame: React.FC<MnemonicPegsGameProps> = ({
             </button>
           </div>
 
+          {/* Strike Broken Alert */}
+          {strikeBroken && (
+            <div className="w-full mb-4 p-2.5 rounded-xl bg-rose-950/80 border border-rose-600/70 text-rose-300 text-xs text-center font-bold animate-pulse">
+              Strike Broken! 100% Perfect Strike Required (0 mistakes). Level streak reset to 0.
+            </div>
+          )}
+
           {/* Quota Cleared Notice */}
           {isQuotaReached && (
             <div className="w-full mb-5 p-3.5 rounded-2xl bg-emerald-950/80 border border-emerald-600/60 text-center animate-fade-in">
@@ -174,7 +196,7 @@ export const MnemonicPegsGame: React.FC<MnemonicPegsGameProps> = ({
                 Day {curriculumDay} Peg Quota Mastered!
               </div>
               <p className="text-[11px] text-slate-300">
-                You met today's deliberate quota ({pegConfig.targetCount} conversions). Additional number ranges are strictly locked for upcoming curriculum days.
+                You completed both deliberate practice levels ({pegConfig.targetCount} conversions each) with 100% flawless strikes!
               </p>
             </div>
           )}

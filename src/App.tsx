@@ -272,12 +272,12 @@ export default function App() {
         if (prev.isLockedOut) return prev;
         const updatedTasks = prev.tasks.map((t) => {
           if (t.id === 'ayumu-chimp') {
-            const nextDigits = Math.max(t.currentCount, digitsCount);
-            const target = t.targetCount || 4;
+            const nextCount = t.currentCount + 1;
+            const target = t.targetCount || 2;
             return {
               ...t,
-              currentCount: nextDigits,
-              isCompleted: nextDigits >= target,
+              currentCount: nextCount,
+              isCompleted: nextCount >= target,
             };
           }
           return t;
@@ -331,12 +331,16 @@ export default function App() {
         progressHistory: updatedHistory,
       };
     });
-    // Auto-advance daily protocol Dual N-Back task
+    // Auto-advance daily protocol Dual N-Back task (2 perfect rounds required)
     setProtocol((prev) => {
       if (prev.isLockedOut) return prev;
-      const updatedTasks = prev.tasks.map((t) =>
-        t.id === 'dual-nback' ? { ...t, currentCount: t.currentCount + 1, isCompleted: true } : t
-      );
+      const updatedTasks = prev.tasks.map((t) => {
+        if (t.id === 'dual-nback') {
+          const nextCount = t.currentCount + 1;
+          return { ...t, currentCount: nextCount, isCompleted: nextCount >= t.targetCount };
+        }
+        return t;
+      });
       const updated = { ...prev, tasks: updatedTasks };
       saveDailyProtocol(updated);
       return updated;
@@ -349,7 +353,14 @@ export default function App() {
       mnemonicConversionCount: prev.mnemonicConversionCount + 1,
       totalGamesPlayed: prev.totalGamesPlayed + 1,
     }));
-    // Auto-advance daily protocol Mnemonic Pegs task
+  };
+
+  const handleCompletePegLevel = () => {
+    setStats((prev) => ({
+      ...prev,
+      totalGamesPlayed: prev.totalGamesPlayed + 1,
+    }));
+    // Auto-advance daily protocol Mnemonic Pegs task (2 levels required)
     setProtocol((prev) => {
       if (prev.isLockedOut) return prev;
       const updatedTasks = prev.tasks.map((t) => {
@@ -370,12 +381,16 @@ export default function App() {
       ...prev,
       totalGamesPlayed: prev.totalGamesPlayed + 1,
     }));
-    // Auto-advance daily protocol Memory Palace task
+    // Auto-advance daily protocol Memory Palace task (2 levels required)
     setProtocol((prev) => {
       if (prev.isLockedOut) return prev;
-      const updatedTasks = prev.tasks.map((t) =>
-        t.id === 'memory-palace' ? { ...t, currentCount: t.targetCount, isCompleted: true } : t
-      );
+      const updatedTasks = prev.tasks.map((t) => {
+        if (t.id === 'memory-palace') {
+          const nextCount = t.currentCount + 1;
+          return { ...t, currentCount: nextCount, isCompleted: nextCount >= t.targetCount };
+        }
+        return t;
+      });
       const updated = { ...prev, tasks: updatedTasks };
       saveDailyProtocol(updated);
       return updated;
@@ -387,7 +402,14 @@ export default function App() {
       ...prev,
       totalGamesPlayed: prev.totalGamesPlayed + 1,
     }));
-    // Auto-advance daily protocol Spaced Repetition task
+  };
+
+  const handleCompleteSpacedLevel = () => {
+    setStats((prev) => ({
+      ...prev,
+      totalGamesPlayed: prev.totalGamesPlayed + 1,
+    }));
+    // Auto-advance daily protocol Spaced Repetition task (2 levels required)
     setProtocol((prev) => {
       if (prev.isLockedOut) return prev;
       const updatedTasks = prev.tasks.map((t) => {
@@ -409,12 +431,12 @@ export default function App() {
         if (prev.isLockedOut) return prev;
         const updatedTasks = prev.tasks.map((t) => {
           if (t.id === 'eidetic-matrix') {
-            const nextLevel = Math.max(t.currentCount, level);
-            const target = t.targetCount || 4;
+            const nextCount = t.currentCount + 1;
+            const target = t.targetCount || 2;
             return {
               ...t,
-              currentCount: nextLevel,
-              isCompleted: nextLevel >= target,
+              currentCount: nextCount,
+              isCompleted: nextCount >= target,
             };
           }
           return t;
@@ -575,6 +597,7 @@ export default function App() {
             onRecordResult={handleRecordMatrixResult}
             onNavigateMode={setActiveMode}
             isTaskCompleteToday={protocol.tasks.find((t) => t.id === 'eidetic-matrix')?.isCompleted}
+            completedLevelsToday={protocol.tasks.find((t) => t.id === 'eidetic-matrix')?.currentCount || 0}
           />
         )}
 
@@ -588,6 +611,7 @@ export default function App() {
             onRecordResult={handleRecordAyumuResult}
             onNavigateMode={setActiveMode}
             isTaskCompleteToday={protocol.tasks.find((t) => t.id === 'ayumu-chimp')?.isCompleted}
+            completedLevelsToday={protocol.tasks.find((t) => t.id === 'ayumu-chimp')?.currentCount || 0}
           />
         )}
 
@@ -599,6 +623,7 @@ export default function App() {
             onRecordNBackMax={handleRecordNBackMax}
             onNavigateMode={setActiveMode}
             isTaskCompleteToday={protocol.tasks.find((t) => t.id === 'dual-nback')?.isCompleted}
+            completedRoundsToday={protocol.tasks.find((t) => t.id === 'dual-nback')?.currentCount || 0}
           />
         )}
 
@@ -608,8 +633,10 @@ export default function App() {
             isLockedOut={protocol.isLockedOut}
             onAddXp={handleAddXp}
             onRecordMnemonicConversion={handleRecordMnemonicConversion}
+            onCompletePegLevel={handleCompletePegLevel}
             onNavigateMode={setActiveMode}
             isTaskCompleteToday={protocol.tasks.find((t) => t.id === 'mnemonic-pegs')?.isCompleted}
+            completedLevelsToday={protocol.tasks.find((t) => t.id === 'mnemonic-pegs')?.currentCount || 0}
           />
         )}
 
@@ -621,6 +648,7 @@ export default function App() {
             onCompletePalaceStep={handleCompletePalaceStep}
             onNavigateMode={setActiveMode}
             isTaskCompleteToday={protocol.tasks.find((t) => t.id === 'memory-palace')?.isCompleted}
+            completedLevelsToday={protocol.tasks.find((t) => t.id === 'memory-palace')?.currentCount || 0}
           />
         )}
 
@@ -630,8 +658,10 @@ export default function App() {
             isLockedOut={protocol.isLockedOut}
             onAddXp={handleAddXp}
             onCardReviewed={handleCardReviewed}
+            onCompleteSpacedLevel={handleCompleteSpacedLevel}
             onNavigateMode={setActiveMode}
             isTaskCompleteToday={protocol.tasks.find((t) => t.id === 'spaced-repetition')?.isCompleted}
+            completedLevelsToday={protocol.tasks.find((t) => t.id === 'spaced-repetition')?.currentCount || 0}
           />
         )}
 
@@ -641,8 +671,10 @@ export default function App() {
             isLockedOut={protocol.isLockedOut}
             onAddXp={handleAddXp}
             onRecordMnemonicConversion={handleRecordMnemonicConversion}
+            onCompletePegLevel={handleCompletePegLevel}
             onNavigateMode={setActiveMode}
             isTaskCompleteToday={protocol.tasks.find((t) => t.id === 'mnemonic-pegs')?.isCompleted}
+            completedLevelsToday={protocol.tasks.find((t) => t.id === 'mnemonic-pegs')?.currentCount || 0}
           />
         )}
 

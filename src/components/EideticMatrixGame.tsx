@@ -25,6 +25,7 @@ interface EideticMatrixGameProps {
   onRecordResult: (isSuccess: boolean, level: number) => void;
   onNavigateMode: (mode: GameMode) => void;
   isTaskCompleteToday?: boolean;
+  completedLevelsToday?: number;
 }
 
 type Stage = 'idle' | 'countdown' | 'flashing' | 'recalling' | 'success' | 'failure';
@@ -54,6 +55,7 @@ export const EideticMatrixGame: React.FC<EideticMatrixGameProps> = ({
   onRecordResult,
   onNavigateMode,
   isTaskCompleteToday = false,
+  completedLevelsToday = 0,
 }) => {
   const dayLimit = getMaxMatrixLevelForDay(curriculumDay);
 
@@ -193,9 +195,15 @@ export const EideticMatrixGame: React.FC<EideticMatrixGameProps> = ({
 
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
-            <div className="flex items-center gap-2 mb-1">
+            <div className="flex flex-wrap items-center gap-2 mb-1">
               <span className="text-xs font-bold uppercase tracking-wider text-cyan-400 bg-cyan-950/80 px-2.5 py-0.5 rounded-full border border-cyan-800/60">
                 Step 1 of 6 • Spatial Flash
+              </span>
+              <span className="text-[10px] bg-amber-950/70 text-amber-300 font-bold px-2 py-0.5 rounded border border-amber-700/60">
+                100% Perfect Strike Required
+              </span>
+              <span className="text-[10px] bg-cyan-950/70 text-cyan-300 font-bold px-2 py-0.5 rounded border border-cyan-700/60">
+                2 Levels Required ({completedLevelsToday}/2 Cleared)
               </span>
               <span className="text-xs text-slate-400">
                 Level <strong className="text-white">{level}</strong>
@@ -203,15 +211,12 @@ export const EideticMatrixGame: React.FC<EideticMatrixGameProps> = ({
               <span className="text-[10px] bg-slate-800 text-cyan-300 font-mono px-2 py-0.5 rounded border border-slate-700">
                 Day {curriculumDay} Max: Level {dayLimit.maxLevel}
               </span>
-              <span className="text-[10px] bg-emerald-950/60 text-emerald-300 font-medium px-2 py-0.5 rounded border border-emerald-800/60">
-                Unlimited Attempts
-              </span>
             </div>
             <h2 className="text-xl font-extrabold text-white flex items-center gap-2">
               Eidetic Matrix Recall
             </h2>
             <p className="text-xs text-slate-400 mt-0.5">
-              Snapshot <strong className="text-cyan-300">{config.targetsCount}</strong> glowing tiles in the {config.size}x{config.size} matrix after the flash.
+              Snapshot <strong className="text-cyan-300">{config.targetsCount}</strong> glowing tiles in the {config.size}x{config.size} matrix after the flash. 100% flawless recall required to pass.
             </p>
           </div>
 
@@ -361,7 +366,10 @@ export const EideticMatrixGame: React.FC<EideticMatrixGameProps> = ({
               <div className="w-full text-center animate-fade-in">
                 <div className="flex items-center justify-center gap-2 text-emerald-400 font-bold text-base mb-1">
                   <Sparkles className="w-5 h-5" />
-                  Visual Snapshot Perfect!
+                  100% PERFECT STRIKE ACHIEVED!
+                </div>
+                <div className="bg-emerald-950/70 border border-emerald-600/60 rounded-xl p-2.5 mb-3 text-xs text-emerald-200">
+                  Flawless recall: zero misses or false clicks. Level {level} Cleared ({Math.min(2, completedLevelsToday + 1)}/2 Completed)!
                 </div>
                 <p className="text-xs text-slate-300 mb-4">
                   Retained {config.targetsCount} tiles in {currentSpeed}ms exposure (+{Math.round((35 + config.targetsCount * 5) * currentOption.xpMultiplier)} XP)
@@ -411,7 +419,10 @@ export const EideticMatrixGame: React.FC<EideticMatrixGameProps> = ({
               <div className="w-full text-center animate-fade-in">
                 <div className="flex items-center justify-center gap-2 text-rose-400 font-bold text-base mb-1">
                   <AlertCircle className="w-5 h-5" />
-                  Snapshot Divergence
+                  STRIKE BROKEN — LEVEL NOT PASSED
+                </div>
+                <div className="bg-rose-950/70 border border-rose-600/60 rounded-xl p-2.5 mb-3 text-xs text-rose-200">
+                  100% Perfect Strike Required. A single missed or incorrect tile prevents completion.
                 </div>
                 <p className="text-xs text-slate-400 mb-4">
                   Compare your mental after-image with the revealed dashed blue outline. You have unlimited attempts—take your time to recalibrate.

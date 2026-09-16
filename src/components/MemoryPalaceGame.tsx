@@ -22,6 +22,7 @@ interface MemoryPalaceGameProps {
   onCompletePalaceStep: () => void;
   onNavigateMode: (mode: GameMode) => void;
   isTaskCompleteToday?: boolean;
+  completedLevelsToday?: number;
 }
 
 const MEMORY_ITEMS_POOL = [
@@ -42,6 +43,7 @@ export const MemoryPalaceGame: React.FC<MemoryPalaceGameProps> = ({
   onCompletePalaceStep,
   onNavigateMode,
   isTaskCompleteToday = false,
+  completedLevelsToday = 0,
 }) => {
   const palaceConfig = getPalaceConfigForDay(curriculumDay);
 
@@ -113,13 +115,15 @@ export const MemoryPalaceGame: React.FC<MemoryPalaceGameProps> = ({
       setPalaceScore(correct);
       setStage('review');
 
-      // If user scored reasonably well (at least 75%), mark protocol step complete
-      if (correct >= Math.ceil(assignedItems.length * 0.75)) {
+      // 100% PERFECT STRIKE REQUIREMENT:
+      // "if i don't make it 100% or perfect strike i will not pass"
+      const isPerfectRecall = correct === assignedItems.length;
+      if (isPerfectRecall) {
         sound.playLevelUp();
-        onAddXp(120);
+        onAddXp(150);
         onCompletePalaceStep();
       } else {
-        sound.playSuccess();
+        sound.playError();
         onAddXp(correct * 15);
       }
     }
@@ -131,24 +135,26 @@ export const MemoryPalaceGame: React.FC<MemoryPalaceGameProps> = ({
       <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 mb-6 shadow-xl relative backdrop-blur">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
-            <div className="flex items-center gap-2 mb-1">
+            <div className="flex flex-wrap items-center gap-2 mb-1">
               <span className="text-xs font-bold uppercase tracking-wider text-amber-400 bg-amber-950/80 px-2.5 py-0.5 rounded-full border border-amber-800/60 flex items-center gap-1">
                 <Castle className="w-3.5 h-3.5" /> Step 5 of 6 • Method of Loci
               </span>
+              <span className="text-[10px] bg-amber-950/70 text-amber-300 font-bold px-2 py-0.5 rounded border border-amber-700/60">
+                100% Perfect Strike Required
+              </span>
+              <span className="text-[10px] bg-cyan-950/70 text-cyan-300 font-bold px-2 py-0.5 rounded border border-cyan-700/60">
+                2 Levels Required ({completedLevelsToday}/2 Cleared)
+              </span>
               <span className="text-xs text-slate-400 font-mono">
                 Day {curriculumDay} Scope: {palaceConfig.label}
-              </span>
-              <span className="text-[10px] bg-emerald-950/60 text-emerald-300 font-medium px-2 py-0.5 rounded border border-emerald-800/60">
-                Unlimited Attempts
               </span>
             </div>
             <h2 className="text-xl font-extrabold text-white flex items-center gap-2">
               Digital Memory Palace Walkthrough
             </h2>
             <p className="text-xs text-slate-400 mt-0.5 max-w-xl">
-              Anchor high-contrast visual cues to physical loci in the mental villa. Today's prescribed route: 
-              <strong className="text-amber-300 ml-1">{palaceConfig.lociCount} stations</strong>.
-              Larger palace expansions unlock strictly as your curriculum days advance.
+              Anchor high-contrast visual cues to physical loci in the mental villa. Today&apos;s route: 
+              <strong className="text-amber-300 ml-1">{palaceConfig.lociCount} stations</strong>. 100% recall across 2 complete levels required to pass.
             </p>
           </div>
 
@@ -264,24 +270,33 @@ export const MemoryPalaceGame: React.FC<MemoryPalaceGameProps> = ({
           {/* Review Phase */}
           {stage === 'review' && palaceScore !== null && (
             <div className="w-full text-center animate-fade-in">
-              <div className="w-16 h-16 rounded-full bg-emerald-500/20 border-2 border-emerald-500 flex items-center justify-center mx-auto mb-3 text-emerald-400 font-black text-2xl">
+              <div className={`w-16 h-16 rounded-full ${palaceScore === assignedItems.length ? 'bg-emerald-500/20 border-2 border-emerald-500 text-emerald-400' : 'bg-rose-500/20 border-2 border-rose-500 text-rose-400'} flex items-center justify-center mx-auto mb-3 font-black text-2xl`}>
                 {palaceScore}/{assignedItems.length}
               </div>
               <h4 className="text-xl font-bold text-white mb-1">
-                Palace Walkthrough Complete!
+                {palaceScore === assignedItems.length ? '100% Flawless Recall Achieved!' : 'Recall Incomplete — Strike Broken'}
               </h4>
-              <p className="text-xs text-slate-300 mb-6">
+              <p className="text-xs text-slate-300 mb-4">
                 You successfully retrieved {palaceScore} out of {assignedItems.length} spatial anchors.
-                {palaceScore >= Math.ceil(assignedItems.length * 0.75) ? (
-                  <span className="text-emerald-400 font-bold block mt-1">
-                    ✓ Day {curriculumDay} Palace Protocol Step Completed! (Feel free to retrain anytime)
-                  </span>
-                ) : (
-                  <span className="text-amber-400 font-bold block mt-1">
-                    Keep practicing! You have unlimited retries to master today's stations.
-                  </span>
-                )}
               </p>
+
+              {palaceScore === assignedItems.length ? (
+                <div className="bg-emerald-950/80 border border-emerald-500/70 p-3 rounded-xl mb-5 text-xs text-emerald-200">
+                  <span className="font-bold block text-emerald-300 mb-0.5">
+                    ✓ 100% Perfect Recall! Level Passed ({Math.min(2, completedLevelsToday + 1)}/2 Completed)
+                  </span>
+                  {completedLevelsToday + 1 >= 2
+                    ? 'Day protocol requirement satisfied! Both walkthrough levels mastered with zero errors.'
+                    : 'Level 1 of 2 cleared! Walk through 1 more level with 100% accuracy to fulfill today’s protocol.'}
+                </div>
+              ) : (
+                <div className="bg-rose-950/80 border border-rose-500/70 p-3 rounded-xl mb-5 text-xs text-rose-200">
+                  <span className="font-bold block text-rose-300 mb-0.5">
+                    ✗ Level Not Passed — 100% Perfect Strike Required
+                  </span>
+                  Missed {assignedItems.length - palaceScore} item{assignedItems.length - palaceScore > 1 ? 's' : ''}. Every single locus must be correctly identified to pass. Unlimited retries available!
+                </div>
+              )}
 
               <button
                 onClick={() => setStage('setup')}

@@ -49,8 +49,8 @@ export function generateTasksForDay(day: number): ProtocolTask[] {
       id: 'eidetic-matrix',
       title: 'Eidetic Matrix Visual Snapshot',
       discipline: 'Retinal Trace & Visual Chunking',
-      targetDescription: `Reach Level ${matrixConfig.maxLevel} (Day ${day} cap; higher levels locked)`,
-      targetCount: matrixConfig.maxLevel,
+      targetDescription: `Clear 2 perfect levels at Level ${matrixConfig.maxLevel} (Day ${day} cap; 100% accuracy required)`,
+      targetCount: 2,
       currentCount: 0,
       maxAllowedLevel: matrixConfig.maxLevel,
       isCompleted: false,
@@ -60,8 +60,8 @@ export function generateTasksForDay(day: number): ProtocolTask[] {
       id: 'ayumu-chimp',
       title: 'Ayumu Iconic Sequence Benchmark',
       discipline: 'Iconic Memory Span & Spatial Gaze',
-      targetDescription: `Master ${ayumuConfig.maxDigits} digits sequence (Day ${day} cap)`,
-      targetCount: ayumuConfig.maxDigits,
+      targetDescription: `Master 2 sequence levels at ${ayumuConfig.maxDigits} digits (Day ${day} cap; 100% perfect strike)`,
+      targetCount: 2,
       currentCount: 0,
       maxAllowedLevel: ayumuConfig.maxDigits,
       isCompleted: false,
@@ -73,9 +73,9 @@ export function generateTasksForDay(day: number): ProtocolTask[] {
       discipline: 'Fluid Focus & Prefrontal Cortex',
       targetDescription:
         day < 4
-          ? `Complete 1 test round (16 trials) at N=1 (Day ${day} foundational calibration; N=2 unlocks Day 4)`
-          : `Complete 1 test round (16 trials) at N=${nBackConfig.targetN} (Day ${day} cap)`,
-      targetCount: 1,
+          ? `Complete 2 perfect rounds (16 trials each) at N=1 with 100% accuracy (N=2 strictly locked until Day 4)`
+          : `Complete 2 perfect rounds (16 trials each) at N=${nBackConfig.targetN} with 100% accuracy (0 errors)`,
+      targetCount: 2,
       currentCount: 0,
       maxAllowedLevel: nBackConfig.maxN,
       isCompleted: false,
@@ -85,8 +85,8 @@ export function generateTasksForDay(day: number): ProtocolTask[] {
       id: 'mnemonic-pegs',
       title: 'Mnemonic Peg Speed Conversions',
       discipline: 'Major System Encoding Reflex',
-      targetDescription: `Achieve ${pegConfig.targetCount} rapid conversions (${pegConfig.label})`,
-      targetCount: pegConfig.targetCount,
+      targetDescription: `Complete 2 levels of rapid conversions (${pegConfig.targetCount} each with 100% perfect strike)`,
+      targetCount: 2,
       currentCount: 0,
       maxAllowedLevel: pegConfig.label,
       isCompleted: false,
@@ -96,8 +96,8 @@ export function generateTasksForDay(day: number): ProtocolTask[] {
       id: 'memory-palace',
       title: 'Memory Palace Villa Walkthrough',
       discipline: 'Method of Loci Spatial Encoding',
-      targetDescription: `Anchor and recall ${palaceConfig.lociCount} stations in the Mental Villa`,
-      targetCount: 1,
+      targetDescription: `Complete 2 walkthrough levels with 100% perfect recall (${palaceConfig.lociCount} stations each)`,
+      targetCount: 2,
       currentCount: 0,
       maxAllowedLevel: palaceConfig.label,
       isCompleted: false,
@@ -107,8 +107,8 @@ export function generateTasksForDay(day: number): ProtocolTask[] {
       id: 'spaced-repetition',
       title: 'Spaced Repetition SM-2 Mastery',
       discipline: 'SuperMemo Active Retrieval Cards',
-      targetDescription: `Review ${spacedConfig.targetCards} spaced memory cards for consolidation`,
-      targetCount: spacedConfig.targetCards,
+      targetDescription: `Complete 2 review levels (${spacedConfig.targetCards} cards each) with 100% retention strike`,
+      targetCount: 2,
       currentCount: 0,
       maxAllowedLevel: spacedConfig.targetCards,
       isCompleted: false,
@@ -180,15 +180,35 @@ export function loadDailyProtocol(): DailyProtocolState {
       return upgradedProtocol;
     }
 
+    // Upgrade migration: Upgrade tasks to 2-level dosage and 100% perfect strike policy
+    if (parsed.tasks && parsed.tasks.some((t) => t.targetCount !== 2)) {
+      const freshTasks = generateTasksForDay(parsed.curriculumDay || 1);
+      const upgradedTasks = freshTasks.map((fresh) => {
+        const existing = parsed.tasks.find((t) => t.id === fresh.id);
+        if (existing) {
+          const clampedCount = Math.min(2, Math.max(0, existing.isCompleted ? 2 : (existing.currentCount > 2 ? 0 : existing.currentCount)));
+          return {
+            ...fresh,
+            currentCount: clampedCount,
+            isCompleted: clampedCount >= 2,
+          };
+        }
+        return fresh;
+      });
+      parsed.tasks = upgradedTasks;
+      saveDailyProtocol(parsed);
+    }
+
     // Upgrade Day 1–3 Dual N-Back target if it was generated with older N=2 text
     if ((parsed.curriculumDay || 1) < 4 && parsed.tasks) {
       let modified = false;
       const updatedTasks = parsed.tasks.map((task) => {
-        if (task.id === 'dual-nback' && task.targetDescription?.includes('N=2')) {
+        if (task.id === 'dual-nback' && !task.targetDescription?.includes('N=2 strictly locked until Day 4')) {
           modified = true;
           return {
             ...task,
-            targetDescription: `Complete 1 test round (16 trials) at N=1 (Day ${parsed.curriculumDay || 1} foundational calibration; N=2 unlocks Day 4)`,
+            targetDescription: `Complete 2 perfect rounds (16 trials each) at N=1 with 100% accuracy (N=2 strictly locked until Day 4)`,
+            maxAllowedLevel: 1,
           };
         }
         return task;

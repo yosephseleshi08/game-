@@ -39,7 +39,7 @@ export function getMaxDualNBackForDay(day: number): {
   defaultN: number;
 } {
   if (day < 4) {
-    return { targetN: 1, maxN: 2, nextUnlockDay: 4, allowedN: [1, 2], defaultN: 1 };
+    return { targetN: 1, maxN: 1, nextUnlockDay: 4, allowedN: [1], defaultN: 1 };
   }
   if (day < 21) {
     return { targetN: 2, maxN: 2, nextUnlockDay: 21, allowedN: [1, 2], defaultN: 2 };
