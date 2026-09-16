@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { GameMode, FlashSpeed, UserStats, DailyPQRecord, UserProfile } from './types';
+import { GameMode, FlashSpeed, UserStats, DailyPQRecord, UserProfile, DailyProtocolState } from './types';
 import {
   loadUserStats,
   saveUserStats,
@@ -14,6 +14,9 @@ import { ModeSelector } from './components/ModeSelector';
 import { EideticMatrixGame } from './components/EideticMatrixGame';
 import { AyumuChimpGame } from './components/AyumuChimpGame';
 import { DualNBackGame } from './components/DualNBackGame';
+import { MnemonicPegsGame } from './components/MnemonicPegsGame';
+import { MemoryPalaceGame } from './components/MemoryPalaceGame';
+import { SpacedRepetitionGame } from './components/SpacedRepetitionGame';
 import { MnemonicSpeedGame } from './components/MnemonicSpeedGame';
 import { SymbolDetectiveGame } from './components/SymbolDetectiveGame';
 import { DailyWorkoutGame } from './components/DailyWorkoutGame';
@@ -25,6 +28,7 @@ import { FlashTimePlanModal } from './components/FlashTimePlanModal';
 import { AuthModal } from './components/AuthModal';
 import { UserProfileModal } from './components/UserProfileModal';
 import { CommunityPlayersView } from './components/CommunityPlayersView';
+import { DailyMilestoneModal } from './components/DailyMilestoneModal';
 import { loadDailyProtocol, saveDailyProtocol } from './utils/protocol';
 import { getPlanSpeedForDay } from './utils/flashPlan';
 import {
@@ -61,6 +65,7 @@ export default function App() {
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [authMode, setAuthMode] = useState<'signin' | 'signup'>('signin');
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [isMilestoneModalOpen, setIsMilestoneModalOpen] = useState(false);
 
   // Audio State
   const [isSoundMuted, setIsSoundMuted] = useState(sound.isMuted);
@@ -261,6 +266,18 @@ export default function App() {
         progressHistory: updatedHistory,
       };
     });
+
+    if (isSuccess) {
+      setProtocol((prev) => {
+        if (prev.isLockedOut) return prev;
+        const updatedTasks = prev.tasks.map((t) =>
+          t.id === 'ayumu-chimp' ? { ...t, currentCount: Math.max(t.currentCount, digitsCount), isCompleted: true } : t
+        );
+        const updated = { ...prev, tasks: updatedTasks };
+        saveDailyProtocol(updated);
+        return updated;
+      });
+    }
   };
 
   const handleRecordDetectiveResult = (isSuccess: boolean, score: number) => {
@@ -339,6 +356,44 @@ export default function App() {
     });
   };
 
+  const handleCompletePalaceStep = () => {
+    setStats((prev) => ({
+      ...prev,
+      totalGamesPlayed: prev.totalGamesPlayed + 1,
+    }));
+    // Auto-advance daily protocol Memory Palace task
+    setProtocol((prev) => {
+      if (prev.isLockedOut) return prev;
+      const updatedTasks = prev.tasks.map((t) =>
+        t.id === 'memory-palace' ? { ...t, currentCount: t.targetCount, isCompleted: true } : t
+      );
+      const updated = { ...prev, tasks: updatedTasks };
+      saveDailyProtocol(updated);
+      return updated;
+    });
+  };
+
+  const handleCardReviewed = () => {
+    setStats((prev) => ({
+      ...prev,
+      totalGamesPlayed: prev.totalGamesPlayed + 1,
+    }));
+    // Auto-advance daily protocol Spaced Repetition task
+    setProtocol((prev) => {
+      if (prev.isLockedOut) return prev;
+      const updatedTasks = prev.tasks.map((t) => {
+        if (t.id === 'spaced-repetition') {
+          const nextCount = t.currentCount + 1;
+          return { ...t, currentCount: nextCount, isCompleted: nextCount >= t.targetCount };
+        }
+        return t;
+      });
+      const updated = { ...prev, tasks: updatedTasks };
+      saveDailyProtocol(updated);
+      return updated;
+    });
+  };
+
   const handleRecordMatrixResult = (isSuccess: boolean, level: number) => {
     if (isSuccess && level >= 4) {
       setProtocol((prev) => {
@@ -382,6 +437,41 @@ export default function App() {
     setIsAuthOpen(true);
   };
 
+  // Check if all 6 mandatory tasks in the daily protocol are completed
+  const isMilestoneReady = protocol.tasks.length > 0 && protocol.tasks.every((t) => t.isCompleted);
+  const prevCompletedCountRef = useRef(protocol.tasks.filter((t) => t.isCompleted).length);
+
+  useEffect(() => {
+    const completedCount = protocol.tasks.filter((t) => t.isCompleted).length;
+    const isAllComplete = completedCount === protocol.tasks.length && protocol.tasks.length > 0;
+
+    // Trigger milestone celebration modal when 6th task is completed
+    if (isAllComplete && prevCompletedCountRef.current < protocol.tasks.length && !protocol.isLockedOut) {
+      setIsMilestoneModalOpen(true);
+    }
+    prevCompletedCountRef.current = completedCount;
+  }, [protocol.tasks, protocol.isLockedOut]);
+
+  const handleFinalizeDailyProtocol = () => {
+    sound.playMilestoneFanfare();
+    const updated: DailyProtocolState = {
+      ...protocol,
+      isLockedOut: true,
+      completedAt: new Date().toISOString(),
+      history: {
+        ...protocol.history,
+        [protocol.currentCycleDate]: {
+          completed: true,
+          score: 100,
+          completedAt: new Date().toISOString(),
+        },
+      },
+    };
+    setProtocol(updated);
+    saveDailyProtocol(updated);
+    handleAddXp(250);
+  };
+
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-cyan-500 selection:text-slate-950">
       {/* Top Header */}
@@ -399,6 +489,8 @@ export default function App() {
         onToggleSound={handleToggleSound}
         curriculumDay={protocol.curriculumDay}
         isLockedOut={protocol.isLockedOut}
+        isMilestoneReady={isMilestoneReady}
+        onOpenMilestone={() => setIsMilestoneModalOpen(true)}
         currentUser={currentUser}
         currentProfile={currentProfile}
         onOpenAuth={openAuth}
@@ -449,6 +541,7 @@ export default function App() {
             onAddXp={handleAddXp}
             onOpenRoadmap={() => setIsRoadmapModalOpen(true)}
             onOpenFlashPlan={() => setIsFlashPlanOpen(true)}
+            onOpenMilestone={() => setIsMilestoneModalOpen(true)}
             currentSpeed={currentSpeed}
             isSpeedLockedToPlan={isSpeedLockedToPlan}
           />
@@ -457,32 +550,81 @@ export default function App() {
         {activeMode === 'eidetic-matrix' && (
           <EideticMatrixGame
             currentSpeed={currentSpeed}
+            curriculumDay={protocol.curriculumDay}
+            isLockedOut={protocol.isLockedOut}
             onSpeedChange={handleSpeedChange}
             onAddXp={handleAddXp}
             onRecordResult={handleRecordMatrixResult}
+            onNavigateMode={setActiveMode}
+            isTaskCompleteToday={protocol.tasks.find((t) => t.id === 'eidetic-matrix')?.isCompleted}
           />
         )}
 
         {activeMode === 'ayumu-chimp' && (
           <AyumuChimpGame
             currentSpeed={currentSpeed}
+            curriculumDay={protocol.curriculumDay}
+            isLockedOut={protocol.isLockedOut}
             onSpeedChange={handleSpeedChange}
             onAddXp={handleAddXp}
             onRecordResult={handleRecordAyumuResult}
+            onNavigateMode={setActiveMode}
+            isTaskCompleteToday={protocol.tasks.find((t) => t.id === 'ayumu-chimp')?.isCompleted}
           />
         )}
 
         {activeMode === 'dual-nback' && (
           <DualNBackGame
+            curriculumDay={protocol.curriculumDay}
+            isLockedOut={protocol.isLockedOut}
             onAddXp={handleAddXp}
             onRecordNBackMax={handleRecordNBackMax}
+            onNavigateMode={setActiveMode}
+            isTaskCompleteToday={protocol.tasks.find((t) => t.id === 'dual-nback')?.isCompleted}
+          />
+        )}
+
+        {activeMode === 'mnemonic-pegs' && (
+          <MnemonicPegsGame
+            curriculumDay={protocol.curriculumDay}
+            isLockedOut={protocol.isLockedOut}
+            onAddXp={handleAddXp}
+            onRecordMnemonicConversion={handleRecordMnemonicConversion}
+            onNavigateMode={setActiveMode}
+            isTaskCompleteToday={protocol.tasks.find((t) => t.id === 'mnemonic-pegs')?.isCompleted}
+          />
+        )}
+
+        {activeMode === 'memory-palace' && (
+          <MemoryPalaceGame
+            curriculumDay={protocol.curriculumDay}
+            isLockedOut={protocol.isLockedOut}
+            onAddXp={handleAddXp}
+            onCompletePalaceStep={handleCompletePalaceStep}
+            onNavigateMode={setActiveMode}
+            isTaskCompleteToday={protocol.tasks.find((t) => t.id === 'memory-palace')?.isCompleted}
+          />
+        )}
+
+        {activeMode === 'spaced-repetition' && (
+          <SpacedRepetitionGame
+            curriculumDay={protocol.curriculumDay}
+            isLockedOut={protocol.isLockedOut}
+            onAddXp={handleAddXp}
+            onCardReviewed={handleCardReviewed}
+            onNavigateMode={setActiveMode}
+            isTaskCompleteToday={protocol.tasks.find((t) => t.id === 'spaced-repetition')?.isCompleted}
           />
         )}
 
         {activeMode === 'mnemonic-speed' && (
-          <MnemonicSpeedGame
+          <MnemonicPegsGame
+            curriculumDay={protocol.curriculumDay}
+            isLockedOut={protocol.isLockedOut}
             onAddXp={handleAddXp}
             onRecordMnemonicConversion={handleRecordMnemonicConversion}
+            onNavigateMode={setActiveMode}
+            isTaskCompleteToday={protocol.tasks.find((t) => t.id === 'mnemonic-pegs')?.isCompleted}
           />
         )}
 
@@ -568,6 +710,17 @@ export default function App() {
         isOpen={isRoadmapModalOpen}
         onClose={() => setIsRoadmapModalOpen(false)}
         currentDay={protocol.curriculumDay}
+      />
+
+      {/* Daily Milestone Celebration Modal with Confetti */}
+      <DailyMilestoneModal
+        isOpen={isMilestoneModalOpen}
+        onClose={() => setIsMilestoneModalOpen(false)}
+        curriculumDay={protocol.curriculumDay}
+        currentStreak={stats.currentStreak || protocol.curriculumDay}
+        tasks={protocol.tasks}
+        isLockedOut={protocol.isLockedOut}
+        onFinalizeProtocol={handleFinalizeDailyProtocol}
       />
 
       {/* Footer */}

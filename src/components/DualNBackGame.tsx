@@ -1,11 +1,17 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { NBackTrial, NBackResult } from '../types';
+import { NBackTrial, NBackResult, GameMode } from '../types';
 import { sound } from '../utils/audio';
-import { Play, RotateCcw, Brain, Check, X, Award, ChevronUp, ChevronDown, Volume2, Sparkles } from 'lucide-react';
+import { getMaxDualNBackForDay } from '../utils/dayRestrictions';
+import { StrictDayLockoutView } from './StrictDayLockoutView';
+import { Play, RotateCcw, Brain, Check, X, Award, ChevronUp, ChevronDown, Volume2, Sparkles, Lock } from 'lucide-react';
 
 interface DualNBackGameProps {
+  curriculumDay: number;
+  isLockedOut?: boolean;
   onAddXp: (amount: number) => void;
   onRecordNBackMax: (level: number) => void;
+  onNavigateMode: (mode: GameMode) => void;
+  isTaskCompleteToday?: boolean;
 }
 
 const LETTERS = ['C', 'H', 'K', 'L', 'Q', 'R', 'S', 'T'];
@@ -14,10 +20,26 @@ const STIMULUS_DURATION_MS = 1000;
 const INTER_TRIAL_INTERVAL_MS = 2200;
 
 export const DualNBackGame: React.FC<DualNBackGameProps> = ({
+  curriculumDay,
+  isLockedOut = false,
   onAddXp,
   onRecordNBackMax,
+  onNavigateMode,
+  isTaskCompleteToday = false,
 }) => {
-  const [n, setN] = useState<number>(2); // Default N=2
+  const dayLimit = getMaxDualNBackForDay(curriculumDay);
+
+  if (isLockedOut) {
+    return (
+      <StrictDayLockoutView
+        curriculumDay={curriculumDay}
+        gameTitle="Dual N-Back Laboratory"
+        onNavigateMode={onNavigateMode}
+      />
+    );
+  }
+
+  const [n, setN] = useState<number>(() => Math.min(2, dayLimit.maxN)); // Default N=2 or max allowed
   const [stage, setStage] = useState<'idle' | 'countdown' | 'running' | 'summary'>('idle');
   const [currentTrialIdx, setCurrentTrialIdx] = useState<number>(-1);
   const [activeCell, setActiveCell] = useState<number | null>(null);
@@ -274,10 +296,16 @@ export const DualNBackGame: React.FC<DualNBackGameProps> = ({
           <div>
             <div className="flex items-center gap-2 mb-1">
               <span className="text-xs font-bold uppercase tracking-wider text-cyan-400 bg-cyan-950/80 px-2.5 py-0.5 rounded-full border border-cyan-800/60 flex items-center gap-1">
-                <Brain className="w-3.5 h-3.5" /> Fluid Intelligence & Working Memory
+                <Brain className="w-3.5 h-3.5" /> Step 3 of 6 • Dual N-Back
               </span>
               <span className="text-xs text-slate-400">
                 Scientific Jaeggi Protocol
+              </span>
+              <span className="text-[10px] bg-slate-800 text-cyan-300 font-mono px-2 py-0.5 rounded border border-slate-700">
+                Day {curriculumDay} Max: N={dayLimit.maxN}
+              </span>
+              <span className="text-[10px] bg-emerald-950/60 text-emerald-300 font-medium px-2 py-0.5 rounded border border-emerald-800/60">
+                Unlimited Attempts
               </span>
             </div>
             <h2 className="text-xl font-extrabold text-white flex items-center gap-2">
@@ -289,28 +317,36 @@ export const DualNBackGame: React.FC<DualNBackGameProps> = ({
             </p>
           </div>
 
-          {/* Level Selector N=1..5 */}
+          {/* Level Selector N=1..4 */}
           <div className="flex items-center gap-2 bg-slate-800/80 border border-slate-700 p-1.5 rounded-xl">
             <span className="text-xs text-slate-400 pl-2 font-medium">N-Level:</span>
             <div className="flex items-center gap-1">
-              {[1, 2, 3, 4].map((level) => (
-                <button
-                  key={level}
-                  onClick={() => {
-                    sound.playClick();
-                    setN(level);
-                    setStage('idle');
-                  }}
-                  disabled={stage === 'running'}
-                  className={`px-3 py-1 rounded-lg text-xs font-black transition-all ${
-                    n === level
-                      ? 'bg-cyan-500 text-slate-950 shadow-md shadow-cyan-500/30'
-                      : 'text-slate-400 hover:text-white hover:bg-slate-700'
-                  }`}
-                >
-                  N={level}
-                </button>
-              ))}
+              {[1, 2, 3, 4].map((level) => {
+                const isLocked = level > dayLimit.maxN;
+                return (
+                  <button
+                    key={level}
+                    onClick={() => {
+                      if (isLocked) return;
+                      sound.playClick();
+                      setN(level);
+                      setStage('idle');
+                    }}
+                    disabled={stage === 'running' || isLocked}
+                    title={isLocked ? `Strictly locked for Day ${curriculumDay}. Unlocks Day ${dayLimit.nextUnlockDay}.` : undefined}
+                    className={`px-3 py-1 rounded-lg text-xs font-black transition-all flex items-center gap-1 ${
+                      isLocked
+                        ? 'text-slate-600 bg-slate-900/50 cursor-not-allowed border border-slate-800'
+                        : n === level
+                        ? 'bg-cyan-500 text-slate-950 shadow-md shadow-cyan-500/30 cursor-pointer'
+                        : 'text-slate-400 hover:text-white hover:bg-slate-700 cursor-pointer'
+                    }`}
+                  >
+                    {isLocked ? <Lock className="w-2.5 h-2.5 text-slate-500" /> : null}
+                    N={level}
+                  </button>
+                );
+              })}
             </div>
           </div>
         </div>
@@ -485,18 +521,18 @@ export const DualNBackGame: React.FC<DualNBackGameProps> = ({
               <div className="flex gap-3">
                 <button
                   onClick={startRound}
-                  className="flex-1 py-3 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs border border-slate-700 transition-all flex items-center justify-center gap-1.5"
+                  className="flex-1 py-3 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs border border-slate-700 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
                 >
                   <RotateCcw className="w-4 h-4" />
-                  Retry N={n}
+                  Retry N={n} (Unlimited Attempts)
                 </button>
-                {result.recommendedAction === 'level-up' && n < 4 && (
+                {result.recommendedAction === 'level-up' && n < dayLimit.maxN && (
                   <button
                     onClick={() => {
                       setN((prev) => prev + 1);
                       setTimeout(startRound, 50);
                     }}
-                    className="flex-1 py-3 px-4 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black text-xs shadow-md transition-all flex items-center justify-center gap-1.5"
+                    className="flex-1 py-3 px-4 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black text-xs shadow-md transition-all flex items-center justify-center gap-1.5 cursor-pointer"
                   >
                     Advance to N={n + 1} <ChevronUp className="w-4 h-4" />
                   </button>

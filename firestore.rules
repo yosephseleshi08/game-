@@ -15,7 +15,7 @@ service cloud.firestore {
 
     // Public Player Profiles for Leaderboard and Community View
     match /users/{userId} {
-      allow read: if isSignedIn();
+      allow read: if true;
       allow create: if isOwner(userId) && isValidId(userId);
       allow update: if isOwner(userId);
       allow delete: if false;

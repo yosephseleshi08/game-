@@ -11,7 +11,7 @@ import {
   signInWithPopup,
 } from 'firebase/auth';
 import {
-  getFirestore,
+  initializeFirestore,
   doc,
   getDoc,
   setDoc,
@@ -20,7 +20,6 @@ import {
   query,
   orderBy,
   limit,
-  getDocFromServer,
 } from 'firebase/firestore';
 import firebaseConfig from '../../firebase-applet-config.json';
 import { UserProfile, UserStats, DailyProtocolState } from '../types';
@@ -59,28 +58,15 @@ export const FIREBASE_PROJECT_ID = firebaseConfig.projectId;
 
 const googleProvider = new GoogleAuthProvider();
 
-// Initialize Firestore with specific database ID if provided
-export const db = firebaseConfig.firestoreDatabaseId
-  ? getFirestore(app, firebaseConfig.firestoreDatabaseId)
-  : getFirestore(app);
-
-// Initial connection test
-export async function testFirestoreConnection(): Promise<boolean> {
-  try {
-    await getDocFromServer(doc(db, 'system', 'connection_probe'));
-    return true;
-  } catch (error) {
-    // If permission denied or document missing, the connection is still live
-    if (error instanceof Error && error.message.includes('the client is offline')) {
-      console.warn('[Firebase] Client is offline or database unavailable.');
-      return false;
-    }
-    return true;
-  }
-}
-
-// Initial probe
-testFirestoreConnection();
+// Initialize Firestore with specific database ID and force long-polling for reverse-proxy & iframe compatibility
+export const db = initializeFirestore(
+  app,
+  {
+    experimentalForceLongPolling: true,
+    ignoreUndefinedProperties: true,
+  },
+  firebaseConfig.firestoreDatabaseId || undefined
+);
 
 /**
  * Register a new user with Email & Password, creating their initial public profile document

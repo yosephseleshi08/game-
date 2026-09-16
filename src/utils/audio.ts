@@ -220,6 +220,47 @@ class SoundManager {
     }
   }
 
+  // Daily Milestone Celebratory Fanfare (Triumphant chord arpeggios + shimmering harmony)
+  public playMilestoneFanfare() {
+    if (this.isMuted) return;
+    this.initCtx();
+    if (!this.ctx) return;
+
+    try {
+      const now = this.ctx.currentTime;
+      // Fanfare notes: C5, E5, G5, C6, E6, G6 with harmonic resonance
+      const notes = [523.25, 659.25, 783.99, 1046.5, 1318.5, 1567.98];
+      notes.forEach((freq, i) => {
+        const osc = this.ctx!.createOscillator();
+        const gain = this.ctx!.createGain();
+        const startTime = now + i * 0.08;
+        osc.type = i === notes.length - 1 ? 'sine' : 'triangle';
+        osc.frequency.setValueAtTime(freq, startTime);
+        gain.gain.setValueAtTime(0.24, startTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.6);
+
+        osc.connect(gain);
+        gain.connect(this.ctx!.destination);
+        osc.start(startTime);
+        osc.stop(startTime + 0.6);
+      });
+
+      // Warm bass foundation note C3
+      const bass = this.ctx.createOscillator();
+      const bassGain = this.ctx.createGain();
+      bass.type = 'sine';
+      bass.frequency.setValueAtTime(130.81, now);
+      bassGain.gain.setValueAtTime(0.25, now);
+      bassGain.gain.exponentialRampToValueAtTime(0.001, now + 1.1);
+      bass.connect(bassGain);
+      bassGain.connect(this.ctx.destination);
+      bass.start(now);
+      bass.stop(now + 1.1);
+    } catch {
+      // Ignored
+    }
+  }
+
   // Countdown tick
   public playTick() {
     if (this.isMuted) return;

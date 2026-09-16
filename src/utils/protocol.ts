@@ -1,4 +1,12 @@
 import { DailyProtocolState, ProtocolTask } from '../types';
+import {
+  getMaxMatrixLevelForDay,
+  getMaxAyumuDigitsForDay,
+  getMaxDualNBackForDay,
+  getPegTargetForDay,
+  getPalaceConfigForDay,
+  getSpacedCardQuotaForDay,
+} from './dayRestrictions';
 
 const PROTOCOL_STORAGE_KEY = 'pmm_daily_protocol_v1';
 
@@ -26,22 +34,47 @@ export function getCurrentCycleInfo(now = new Date()) {
 }
 
 /**
- * Generates the prescribed 4-stage daily tasks for a given curriculum day.
+ * Generates the prescribed 6-stage daily tasks for a given curriculum day.
  */
 export function generateTasksForDay(day: number): ProtocolTask[] {
-  // Adaptive targets based on day
-  const nBackLevel = day < 20 ? 2 : day < 60 ? 3 : 4;
-  const pegTarget = day < 30 ? 15 : 25;
-  const matrixTargetLevel = day < 15 ? 4 : day < 45 ? 6 : 8;
+  const matrixConfig = getMaxMatrixLevelForDay(day);
+  const ayumuConfig = getMaxAyumuDigitsForDay(day);
+  const nBackConfig = getMaxDualNBackForDay(day);
+  const pegConfig = getPegTargetForDay(day);
+  const palaceConfig = getPalaceConfigForDay(day);
+  const spacedConfig = getSpacedCardQuotaForDay(day);
 
   return [
+    {
+      id: 'eidetic-matrix',
+      title: 'Eidetic Matrix Visual Snapshot',
+      discipline: 'Retinal Trace & Visual Chunking',
+      targetDescription: `Reach Level ${matrixConfig.maxLevel} (Day ${day} cap; higher levels locked)`,
+      targetCount: matrixConfig.maxLevel,
+      currentCount: 0,
+      maxAllowedLevel: matrixConfig.maxLevel,
+      isCompleted: false,
+      gameMode: 'eidetic-matrix',
+    },
+    {
+      id: 'ayumu-chimp',
+      title: 'Ayumu Iconic Sequence Benchmark',
+      discipline: 'Iconic Memory Span & Spatial Gaze',
+      targetDescription: `Master ${ayumuConfig.maxDigits} digits sequence (Day ${day} cap)`,
+      targetCount: ayumuConfig.maxDigits,
+      currentCount: 0,
+      maxAllowedLevel: ayumuConfig.maxDigits,
+      isCompleted: false,
+      gameMode: 'ayumu-chimp',
+    },
     {
       id: 'dual-nback',
       title: 'Dual N-Back Working Memory',
       discipline: 'Fluid Focus & Prefrontal Cortex',
-      targetDescription: `Complete 1 full test round (16 trials) at N=${nBackLevel} or higher`,
+      targetDescription: `Complete 1 test round (16 trials) at N=${nBackConfig.maxN} (Day ${day} cap)`,
       targetCount: 1,
       currentCount: 0,
+      maxAllowedLevel: nBackConfig.maxN,
       isCompleted: false,
       gameMode: 'dual-nback',
     },
@@ -49,31 +82,34 @@ export function generateTasksForDay(day: number): ProtocolTask[] {
       id: 'mnemonic-pegs',
       title: 'Mnemonic Peg Speed Conversions',
       discipline: 'Major System Encoding Reflex',
-      targetDescription: `Achieve ${pegTarget} rapid number-to-image conversions (<1.5s)`,
-      targetCount: pegTarget,
+      targetDescription: `Achieve ${pegConfig.targetCount} rapid conversions (${pegConfig.label})`,
+      targetCount: pegConfig.targetCount,
       currentCount: 0,
+      maxAllowedLevel: pegConfig.label,
       isCompleted: false,
-      gameMode: 'mnemonic-speed',
+      gameMode: 'mnemonic-pegs',
     },
     {
       id: 'memory-palace',
-      title: 'Spatial Locus Walkthrough / SM-2',
-      discipline: 'Method of Loci Consolidation',
-      targetDescription: 'Complete 1 palace route or review 5 Spaced Repetition cards',
+      title: 'Memory Palace Villa Walkthrough',
+      discipline: 'Method of Loci Spatial Encoding',
+      targetDescription: `Anchor and recall ${palaceConfig.lociCount} stations in the Mental Villa`,
       targetCount: 1,
       currentCount: 0,
+      maxAllowedLevel: palaceConfig.label,
       isCompleted: false,
-      gameMode: 'mnemonic-speed',
+      gameMode: 'memory-palace',
     },
     {
-      id: 'eidetic-matrix',
-      title: 'Eidetic Matrix Visual Snapshot',
-      discipline: 'Iconic Trace & Visual Chunking',
-      targetDescription: `Reach Level ${matrixTargetLevel} with sub-second flash exposure`,
-      targetCount: 1,
+      id: 'spaced-repetition',
+      title: 'Spaced Repetition SM-2 Mastery',
+      discipline: 'SuperMemo Active Retrieval Cards',
+      targetDescription: `Review ${spacedConfig.targetCards} spaced memory cards for consolidation`,
+      targetCount: spacedConfig.targetCards,
       currentCount: 0,
+      maxAllowedLevel: spacedConfig.targetCards,
       isCompleted: false,
-      gameMode: 'eidetic-matrix',
+      gameMode: 'spaced-repetition',
     },
   ];
 }
@@ -90,7 +126,7 @@ export function loadDailyProtocol(): DailyProtocolState {
 
     // If the cycle has rolled over past 12:00 AM (Midnight), start a new day's protocol!
     if (parsed.currentCycleDate !== cycleKey) {
-      const wasCompleted = parsed.isLockedOut || parsed.tasks.every((t) => t.isCompleted);
+      const wasCompleted = parsed.isLockedOut || (parsed.tasks && parsed.tasks.every((t) => t.isCompleted));
       const nextDay = wasCompleted ? (parsed.curriculumDay || 1) + 1 : parsed.curriculumDay || 1;
       const nextPhase = nextDay <= 30 ? 1 : nextDay <= 90 ? 2 : nextDay <= 180 ? 3 : 4;
 
@@ -115,6 +151,30 @@ export function loadDailyProtocol(): DailyProtocolState {
       };
       saveDailyProtocol(newProtocol);
       return newProtocol;
+    }
+
+    // Upgrade migration: If current cycle has older tasks layout (< 6 tasks), seamlessly upgrade to 6 steps
+    if (!parsed.tasks || parsed.tasks.length < 6) {
+      const freshTasks = generateTasksForDay(parsed.curriculumDay || 1);
+      // Retain completion state for tasks that were already completed
+      const upgradedTasks = freshTasks.map((newTask) => {
+        const matchingOld = parsed.tasks?.find((old) => old.id === (newTask.id as any));
+        if (matchingOld) {
+          return {
+            ...newTask,
+            currentCount: matchingOld.currentCount,
+            isCompleted: matchingOld.isCompleted,
+          };
+        }
+        return newTask;
+      });
+
+      const upgradedProtocol: DailyProtocolState = {
+        ...parsed,
+        tasks: upgradedTasks,
+      };
+      saveDailyProtocol(upgradedProtocol);
+      return upgradedProtocol;
     }
 
     return parsed;

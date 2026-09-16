@@ -1,14 +1,20 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { FlashSpeed } from '../types';
+import { FlashSpeed, GameMode } from '../types';
 import { sound } from '../utils/audio';
 import { FLASH_SPEED_OPTIONS } from '../utils/storage';
-import { Play, RotateCcw, Zap, Eye, Sparkles, Check, AlertTriangle, Flame } from 'lucide-react';
+import { getMaxAyumuDigitsForDay } from '../utils/dayRestrictions';
+import { StrictDayLockoutView } from './StrictDayLockoutView';
+import { Play, RotateCcw, Zap, Eye, Sparkles, Check, AlertTriangle, Flame, Lock } from 'lucide-react';
 
 interface AyumuChimpGameProps {
   currentSpeed: FlashSpeed;
+  curriculumDay: number;
+  isLockedOut?: boolean;
   onSpeedChange: (speed: FlashSpeed) => void;
   onAddXp: (amount: number) => void;
   onRecordResult: (isSuccess: boolean, numbersCount: number) => void;
+  onNavigateMode: (mode: GameMode) => void;
+  isTaskCompleteToday?: boolean;
 }
 
 interface TileData {
@@ -22,16 +28,32 @@ type ModeType = 'timed-flash' | 'first-touch-blank';
 
 export const AyumuChimpGame: React.FC<AyumuChimpGameProps> = ({
   currentSpeed,
+  curriculumDay,
+  isLockedOut = false,
   onSpeedChange,
   onAddXp,
   onRecordResult,
+  onNavigateMode,
+  isTaskCompleteToday = false,
 }) => {
+  const dayLimit = getMaxAyumuDigitsForDay(curriculumDay);
+
+  if (isLockedOut) {
+    return (
+      <StrictDayLockoutView
+        curriculumDay={curriculumDay}
+        gameTitle="Ayumu Numeric Sequence"
+        onNavigateMode={onNavigateMode}
+      />
+    );
+  }
+
   // 8 columns x 5 rows = 40 cells
   const COLS = 8;
   const ROWS = 5;
   const TOTAL_CELLS = COLS * ROWS;
 
-  const [digitsCount, setDigitsCount] = useState(5);
+  const [digitsCount, setDigitsCount] = useState(() => Math.min(5, dayLimit.maxDigits));
   const [triggerMode, setTriggerMode] = useState<ModeType>('timed-flash');
   const [stage, setStage] = useState<'idle' | 'countdown' | 'flashing' | 'playing' | 'success' | 'failed'>('idle');
   const [tiles, setTiles] = useState<TileData[]>([]);
@@ -178,10 +200,16 @@ export const AyumuChimpGame: React.FC<AyumuChimpGameProps> = ({
           <div>
             <div className="flex items-center gap-2 mb-1">
               <span className="text-xs font-bold uppercase tracking-wider text-amber-400 bg-amber-950/80 px-2.5 py-0.5 rounded-full border border-amber-800/60 flex items-center gap-1">
-                <Flame className="w-3.5 h-3.5" /> Kyoto University Protocol
+                <Flame className="w-3.5 h-3.5" /> Step 2 of 6 • Sequence
               </span>
               <span className="text-xs text-slate-400">
                 Digits: <strong className="text-white">{digitsCount}</strong>
+              </span>
+              <span className="text-[10px] bg-slate-800 text-amber-300 font-mono px-2 py-0.5 rounded border border-slate-700">
+                Day {curriculumDay} Max: {dayLimit.maxDigits}
+              </span>
+              <span className="text-[10px] bg-emerald-950/60 text-emerald-300 font-medium px-2 py-0.5 rounded border border-emerald-800/60">
+                Unlimited Attempts
               </span>
             </div>
             <h2 className="text-xl font-extrabold text-white flex items-center gap-2">
@@ -198,23 +226,32 @@ export const AyumuChimpGame: React.FC<AyumuChimpGameProps> = ({
             <div className="bg-slate-800/80 border border-slate-700/60 px-3 py-1.5 rounded-xl flex items-center gap-2">
               <span className="text-xs text-slate-400">Digits:</span>
               <div className="flex items-center gap-1">
-                {[5, 7, 9, 11].map((cnt) => (
-                  <button
-                    key={cnt}
-                    onClick={() => {
-                      sound.playClick();
-                      setDigitsCount(cnt);
-                      setStage('idle');
-                    }}
-                    className={`px-2 py-0.5 rounded text-xs font-bold transition-colors ${
-                      digitsCount === cnt
-                        ? 'bg-amber-500 text-slate-950 shadow-sm'
-                        : 'text-slate-400 hover:text-slate-200'
-                    }`}
-                  >
-                    {cnt}
-                  </button>
-                ))}
+                {[5, 7, 9, 11].map((cnt) => {
+                  const isLocked = cnt > dayLimit.maxDigits;
+                  return (
+                    <button
+                      key={cnt}
+                      disabled={isLocked}
+                      onClick={() => {
+                        if (isLocked) return;
+                        sound.playClick();
+                        setDigitsCount(cnt);
+                        setStage('idle');
+                      }}
+                      title={isLocked ? `Strictly locked for Day ${curriculumDay}. Unlocks Day ${dayLimit.nextUnlockDay}.` : undefined}
+                      className={`px-2 py-0.5 rounded text-xs font-bold transition-colors flex items-center gap-0.5 ${
+                        isLocked
+                          ? 'text-slate-600 bg-slate-900/50 cursor-not-allowed border border-slate-800'
+                          : digitsCount === cnt
+                          ? 'bg-amber-500 text-slate-950 shadow-sm cursor-pointer'
+                          : 'text-slate-400 hover:text-slate-200 cursor-pointer'
+                      }`}
+                    >
+                      {isLocked ? <Lock className="w-2.5 h-2.5 text-slate-500" /> : null}
+                      {cnt}
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
@@ -355,18 +392,28 @@ export const AyumuChimpGame: React.FC<AyumuChimpGameProps> = ({
                 <div className="flex gap-3">
                   <button
                     onClick={startRound}
-                    className="flex-1 py-2.5 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium text-xs border border-slate-700 transition-colors flex items-center justify-center gap-1.5"
+                    className="flex-1 py-2.5 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium text-xs border border-slate-700 transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
                   >
                     <RotateCcw className="w-3.5 h-3.5" />
                     Replay {digitsCount} Digits
                   </button>
-                  <button
-                    onClick={increaseDifficulty}
-                    className="flex-2 py-2.5 px-6 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs shadow-md shadow-amber-500/30 transition-all flex items-center justify-center gap-1.5"
-                  >
-                    <Zap className="w-4 h-4 fill-slate-950" />
-                    Push to {digitsCount + 1} Digits
-                  </button>
+                  {digitsCount >= dayLimit.maxDigits ? (
+                    <button
+                      onClick={startRound}
+                      className="flex-2 py-2.5 px-6 rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-300 font-bold text-xs border border-amber-800/60 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                    >
+                      <RotateCcw className="w-4 h-4" />
+                      Replay {digitsCount} Digits (Day Max Reached)
+                    </button>
+                  ) : (
+                    <button
+                      onClick={increaseDifficulty}
+                      className="flex-2 py-2.5 px-6 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs shadow-md shadow-amber-500/30 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                    >
+                      <Zap className="w-4 h-4 fill-slate-950" />
+                      Push to {digitsCount + 1} Digits
+                    </button>
+                  )}
                 </div>
               </div>
             )}
@@ -378,14 +425,14 @@ export const AyumuChimpGame: React.FC<AyumuChimpGameProps> = ({
                   Sequence Interrupted at #{failedNum}
                 </div>
                 <p className="text-xs text-slate-400 mb-4">
-                  Review the revealed board above to recalibrate your spatial index.
+                  Review the revealed board above to recalibrate your spatial index. You have unlimited retries—practice until you pass today's level!
                 </p>
                 <button
                   onClick={startRound}
-                  className="w-full py-3 px-6 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs border border-slate-700 shadow-md transition-all flex items-center justify-center gap-1.5"
+                  className="w-full py-3 px-6 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs border border-slate-700 shadow-md transition-all flex items-center justify-center gap-1.5 cursor-pointer"
                 >
                   <RotateCcw className="w-4 h-4" />
-                  Retry Test
+                  Retry Test (Unlimited Attempts)
                 </button>
               </div>
             )}

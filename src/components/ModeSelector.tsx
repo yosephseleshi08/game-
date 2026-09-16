@@ -1,7 +1,20 @@
 import React from 'react';
 import { GameMode } from '../types';
 import { sound } from '../utils/audio';
-import { Grid3X3, Hash, Sparkles, Award, BarChart3, Brain, Flame, CalendarCheck, Users } from 'lucide-react';
+import {
+  Grid3X3,
+  Hash,
+  Sparkles,
+  Award,
+  BarChart3,
+  Brain,
+  Flame,
+  CalendarCheck,
+  Users,
+  Castle,
+  Layers,
+  Zap,
+} from 'lucide-react';
 
 interface ModeSelectorProps {
   activeMode: GameMode;
@@ -14,58 +27,72 @@ export const ModeSelector: React.FC<ModeSelectorProps> = ({ activeMode, onSelect
     {
       id: 'daily-protocol',
       label: 'Daily Protocol',
-      desc: '365-Day 12 AM Lockout Plan',
+      desc: '6-Step 12 AM Lockout Plan',
       icon: <CalendarCheck className="w-4 h-4 text-emerald-400" />,
-      badge: isLockedOut ? 'Locked' : 'Target',
+      badge: isLockedOut ? 'Locked' : '6 Steps',
     },
     {
       id: 'eidetic-matrix',
       label: 'Eidetic Matrix',
-      desc: 'Spatial grid flash recall',
+      desc: 'Step 1: Spatial flash recall',
       icon: <Grid3X3 className="w-4 h-4 text-cyan-400" />,
-      badge: 'Visual',
+      badge: 'Step 1',
     },
     {
       id: 'ayumu-chimp',
       label: 'Ayumu Sequence',
-      desc: 'Chimpanzee iconic benchmark',
+      desc: 'Step 2: Iconic number flash',
       icon: <Hash className="w-4 h-4 text-amber-400" />,
-      badge: 'Iconic',
+      badge: 'Step 2',
     },
     {
       id: 'dual-nback',
       label: 'Dual N-Back',
-      desc: 'Working memory & focus',
+      desc: 'Step 3: Working memory focus',
       icon: <Brain className="w-4 h-4 text-sky-400" />,
-      badge: 'Scientific',
+      badge: 'Step 3',
     },
     {
-      id: 'mnemonic-speed',
-      label: 'Mnemonic & SM-2',
-      desc: 'PAO, Pegs, Palace & spaced cards',
-      icon: <Flame className="w-4 h-4 text-orange-400" />,
-      badge: 'Mnemonic',
+      id: 'mnemonic-pegs',
+      label: 'Major Pegs',
+      desc: 'Step 4: Phonetic peg conversion',
+      icon: <Zap className="w-4 h-4 text-orange-400" />,
+      badge: 'Step 4',
+    },
+    {
+      id: 'memory-palace',
+      label: 'Memory Palace',
+      desc: 'Step 5: Method of loci route',
+      icon: <Castle className="w-4 h-4 text-amber-400" />,
+      badge: 'Step 5',
+    },
+    {
+      id: 'spaced-repetition',
+      label: 'Spaced SM-2',
+      desc: 'Step 6: SuperMemo recall',
+      icon: <Layers className="w-4 h-4 text-purple-400" />,
+      badge: 'Step 6',
     },
     {
       id: 'symbol-detective',
       label: 'Symbol Detective',
-      desc: 'Color & feature snapshots',
-      icon: <Sparkles className="w-4 h-4 text-purple-400" />,
-      badge: 'Chromatic',
+      desc: 'Chromatic feature extraction',
+      icon: <Sparkles className="w-4 h-4 text-pink-400" />,
+      badge: 'Lab',
     },
     {
       id: 'daily-workout',
       label: 'Daily PQ Test',
       desc: 'Full photographic quotient',
       icon: <Award className="w-4 h-4 text-emerald-400" />,
-      badge: 'Daily',
+      badge: 'Test',
     },
     {
       id: 'community',
       label: 'All Players',
-      desc: 'Community athlete directory',
+      desc: 'Athletes & global rank',
       icon: <Users className="w-4 h-4 text-teal-400" />,
-      badge: 'Players',
+      badge: 'Global',
     },
     {
       id: 'stats',

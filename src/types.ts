@@ -3,7 +3,9 @@ export type GameMode =
   | 'eidetic-matrix'
   | 'ayumu-chimp'
   | 'dual-nback'
-  | 'mnemonic-speed'
+  | 'mnemonic-pegs'
+  | 'memory-palace'
+  | 'spaced-repetition'
   | 'symbol-detective'
   | 'daily-workout'
   | 'community'
@@ -204,12 +206,19 @@ export interface DetectiveQuestion {
 
 // Daily Protocol & 12 AM (Midnight) Lockout Tracker
 export interface ProtocolTask {
-  id: 'dual-nback' | 'mnemonic-pegs' | 'memory-palace' | 'eidetic-matrix';
+  id:
+    | 'eidetic-matrix'
+    | 'ayumu-chimp'
+    | 'dual-nback'
+    | 'mnemonic-pegs'
+    | 'memory-palace'
+    | 'spaced-repetition';
   title: string;
   discipline: string;
   targetDescription: string;
   targetCount: number;
   currentCount: number;
+  maxAllowedLevel?: number | string;
   isCompleted: boolean;
   gameMode: GameMode;
 }

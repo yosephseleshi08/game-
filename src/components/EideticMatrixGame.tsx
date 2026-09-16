@@ -1,14 +1,30 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { FlashSpeed } from '../types';
+import { FlashSpeed, GameMode } from '../types';
 import { sound } from '../utils/audio';
 import { FLASH_SPEED_OPTIONS } from '../utils/storage';
-import { Play, RotateCcw, Zap, Eye, CheckCircle2, AlertCircle, Sparkles, Trophy } from 'lucide-react';
+import { getMaxMatrixLevelForDay } from '../utils/dayRestrictions';
+import { StrictDayLockoutView } from './StrictDayLockoutView';
+import {
+  Play,
+  RotateCcw,
+  Zap,
+  Eye,
+  CheckCircle2,
+  AlertCircle,
+  Sparkles,
+  Trophy,
+  Lock,
+} from 'lucide-react';
 
 interface EideticMatrixGameProps {
   currentSpeed: FlashSpeed;
+  curriculumDay: number;
+  isLockedOut?: boolean;
   onSpeedChange: (speed: FlashSpeed) => void;
   onAddXp: (amount: number) => void;
   onRecordResult: (isSuccess: boolean, level: number) => void;
+  onNavigateMode: (mode: GameMode) => void;
+  isTaskCompleteToday?: boolean;
 }
 
 type Stage = 'idle' | 'countdown' | 'flashing' | 'recalling' | 'success' | 'failure';
@@ -31,10 +47,26 @@ function getConfigForLevel(level: number): MatrixConfig {
 
 export const EideticMatrixGame: React.FC<EideticMatrixGameProps> = ({
   currentSpeed,
+  curriculumDay,
+  isLockedOut = false,
   onSpeedChange,
   onAddXp,
   onRecordResult,
+  onNavigateMode,
+  isTaskCompleteToday = false,
 }) => {
+  const dayLimit = getMaxMatrixLevelForDay(curriculumDay);
+
+  if (isLockedOut) {
+    return (
+      <StrictDayLockoutView
+        curriculumDay={curriculumDay}
+        gameTitle="Eidetic Matrix Recall"
+        onNavigateMode={onNavigateMode}
+      />
+    );
+  }
+
   const [level, setLevel] = useState(1);
   const [stage, setStage] = useState<Stage>('idle');
   const [countdown, setCountdown] = useState(3);
@@ -163,10 +195,16 @@ export const EideticMatrixGame: React.FC<EideticMatrixGameProps> = ({
           <div>
             <div className="flex items-center gap-2 mb-1">
               <span className="text-xs font-bold uppercase tracking-wider text-cyan-400 bg-cyan-950/80 px-2.5 py-0.5 rounded-full border border-cyan-800/60">
-                Spatial Flash Training
+                Step 1 of 6 • Spatial Flash
               </span>
               <span className="text-xs text-slate-400">
                 Level <strong className="text-white">{level}</strong>
+              </span>
+              <span className="text-[10px] bg-slate-800 text-cyan-300 font-mono px-2 py-0.5 rounded border border-slate-700">
+                Day {curriculumDay} Max: Level {dayLimit.maxLevel}
+              </span>
+              <span className="text-[10px] bg-emerald-950/60 text-emerald-300 font-medium px-2 py-0.5 rounded border border-emerald-800/60">
+                Unlimited Attempts
               </span>
             </div>
             <h2 className="text-xl font-extrabold text-white flex items-center gap-2">
@@ -328,21 +366,43 @@ export const EideticMatrixGame: React.FC<EideticMatrixGameProps> = ({
                 <p className="text-xs text-slate-300 mb-4">
                   Retained {config.targetsCount} tiles in {currentSpeed}ms exposure (+{Math.round((35 + config.targetsCount * 5) * currentOption.xpMultiplier)} XP)
                 </p>
+                {level >= dayLimit.maxLevel ? (
+                  <div className="mb-4 p-3 rounded-xl bg-amber-950/70 border border-amber-800/80 text-center">
+                    <span className="text-xs font-bold text-amber-300 flex items-center justify-center gap-1.5 mb-1">
+                      <Lock className="w-3.5 h-3.5" /> Day {curriculumDay} Matrix Level Cap Reached ({level})
+                    </span>
+                    <p className="text-[11px] text-slate-300">
+                      Level {level + 1} is strictly locked until Day {dayLimit.nextUnlockDay || 'tomorrow'} to maintain optimal cognitive recovery.
+                    </p>
+                  </div>
+                ) : null}
+
                 <div className="flex gap-3">
                   <button
                     onClick={repeatPatternView}
-                    className="flex-1 py-2.5 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium text-xs border border-slate-700 transition-colors flex items-center justify-center gap-1.5"
+                    className="flex-1 py-2.5 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium text-xs border border-slate-700 transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
                   >
                     <Eye className="w-3.5 h-3.5 text-cyan-400" />
                     Review Flash
                   </button>
-                  <button
-                    onClick={nextLevel}
-                    className="flex-2 py-2.5 px-6 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-md shadow-emerald-600/30 transition-all flex items-center justify-center gap-1.5"
-                  >
-                    <Trophy className="w-4 h-4" />
-                    Advance to Level {level + 1}
-                  </button>
+
+                  {level >= dayLimit.maxLevel ? (
+                    <button
+                      onClick={retryRound}
+                      className="flex-2 py-2.5 px-6 rounded-xl bg-slate-800 hover:bg-slate-700 text-cyan-300 font-bold text-xs border border-cyan-800/60 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                    >
+                      <RotateCcw className="w-4 h-4" />
+                      Replay Level {level}
+                    </button>
+                  ) : (
+                    <button
+                      onClick={nextLevel}
+                      className="flex-2 py-2.5 px-6 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-md shadow-emerald-600/30 transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-98"
+                    >
+                      <Trophy className="w-4 h-4" />
+                      Advance to Level {level + 1}
+                    </button>
+                  )}
                 </div>
               </div>
             )}
@@ -354,22 +414,22 @@ export const EideticMatrixGame: React.FC<EideticMatrixGameProps> = ({
                   Snapshot Divergence
                 </div>
                 <p className="text-xs text-slate-400 mb-4">
-                  Compare your mental after-image with the revealed dashed blue outline.
+                  Compare your mental after-image with the revealed dashed blue outline. You have unlimited attempts—take your time to recalibrate.
                 </p>
                 <div className="flex gap-3">
                   <button
                     onClick={repeatPatternView}
-                    className="flex-1 py-2.5 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium text-xs border border-slate-700 transition-colors flex items-center justify-center gap-1.5"
+                    className="flex-1 py-2.5 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium text-xs border border-slate-700 transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
                   >
                     <Eye className="w-3.5 h-3.5 text-cyan-400" />
                     Re-Flash Pattern
                   </button>
                   <button
                     onClick={retryRound}
-                    className="flex-2 py-2.5 px-6 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-md shadow-indigo-600/30 transition-all flex items-center justify-center gap-1.5"
+                    className="flex-2 py-2.5 px-6 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-md shadow-indigo-600/30 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
                   >
                     <RotateCcw className="w-4 h-4" />
-                    Try Again
+                    Try Again (Unlimited Attempts)
                   </button>
                 </div>
               </div>

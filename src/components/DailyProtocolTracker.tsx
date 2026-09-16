@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { DailyProtocolState, GameMode, ProtocolTask } from '../types';
 import { getTimeUntilNext12AM, saveDailyProtocol } from '../utils/protocol';
 import { sound } from '../utils/audio';
+import { DailyMilestoneModal } from './DailyMilestoneModal';
 import {
   Calendar,
   Lock,
@@ -28,6 +29,7 @@ interface DailyProtocolTrackerProps {
   onAddXp: (amount: number) => void;
   onOpenRoadmap?: () => void;
   onOpenFlashPlan?: () => void;
+  onOpenMilestone?: () => void;
   currentSpeed?: FlashSpeed;
   isSpeedLockedToPlan?: boolean;
 }
@@ -39,10 +41,12 @@ export const DailyProtocolTracker: React.FC<DailyProtocolTrackerProps> = ({
   onAddXp,
   onOpenRoadmap,
   onOpenFlashPlan,
+  onOpenMilestone,
   currentSpeed,
   isSpeedLockedToPlan,
 }) => {
   const [timeLeft, setTimeLeft] = useState(getTimeUntilNext12AM());
+  const [isMilestoneModalOpen, setIsMilestoneModalOpen] = useState(false);
 
   // Countdown loop for 12:00 AM (Midnight) reset timer
   useEffect(() => {
@@ -64,7 +68,7 @@ export const DailyProtocolTracker: React.FC<DailyProtocolTrackerProps> = ({
   // Complete protocol and trigger lockout
   const handleFinalizeDailyProtocol = () => {
     if (!isFullyComplete || protocol.isLockedOut) return;
-    sound.playLevelUp();
+    sound.playMilestoneFanfare();
     const updated: DailyProtocolState = {
       ...protocol,
       isLockedOut: true,
@@ -81,6 +85,11 @@ export const DailyProtocolTracker: React.FC<DailyProtocolTrackerProps> = ({
     onUpdateProtocol(updated);
     saveDailyProtocol(updated);
     onAddXp(250); // Big daily protocol bonus
+    if (onOpenMilestone) {
+      onOpenMilestone();
+    } else {
+      setIsMilestoneModalOpen(true);
+    }
   };
 
   // Quick action to mark a task done if user was practicing it
@@ -96,6 +105,16 @@ export const DailyProtocolTracker: React.FC<DailyProtocolTrackerProps> = ({
     };
     onUpdateProtocol(updated);
     saveDailyProtocol(updated);
+
+    // If this completed all 6 disciplines, trigger celebratory milestone modal!
+    const allDone = updatedTasks.length > 0 && updatedTasks.every((t) => t.isCompleted);
+    if (allDone && !protocol.isLockedOut) {
+      if (onOpenMilestone) {
+        onOpenMilestone();
+      } else {
+        setIsMilestoneModalOpen(true);
+      }
+    }
   };
 
   // Phase Title Map
@@ -231,14 +250,15 @@ export const DailyProtocolTracker: React.FC<DailyProtocolTrackerProps> = ({
           </div>
 
           {/* Accomplished Today Checklist */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 max-w-2xl mx-auto mb-6">
-            {protocol.tasks.map((task) => (
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 max-w-4xl mx-auto mb-6">
+            {protocol.tasks.map((task, idx) => (
               <div key={task.id} className="bg-slate-900/90 border border-slate-800 p-3 rounded-xl text-left">
                 <div className="flex items-center gap-1.5 text-emerald-400 text-xs font-bold mb-1">
                   <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
-                  <span className="truncate">{task.title.split(' ')[0]}</span>
+                  <span className="truncate">Step {idx + 1}</span>
                 </div>
-                <p className="text-[10px] text-slate-400 truncate">{task.discipline}</p>
+                <p className="text-[10px] text-slate-300 font-medium truncate">{task.title}</p>
+                <p className="text-[9px] text-slate-400 truncate">{task.discipline}</p>
               </div>
             ))}
           </div>
@@ -246,14 +266,41 @@ export const DailyProtocolTracker: React.FC<DailyProtocolTrackerProps> = ({
           <div className="text-xs text-slate-400">
             Enjoy your day knowing you made permanent progress toward photographic recall and working memory mastery!
           </div>
+
+          <div className="mt-5 flex flex-wrap items-center justify-center gap-3">
+            <button
+              id="view-locked-milestone-btn"
+              onClick={() => {
+                if (onOpenMilestone) onOpenMilestone();
+                else setIsMilestoneModalOpen(true);
+              }}
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500/20 via-cyan-500/20 to-amber-500/20 hover:from-emerald-500/30 hover:to-cyan-500/30 border border-emerald-500/40 text-emerald-300 font-bold text-xs shadow-lg transition-all cursor-pointer active:scale-98"
+            >
+              <Trophy className="w-4 h-4 text-amber-400" />
+              View Day {protocol.curriculumDay} Milestone Celebration & 60-Day Progress 🎊
+            </button>
+          </div>
         </div>
       ) : (
         /* ACTIVE DAILY PROTOCOL CHECKLIST */
         <div className="space-y-4 mb-8">
+          {/* Learning reassurance callout */}
+          <div className="bg-emerald-950/40 border border-emerald-500/30 rounded-2xl p-3.5 flex items-center justify-between gap-3 text-xs">
+            <div className="flex items-center gap-2.5 text-emerald-300">
+              <ShieldCheck className="w-5 h-5 text-emerald-400 shrink-0" />
+              <span>
+                <strong className="font-bold text-white">Unlimited Practice Attempts:</strong> You have unlimited retries on all games. Practice freely, make mistakes, and learn until you master today's prescribed levels!
+              </span>
+            </div>
+            <span className="shrink-0 bg-emerald-500/20 text-emerald-300 font-bold px-2.5 py-1 rounded-lg text-[10px] uppercase tracking-wider border border-emerald-500/40">
+              Free to retry
+            </span>
+          </div>
+
           <div className="flex items-center justify-between px-1">
             <h3 className="text-base font-bold text-white flex items-center gap-2">
               <Sparkles className="w-4 h-4 text-emerald-400" />
-              Today's Prescribed Quota (4 Disciplines)
+              Today's Prescribed Quota (6 Disciplines)
             </h3>
             <span className="text-xs text-slate-400">
               Auto-locks on completion until 12:00 AM
@@ -314,13 +361,44 @@ export const DailyProtocolTracker: React.FC<DailyProtocolTrackerProps> = ({
 
           {/* Action to complete day */}
           {isFullyComplete && (
-            <button
-              onClick={handleFinalizeDailyProtocol}
-              className="w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-400 hover:to-cyan-400 text-slate-950 font-black text-sm flex items-center justify-center gap-2 shadow-xl shadow-emerald-500/25 transition-all active:scale-98 animate-bounce-short"
-            >
-              <Lock className="w-4 h-4" />
-              Complete Day {protocol.curriculumDay} Protocol & Lock Until 12:00 AM (+250 XP)
-            </button>
+            <div className="space-y-3 pt-2">
+              <div className="p-4 rounded-2xl bg-gradient-to-r from-emerald-950/80 via-slate-900 to-cyan-950/80 border border-emerald-500/50 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-xl">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-500/50 flex items-center justify-center text-emerald-400 shrink-0">
+                    <Trophy className="w-5 h-5 fill-emerald-400/20" />
+                  </div>
+                  <div>
+                    <div className="text-sm font-black text-white flex items-center gap-1.5">
+                      <Sparkles className="w-4 h-4 text-emerald-400" />
+                      Day {protocol.curriculumDay} All 6 Disciplines Mastered!
+                    </div>
+                    <div className="text-xs text-slate-300">
+                      Your Daily Milestone celebration is ready with +250 XP bonus.
+                    </div>
+                  </div>
+                </div>
+                <button
+                  id="open-milestone-preview-btn"
+                  onClick={() => {
+                    if (onOpenMilestone) onOpenMilestone();
+                    else setIsMilestoneModalOpen(true);
+                  }}
+                  className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-emerald-500 text-slate-950 font-black text-xs shadow-md transition-all flex items-center gap-1.5 cursor-pointer shrink-0 active:scale-98"
+                >
+                  <Sparkles className="w-3.5 h-3.5" />
+                  Celebrate Milestone 🎉
+                </button>
+              </div>
+
+              <button
+                id="finalize-protocol-lockout-btn"
+                onClick={handleFinalizeDailyProtocol}
+                className="w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-400 hover:to-cyan-400 text-slate-950 font-black text-sm flex items-center justify-center gap-2 shadow-xl shadow-emerald-500/25 transition-all active:scale-98 animate-bounce-short cursor-pointer"
+              >
+                <Lock className="w-4 h-4" />
+                Complete Day {protocol.curriculumDay} Protocol & Lock In Gains (+250 XP)
+              </button>
+            </div>
           )}
         </div>
       )}
@@ -369,6 +447,17 @@ export const DailyProtocolTracker: React.FC<DailyProtocolTrackerProps> = ({
           <span>Day 30 (Subconscious Automation)</span>
         </div>
       </div>
+
+      {/* Daily Milestone Celebration Modal with Confetti */}
+      <DailyMilestoneModal
+        isOpen={isMilestoneModalOpen}
+        onClose={() => setIsMilestoneModalOpen(false)}
+        curriculumDay={protocol.curriculumDay}
+        currentStreak={protocol.curriculumDay}
+        tasks={protocol.tasks}
+        isLockedOut={protocol.isLockedOut}
+        onFinalizeProtocol={handleFinalizeDailyProtocol}
+      />
     </div>
   );
 };

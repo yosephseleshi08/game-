@@ -40,11 +40,11 @@
   },
   "firestore": {
     "/users/{userId}": {
-      "entity": "UserProfile",
+      "schema": "UserProfile",
       "description": "Public player profile allowing all users to view and compare community memory athletes"
     },
     "/users/{userId}/private/{docId}": {
-      "entity": "PrivateUserData",
+      "schema": "PrivateUserData",
       "description": "Private detailed telemetry and save state restricted strictly to the document owner"
     }
   }

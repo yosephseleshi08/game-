@@ -18,6 +18,7 @@ import {
   User as UserIcon,
   Users,
   ShieldCheck,
+  Sparkles,
 } from 'lucide-react';
 import { AmbientSoundscapePlayer } from './AmbientSoundscapePlayer';
 import { User } from 'firebase/auth';
@@ -36,6 +37,8 @@ interface HeaderProps {
   onToggleSound: () => void;
   curriculumDay?: number;
   isLockedOut?: boolean;
+  isMilestoneReady?: boolean;
+  onOpenMilestone?: () => void;
   currentUser: User | null;
   currentProfile: UserProfile | null;
   onOpenAuth: (mode?: 'signin' | 'signup') => void;
@@ -56,6 +59,8 @@ export const Header: React.FC<HeaderProps> = ({
   onToggleSound,
   curriculumDay = 1,
   isLockedOut = false,
+  isMilestoneReady = false,
+  onOpenMilestone,
   currentUser,
   currentProfile,
   onOpenAuth,
@@ -80,17 +85,42 @@ export const Header: React.FC<HeaderProps> = ({
               <h1 className="text-base sm:text-lg font-bold tracking-tight text-white flex items-center gap-1.5">
                 Photographic Memory <span className="text-cyan-400 font-extrabold">Master</span>
               </h1>
-              <button
-                onClick={() => onSelectMode('daily-protocol')}
-                className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded-full border flex items-center gap-1 cursor-pointer transition-all ${
-                  isLockedOut
-                    ? 'bg-rose-950/80 border-rose-500/50 text-rose-300'
-                    : 'bg-emerald-950/80 border-emerald-500/50 text-emerald-300'
-                }`}
-              >
-                {isLockedOut ? <Lock className="w-3 h-3" /> : <CalendarCheck className="w-3 h-3" />}
-                Day {curriculumDay} {isLockedOut ? 'Locked' : 'Protocol'}
-              </button>
+              {isMilestoneReady && !isLockedOut ? (
+                <button
+                  id="header-milestone-ready-btn"
+                  onClick={() => {
+                    if (onOpenMilestone) onOpenMilestone();
+                    else onSelectMode('daily-protocol');
+                  }}
+                  className="text-[10px] uppercase font-black px-2.5 py-0.5 rounded-full border flex items-center gap-1 cursor-pointer transition-all bg-gradient-to-r from-amber-500/20 to-emerald-500/20 border-amber-400/80 text-amber-300 shadow-sm animate-pulse"
+                  title="All 6 steps complete! View milestone celebration & claim XP"
+                >
+                  <Sparkles className="w-3 h-3 text-amber-400" />
+                  Day {curriculumDay} Cleared! 🎉
+                </button>
+              ) : isLockedOut ? (
+                <button
+                  id="header-milestone-locked-btn"
+                  onClick={() => {
+                    if (onOpenMilestone) onOpenMilestone();
+                    else onSelectMode('daily-protocol');
+                  }}
+                  className="text-[10px] uppercase font-bold px-2 py-0.5 rounded-full border flex items-center gap-1 cursor-pointer transition-all bg-emerald-950/80 border-emerald-500/50 text-emerald-300 hover:bg-emerald-900/80"
+                  title="Daily protocol complete! Click to view milestone & 60-day progress"
+                >
+                  <Award className="w-3 h-3 text-amber-400" />
+                  Day {curriculumDay} Mastered ✓
+                </button>
+              ) : (
+                <button
+                  id="header-protocol-btn"
+                  onClick={() => onSelectMode('daily-protocol')}
+                  className="text-[10px] uppercase font-bold px-2 py-0.5 rounded-full border flex items-center gap-1 cursor-pointer transition-all bg-emerald-950/80 border-emerald-500/50 text-emerald-300 hover:bg-emerald-900/80"
+                >
+                  <CalendarCheck className="w-3 h-3" />
+                  Day {curriculumDay} Protocol
+                </button>
+              )}
             </div>
             <p className="text-[11px] text-slate-400">
               365-Day Cognitive Training & Iconic Retinal Flash Calibration
