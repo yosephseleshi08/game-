@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { DailyProtocolState, GameMode, ProtocolTask } from '../types';
-import { getTimeUntilNext12AM, saveDailyProtocol } from '../utils/protocol';
+import { getTimeUntilNext12AM, saveDailyProtocol, generateTasksForDay } from '../utils/protocol';
 import { sound } from '../utils/audio';
 import { DailyMilestoneModal } from './DailyMilestoneModal';
 import {
@@ -92,29 +92,17 @@ export const DailyProtocolTracker: React.FC<DailyProtocolTrackerProps> = ({
     }
   };
 
-  // Quick action to mark a task done if user was practicing it
-  const handleToggleTask = (taskId: ProtocolTask['id']) => {
+  // Reset today's unfinalized progress if user wants to start today's regimen from scratch
+  const handleResetTodayTasks = () => {
     if (protocol.isLockedOut) return;
     sound.playClick();
-    const updatedTasks = protocol.tasks.map((t) =>
-      t.id === taskId ? { ...t, isCompleted: !t.isCompleted, currentCount: !t.isCompleted ? t.targetCount : 0 } : t
-    );
+    const freshTasks = generateTasksForDay(protocol.curriculumDay);
     const updated: DailyProtocolState = {
       ...protocol,
-      tasks: updatedTasks,
+      tasks: freshTasks,
     };
     onUpdateProtocol(updated);
     saveDailyProtocol(updated);
-
-    // If this completed all 6 disciplines, trigger celebratory milestone modal!
-    const allDone = updatedTasks.length > 0 && updatedTasks.every((t) => t.isCompleted);
-    if (allDone && !protocol.isLockedOut) {
-      if (onOpenMilestone) {
-        onOpenMilestone();
-      } else {
-        setIsMilestoneModalOpen(true);
-      }
-    }
   };
 
   // Phase Title Map
@@ -284,27 +272,39 @@ export const DailyProtocolTracker: React.FC<DailyProtocolTrackerProps> = ({
       ) : (
         /* ACTIVE DAILY PROTOCOL CHECKLIST */
         <div className="space-y-4 mb-8">
-          {/* Learning reassurance callout */}
+          {/* Integrity & anti-cheat callout */}
           <div className="bg-emerald-950/40 border border-emerald-500/30 rounded-2xl p-3.5 flex items-center justify-between gap-3 text-xs">
             <div className="flex items-center gap-2.5 text-emerald-300">
               <ShieldCheck className="w-5 h-5 text-emerald-400 shrink-0" />
               <span>
-                <strong className="font-bold text-white">Unlimited Practice Attempts:</strong> You have unlimited retries on all games. Practice freely, make mistakes, and learn until you master today's prescribed levels!
+                <strong className="font-bold text-white">Tamper-Proof Progression:</strong> Steps cannot be manually clicked off. Each step is automatically verified and marked complete only when you achieve the required score in its dedicated lab!
               </span>
             </div>
             <span className="shrink-0 bg-emerald-500/20 text-emerald-300 font-bold px-2.5 py-1 rounded-lg text-[10px] uppercase tracking-wider border border-emerald-500/40">
-              Free to retry
+              Lab-Verified
             </span>
           </div>
 
-          <div className="flex items-center justify-between px-1">
-            <h3 className="text-base font-bold text-white flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-emerald-400" />
-              Today's Prescribed Quota (6 Disciplines)
-            </h3>
-            <span className="text-xs text-slate-400">
-              Auto-locks on completion until 12:00 AM
-            </span>
+          <div className="flex flex-wrap items-center justify-between gap-2 px-1">
+            <div>
+              <h3 className="text-base font-bold text-white flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-emerald-400" />
+                Today's Prescribed Quota (6 Disciplines)
+              </h3>
+              <p className="text-xs text-slate-400 mt-0.5">
+                Complete each lab below to unlock Day {protocol.curriculumDay} milestone & anti-burnout lockout
+              </p>
+            </div>
+            {!protocol.isLockedOut && completedTasksCount > 0 && (
+              <button
+                onClick={handleResetTodayTasks}
+                title="Reset today's in-progress tasks to start today's protocol fresh"
+                className="text-xs text-slate-400 hover:text-amber-300 flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-800 hover:border-amber-500/40 bg-slate-950/80 transition-all cursor-pointer"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                Reset Today's Progress
+              </button>
+            )}
           </div>
 
           <div className="grid grid-cols-1 gap-3.5">
@@ -318,41 +318,84 @@ export const DailyProtocolTracker: React.FC<DailyProtocolTrackerProps> = ({
                 }`}
               >
                 <div className="flex items-start gap-3.5">
+                  {/* Tamper-proof Step Indicator (Navigates to lab on click if not completed) */}
                   <button
-                    onClick={() => handleToggleTask(task.id)}
-                    className={`w-7 h-7 rounded-xl flex items-center justify-center transition-all shrink-0 mt-0.5 cursor-pointer ${
+                    type="button"
+                    onClick={() => onNavigateMode(task.gameMode)}
+                    className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 mt-0.5 transition-all cursor-pointer ${
                       task.isCompleted
                         ? 'bg-emerald-500 text-slate-950 shadow-md shadow-emerald-500/30'
-                        : 'border border-slate-700 hover:border-emerald-400 text-transparent hover:text-emerald-400/50'
+                        : 'border-2 border-slate-700 bg-slate-950/80 text-slate-400 hover:border-cyan-400 hover:text-cyan-300'
                     }`}
+                    title={
+                      task.isCompleted
+                        ? 'Verified Complete: Quota achieved in training lab'
+                        : `Step ${idx + 1}: Click to launch ${task.title}`
+                    }
                   >
-                    <CheckCircle2 className="w-4 h-4" />
+                    {task.isCompleted ? (
+                      <CheckCircle2 className="w-4 h-4 text-slate-950 stroke-[2.5]" />
+                    ) : (
+                      <span className="font-mono text-xs font-black">{idx + 1}</span>
+                    )}
                   </button>
 
                   <div>
-                    <div className="flex items-center gap-2 mb-0.5">
+                    <div className="flex flex-wrap items-center gap-2 mb-0.5">
                       <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 font-mono">
                         Step {idx + 1}
                       </span>
                       <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 font-medium">
                         {task.discipline}
                       </span>
+                      {task.isCompleted ? (
+                        <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-400 bg-emerald-950/80 border border-emerald-800/60 px-2 py-0.5 rounded-full">
+                          <CheckCircle2 className="w-3 h-3" /> Cleared in Lab
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 text-[10px] font-medium text-amber-300/90 bg-amber-950/40 border border-amber-800/40 px-2 py-0.5 rounded-full">
+                          Must be earned in Lab
+                        </span>
+                      )}
                     </div>
-                    <h4 className={`text-sm sm:text-base font-bold ${task.isCompleted ? 'text-slate-300 line-through' : 'text-white'}`}>
+                    <h4 className={`text-sm sm:text-base font-bold ${task.isCompleted ? 'text-slate-300' : 'text-white'}`}>
                       {task.title}
                     </h4>
                     <p className="text-xs text-slate-400 mt-0.5">
                       {task.targetDescription}
                     </p>
+                    {task.targetCount > 1 && !task.isCompleted && (
+                      <div className="mt-2 flex items-center gap-2">
+                        <div className="w-28 h-1.5 bg-slate-950 rounded-full overflow-hidden border border-slate-800">
+                          <div
+                            className="bg-cyan-400 h-full rounded-full transition-all"
+                            style={{
+                              width: `${Math.min(100, Math.round((task.currentCount / task.targetCount) * 100))}%`,
+                            }}
+                          />
+                        </div>
+                        <span className="text-[10px] font-mono text-cyan-300 font-bold">
+                          {task.currentCount} / {task.targetCount}
+                        </span>
+                      </div>
+                    )}
                   </div>
                 </div>
 
                 <div className="flex items-center gap-2 self-end sm:self-center">
                   <button
                     onClick={() => onNavigateMode(task.gameMode)}
-                    className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs border border-slate-700 transition-all flex items-center gap-1.5 shadow-sm active:scale-98"
+                    className={`px-4 py-2 rounded-xl font-bold text-xs transition-all flex items-center gap-1.5 shadow-sm active:scale-98 cursor-pointer ${
+                      task.isCompleted
+                        ? 'bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700/80'
+                        : 'bg-gradient-to-r from-cyan-600 to-indigo-600 hover:from-cyan-500 hover:to-indigo-500 text-white shadow-cyan-500/20'
+                    }`}
                   >
-                    Launch Lab <ArrowRight className="w-3.5 h-3.5" />
+                    {task.isCompleted ? (
+                      <>Replay Lab <ArrowRight className="w-3.5 h-3.5" /></>
+                    ) : (
+                      <>Launch Lab <ArrowRight className="w-3.5 h-3.5" /></>
+                    )}
                   </button>
                 </div>
               </div>

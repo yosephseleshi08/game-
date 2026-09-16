@@ -270,9 +270,18 @@ export default function App() {
     if (isSuccess) {
       setProtocol((prev) => {
         if (prev.isLockedOut) return prev;
-        const updatedTasks = prev.tasks.map((t) =>
-          t.id === 'ayumu-chimp' ? { ...t, currentCount: Math.max(t.currentCount, digitsCount), isCompleted: true } : t
-        );
+        const updatedTasks = prev.tasks.map((t) => {
+          if (t.id === 'ayumu-chimp') {
+            const nextDigits = Math.max(t.currentCount, digitsCount);
+            const target = t.targetCount || 4;
+            return {
+              ...t,
+              currentCount: nextDigits,
+              isCompleted: nextDigits >= target,
+            };
+          }
+          return t;
+        });
         const updated = { ...prev, tasks: updatedTasks };
         saveDailyProtocol(updated);
         return updated;
@@ -395,12 +404,21 @@ export default function App() {
   };
 
   const handleRecordMatrixResult = (isSuccess: boolean, level: number) => {
-    if (isSuccess && level >= 4) {
+    if (isSuccess) {
       setProtocol((prev) => {
         if (prev.isLockedOut) return prev;
-        const updatedTasks = prev.tasks.map((t) =>
-          t.id === 'eidetic-matrix' ? { ...t, currentCount: Math.max(t.currentCount, level), isCompleted: true } : t
-        );
+        const updatedTasks = prev.tasks.map((t) => {
+          if (t.id === 'eidetic-matrix') {
+            const nextLevel = Math.max(t.currentCount, level);
+            const target = t.targetCount || 4;
+            return {
+              ...t,
+              currentCount: nextLevel,
+              isCompleted: nextLevel >= target,
+            };
+          }
+          return t;
+        });
         const updated = { ...prev, tasks: updatedTasks };
         saveDailyProtocol(updated);
         return updated;
