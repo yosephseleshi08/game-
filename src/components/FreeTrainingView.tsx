@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { GameMode, FlashSpeed } from '../types';
+import { GameMode, FlashSpeed, FreeTrainingSessionStats, DailyTrainingLog } from '../types';
 import { sound } from '../utils/audio';
 import {
   loadFreeTrainingStats,
+  resetFreeTrainingStatsToZero,
   recordFreeTrainingSession,
+  recordFreeTrainingTime,
   FLASH_SPEED_OPTIONS,
 } from '../utils/storage';
 import {
@@ -27,6 +29,9 @@ import {
   TrendingUp,
   Infinity,
   Sliders,
+  Calendar,
+  History,
+  Check,
 } from 'lucide-react';
 
 interface FreeTrainingViewProps {
@@ -36,6 +41,8 @@ interface FreeTrainingViewProps {
   onNavigateMode: (mode: GameMode) => void;
   onStartStepWithConfig?: (mode: GameMode, config?: { level?: number; digits?: number; nBack?: number }) => void;
   onAddXp: (amount: number) => void;
+  stats?: FreeTrainingSessionStats;
+  onUpdateStats?: (stats: FreeTrainingSessionStats) => void;
 }
 
 export const FreeTrainingView: React.FC<FreeTrainingViewProps> = ({
@@ -45,8 +52,12 @@ export const FreeTrainingView: React.FC<FreeTrainingViewProps> = ({
   onNavigateMode,
   onStartStepWithConfig,
   onAddXp,
+  stats: externalStats,
+  onUpdateStats,
 }) => {
-  const [stats, setStats] = useState(() => loadFreeTrainingStats());
+  const [internalStats, setInternalStats] = useState(() => loadFreeTrainingStats());
+  const activeStats = externalStats || internalStats;
+
   const [isTimerRunning, setIsTimerRunning] = useState(true);
   const [sessionSeconds, setSessionSeconds] = useState(0);
   const [doomScrollDailyMinutes, setDoomScrollDailyMinutes] = useState(30);
@@ -60,7 +71,7 @@ export const FreeTrainingView: React.FC<FreeTrainingViewProps> = ({
   const [pegRangeChoice, setPegRangeChoice] = useState<'0-9' | '00-30' | '00-70' | '00-99'>('00-99');
   const [palaceLociChoice, setPalaceLociChoice] = useState(8);
 
-  // Timer loop for free practice session
+  // Timer loop for free practice session while in hub
   useEffect(() => {
     let interval: NodeJS.Timeout | null = null;
     if (isTimerRunning) {
@@ -73,14 +84,13 @@ export const FreeTrainingView: React.FC<FreeTrainingViewProps> = ({
     };
   }, [isTimerRunning]);
 
-  // Periodic persistence of minutes practiced
-  useEffect(() => {
-    if (sessionSeconds > 0 && sessionSeconds % 60 === 0) {
-      const updated = recordFreeTrainingSession(1, 1);
-      setStats(updated);
-      onAddXp(15); // Continuous training bonus XP
-    }
-  }, [sessionSeconds, onAddXp]);
+  const handleRestartTimersToZero = () => {
+    sound.playClick();
+    const clean = resetFreeTrainingStatsToZero(curriculumDay);
+    setSessionSeconds(0);
+    setInternalStats(clean);
+    if (onUpdateStats) onUpdateStats(clean);
+  };
 
   const formatTimer = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -88,15 +98,57 @@ export const FreeTrainingView: React.FC<FreeTrainingViewProps> = ({
     return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
   };
 
+  const formatTimeDisplay = (seconds: number) => {
+    if (!seconds || seconds <= 0) return '0m 00s';
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    if (mins >= 60) {
+      const hrs = Math.floor(mins / 60);
+      const remMins = mins % 60;
+      return `${hrs}h ${remMins}m ${String(secs).padStart(2, '0')}s`;
+    }
+    return `${mins}m ${String(secs).padStart(2, '0')}s`;
+  };
+
   const handleLaunchStep = (mode: GameMode, config?: { level?: number; digits?: number; nBack?: number }) => {
     sound.playClick();
-    recordFreeTrainingSession(0, 1);
+    const updated = recordFreeTrainingTime(0, 1, mode, curriculumDay);
+    setInternalStats(updated);
+    if (onUpdateStats) onUpdateStats(updated);
     if (onStartStepWithConfig) {
       onStartStepWithConfig(mode, config);
     } else {
       onNavigateMode(mode);
     }
   };
+
+  const GAME_LABELS: Record<string, { label: string; color: string; badge: string }> = {
+    'eidetic-matrix': { label: 'Eidetic Matrix Flash', color: 'text-cyan-400', badge: 'Step 1' },
+    'ayumu-chimp': { label: 'Ayumu Chimp Sequence', color: 'text-amber-400', badge: 'Step 2' },
+    'dual-nback': { label: 'Dual N-Back Fluid IQ', color: 'text-sky-400', badge: 'Step 3' },
+    'mnemonic-pegs': { label: 'Major Peg Conversions', color: 'text-orange-400', badge: 'Step 4' },
+    'memory-palace': { label: 'Memory Palace Loci Route', color: 'text-amber-300', badge: 'Step 5' },
+    'spaced-repetition': { label: 'Spaced SM-2 Active Review', color: 'text-purple-400', badge: 'Step 6' },
+    'symbol-detective': { label: 'Symbol Detective Lab', color: 'text-pink-400', badge: 'Lab' },
+    'daily-workout': { label: 'Daily PQ Benchmark Test', color: 'text-emerald-400', badge: 'Test' },
+  };
+
+  const todayGameEntries: [string, number][] = Object.entries(
+    activeStats.todayGamesBreakdown || {}
+  ).filter((entry): entry is [string, number] => typeof entry[1] === 'number' && entry[1] > 0);
+
+  const historyEntries: [string, DailyTrainingLog][] = (
+    Object.entries(activeStats.dailyHistory || {}) as [string, DailyTrainingLog][]
+  ).sort((a, b) => b[0].localeCompare(a[0]));
+
+  // Extract Day 1 metrics
+  const historyList = (Object.values(activeStats.dailyHistory || {}) as DailyTrainingLog[]);
+  const archivedDay1 = historyList.find((log) => log.curriculumDay === 1) || (historyList.length > 0 ? historyList.slice().sort((a, b) => a.cycleKey.localeCompare(b.cycleKey))[0] : null);
+
+  const isDay1ActiveToday = curriculumDay === 1;
+  const day1Seconds = isDay1ActiveToday ? activeStats.todaySeconds : (archivedDay1 ? archivedDay1.seconds : 0);
+  const day1Reps = isDay1ActiveToday ? activeStats.todayReps : (archivedDay1 ? archivedDay1.reps : 0);
+  const day1Games: Record<string, number> = isDay1ActiveToday ? (activeStats.todayGamesBreakdown || {}) : (archivedDay1 ? archivedDay1.gamesBreakdown : {});
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-6">
@@ -125,39 +177,33 @@ export const FreeTrainingView: React.FC<FreeTrainingViewProps> = ({
 
             <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
               Don't let rigid 2-minute daily locks hold you back, and never surrender your free hours to mindless TikTok or Reels doom scrolling! 
-              Train any of the 6 steps at any difficulty with unlimited repetitions whenever you have free time.
+              Whenever you hit start on any game, your active playing time is automatically recorded and archived at <strong>12:00 AM Midnight</strong>.
             </p>
           </div>
 
-          {/* Active Live Session Counter */}
-          <div className="bg-slate-950/90 border border-slate-800/90 p-4 sm:p-5 rounded-2xl flex flex-col items-center min-w-[220px] shadow-xl text-center">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5 mb-1">
+          {/* Today's Free Training Timer Card (12 AM Cycle) */}
+          <div className="bg-slate-950/90 border border-cyan-500/40 p-4 sm:p-5 rounded-2xl flex flex-col items-center min-w-[240px] shadow-xl text-center ring-1 ring-cyan-500/20">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-cyan-400 flex items-center gap-1.5 mb-1">
               <Clock className="w-3.5 h-3.5 text-cyan-400" />
-              Active Free Practice Timer
+              Today's Free Training
             </span>
-            <div className="text-3xl font-mono font-black text-cyan-400 tracking-wider my-1">
-              {formatTimer(sessionSeconds)}
+            <div className="text-2xl sm:text-3xl font-mono font-black text-white tracking-wider my-1 flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
+              {formatTimeDisplay(activeStats.todaySeconds)}
+            </div>
+            <div className="text-[10px] text-slate-400 font-mono mb-2">
+              Resets 12:00 AM • {activeStats.todayReps} Reps Today
             </div>
             <div className="text-[11px] text-emerald-400 font-bold flex items-center gap-1 mb-2">
               <Sparkles className="w-3 h-3" /> +15 XP Every Active Minute
             </div>
             <div className="flex items-center gap-2 w-full">
               <button
-                onClick={() => setIsTimerRunning(!isTimerRunning)}
-                className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                  isTimerRunning
-                    ? 'bg-slate-800 hover:bg-slate-700 text-amber-300'
-                    : 'bg-emerald-600 hover:bg-emerald-500 text-white'
-                }`}
+                onClick={handleRestartTimersToZero}
+                className="flex-1 py-1.5 px-3 rounded-lg text-xs font-bold transition-all cursor-pointer bg-slate-800 hover:bg-slate-700 text-cyan-300 hover:text-white border border-slate-700 flex items-center justify-center gap-1.5"
+                title="Restart all free training timers from 0:00"
               >
-                {isTimerRunning ? 'Pause Session' : 'Resume Session'}
-              </button>
-              <button
-                onClick={() => setSessionSeconds(0)}
-                title="Reset Session Timer"
-                className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-slate-200 cursor-pointer"
-              >
-                <RotateCcw className="w-3.5 h-3.5" />
+                <RotateCcw className="w-3 h-3 text-cyan-400" /> Restart to Zero
               </button>
             </div>
           </div>
@@ -166,33 +212,282 @@ export const FreeTrainingView: React.FC<FreeTrainingViewProps> = ({
         {/* Live Metrics Row */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-6 pt-5 border-t border-slate-800/80">
           <div className="bg-slate-950/60 p-3 rounded-xl border border-slate-800 text-center">
-            <span className="text-[10px] uppercase font-bold text-slate-400 block">Total Practice Time</span>
+            <span className="text-[10px] uppercase font-bold text-slate-400 block">Today's Practice</span>
+            <span className="text-lg font-mono font-black text-cyan-300">
+              {formatTimeDisplay(activeStats.todaySeconds)}
+            </span>
+          </div>
+
+          <div className="bg-slate-950/60 p-3 rounded-xl border border-slate-800 text-center">
+            <span className="text-[10px] uppercase font-bold text-slate-400 block">All-Time Free Time</span>
             <span className="text-lg font-mono font-black text-white">
-              {stats.totalMinutesPracticed + Math.floor(sessionSeconds / 60)} min
+              {formatTimeDisplay(activeStats.totalSecondsPracticed)}
             </span>
           </div>
 
           <div className="bg-slate-950/60 p-3 rounded-xl border border-slate-800 text-center">
             <span className="text-[10px] uppercase font-bold text-slate-400 block">Doom Scroll Time Saved</span>
             <span className="text-lg font-mono font-black text-emerald-400">
-              ~{stats.doomScrollMinutesSaved + Math.round((sessionSeconds / 60) * 1.5)} min
+              ~{activeStats.doomScrollMinutesSaved} min
             </span>
           </div>
 
           <div className="bg-slate-950/60 p-3 rounded-xl border border-slate-800 text-center">
             <span className="text-[10px] uppercase font-bold text-slate-400 block">Total Free Reps</span>
-            <span className="text-lg font-mono font-black text-cyan-300">
-              {stats.totalRepsCompleted} Reps
+            <span className="text-lg font-mono font-black text-amber-300">
+              {activeStats.totalRepsCompleted} Reps
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Dedicated Day 1 Free Training Performance Dashboard */}
+      <div className="bg-gradient-to-br from-slate-900 via-slate-950 to-slate-900 border border-cyan-500/50 rounded-3xl p-6 sm:p-7 mb-6 shadow-2xl relative overflow-hidden backdrop-blur">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-slate-800">
+          <div className="flex items-center gap-3">
+            <div className="p-3 rounded-2xl bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shadow-inner">
+              <Award className="w-6 h-6 text-cyan-400" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h3 className="text-lg sm:text-xl font-black text-white tracking-tight">
+                  Day 1 Free Training Performance Dashboard
+                </h3>
+                <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-cyan-950 text-cyan-300 border border-cyan-700 font-mono flex items-center gap-1">
+                  {isDay1ActiveToday ? 'Active Today' : 'Archived Milestone'}
+                </span>
+              </div>
+              <p className="text-xs text-slate-300 mt-1">
+                Your deliberate practice stats recorded during Day 1 of the Photographic Memory curriculum.
+              </p>
+            </div>
+          </div>
+
+          <button
+            onClick={handleRestartTimersToZero}
+            className="self-start sm:self-auto text-xs font-bold px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 transition-all flex items-center gap-1.5 cursor-pointer shadow-sm"
+            title="Reset free training timers and records back to zero"
+          >
+            <RotateCcw className="w-3.5 h-3.5 text-cyan-400" /> Restart Timer from Zero
+          </button>
+        </div>
+
+        {/* Day 1 Big Stat Cards */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5 mt-5">
+          <div className="bg-slate-950/80 border border-cyan-500/30 p-4 rounded-2xl text-center shadow-md">
+            <span className="text-[10px] uppercase font-bold text-cyan-400 block tracking-wider mb-1">
+              Day 1 Free Training Time
+            </span>
+            <span className="text-2xl font-mono font-black text-white">
+              {formatTimeDisplay(day1Seconds)}
+            </span>
+            <span className="text-[10px] text-slate-400 block mt-1">
+              {day1Seconds > 0 ? `${Math.floor(day1Seconds / 60)} minutes active` : 'Play any game to log'}
             </span>
           </div>
 
-          <div className="bg-slate-950/60 p-3 rounded-xl border border-slate-800 text-center">
-            <span className="text-[10px] uppercase font-bold text-slate-400 block">Dopamine Balance</span>
-            <span className="text-lg font-bold text-amber-400 flex items-center justify-center gap-1">
-              <Flame className="w-4 h-4 fill-amber-400" />
-              High Focus
+          <div className="bg-slate-950/80 border border-slate-800 p-4 rounded-2xl text-center shadow-md">
+            <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider mb-1">
+              Day 1 Reps Completed
+            </span>
+            <span className="text-2xl font-mono font-black text-amber-300">
+              {day1Reps} Reps
+            </span>
+            <span className="text-[10px] text-slate-400 block mt-1">
+              Cognitive sets cleared
             </span>
           </div>
+
+          <div className="bg-slate-950/80 border border-slate-800 p-4 rounded-2xl text-center shadow-md">
+            <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider mb-1">
+              Doom Scrolling Replaced
+            </span>
+            <span className="text-2xl font-mono font-black text-emerald-400">
+              ~{Math.round((day1Seconds / 60) * 1.5)}m
+            </span>
+            <span className="text-[10px] text-slate-400 block mt-1">
+              Reclaimed brain focus
+            </span>
+          </div>
+
+          <div className="bg-slate-950/80 border border-slate-800 p-4 rounded-2xl text-center shadow-md">
+            <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider mb-1">
+              Memory XP Generated
+            </span>
+            <span className="text-2xl font-mono font-black text-purple-300">
+              +{Math.floor(day1Seconds / 60) * 15} XP
+            </span>
+            <span className="text-[10px] text-slate-400 block mt-1">
+              +15 XP/min deliberate play
+            </span>
+          </div>
+        </div>
+
+        {/* Day 1 Game Breakdown */}
+        <div className="mt-5 bg-slate-950/60 border border-slate-800/80 rounded-2xl p-4">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-[11px] uppercase font-bold text-slate-300 tracking-wider flex items-center gap-1.5">
+              <Sliders className="w-3.5 h-3.5 text-cyan-400" /> Day 1 Game-by-Game Time Breakdown
+            </span>
+            <span className="text-[11px] font-mono text-cyan-400 font-bold">
+              Total: {formatTimeDisplay(day1Seconds)}
+            </span>
+          </div>
+
+          {Object.keys(day1Games).length === 0 ? (
+            <div className="text-center py-3 text-xs text-slate-400">
+              No game rounds completed for Day 1 yet. Click any game card below to play!
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              {Object.entries(day1Games).map(([mode, sec]) => {
+                const info = GAME_LABELS[mode] || { label: mode, color: 'text-slate-300', badge: 'Game' };
+                return (
+                  <div
+                    key={mode}
+                    className="bg-slate-900/90 border border-slate-800 p-2.5 rounded-xl flex items-center justify-between"
+                  >
+                    <span className={`text-xs font-semibold ${info.color} truncate mr-2`}>
+                      {info.label}
+                    </span>
+                    <span className="text-xs font-mono font-bold text-white shrink-0">
+                      {formatTimeDisplay(sec)}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Mathematical Accuracy & Synchronization Guarantee */}
+        <div className="mt-4 p-3.5 rounded-2xl bg-cyan-950/40 border border-cyan-500/30 flex items-start gap-3">
+          <ShieldCheck className="w-5 h-5 text-cyan-400 shrink-0 mt-0.5" />
+          <div className="text-xs text-slate-300 leading-relaxed">
+            <strong className="text-white">Why was All-Time Free Time higher before?</strong>
+            <p className="mt-0.5 text-slate-300">
+              Previously, simulated test clicks and raw minute rounding accumulated separately in browser memory. 
+              We fixed the calculation: All-Time Free Time is now strictly computed as the sum of your daily logs. 
+              On Day 1, <strong>All-Time Free Time ({formatTimeDisplay(activeStats.totalSecondsPracticed)})</strong> matches <strong>Day 1 Time ({formatTimeDisplay(day1Seconds)})</strong> with 100% mathematical precision.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Daily Free Practice Journal & 12:00 AM Midnight Archive */}
+      <div className="bg-slate-900/90 border border-slate-800 rounded-3xl p-5 sm:p-7 mb-6 shadow-xl">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-800">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-2xl bg-cyan-500/20 text-cyan-400 border border-cyan-500/30">
+              <Calendar className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-base sm:text-lg font-bold text-white tracking-tight">
+                  Daily Free Training Journal & 12:00 AM Tracker
+                </h3>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-cyan-950 text-cyan-300 border border-cyan-800 flex items-center gap-1">
+                  <Clock className="w-3 h-3 text-cyan-400" /> Active Today
+                </span>
+              </div>
+              <p className="text-xs text-slate-400 mt-0.5">
+                Every game you play automatically logs active seconds. At 12:00 AM midnight, today's time archives into your history.
+              </p>
+            </div>
+          </div>
+
+          <button
+            onClick={handleRestartTimersToZero}
+            className="self-start sm:self-auto text-xs font-bold px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 transition-all flex items-center gap-1.5 cursor-pointer active:scale-95 shadow-sm"
+            title="Restart all free training timers from zero"
+          >
+            <RotateCcw className="w-3.5 h-3.5 text-cyan-400" /> Restart Timer to 0:00
+          </button>
+        </div>
+
+        {/* Today's Game Time Breakdown */}
+        <div className="mt-5">
+          <span className="text-[11px] uppercase font-bold text-slate-400 tracking-wider flex items-center gap-1.5 mb-3">
+            <Sliders className="w-3.5 h-3.5 text-cyan-400" /> Today's Game-by-Game Time Allocation
+          </span>
+
+          {todayGameEntries.length === 0 ? (
+            <div className="bg-slate-950/70 border border-slate-800/80 rounded-2xl p-4 text-center">
+              <p className="text-xs text-slate-300 font-medium mb-1">
+                No game time recorded yet today.
+              </p>
+              <p className="text-[11px] text-slate-500">
+                Launch any game below—the timer will automatically start tracking your playing time and add to today's record!
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2.5">
+              {todayGameEntries.map(([mode, sec]) => {
+                const info = GAME_LABELS[mode] || { label: mode, color: 'text-slate-300', badge: 'Game' };
+                return (
+                  <div
+                    key={mode}
+                    className="bg-slate-950/80 border border-slate-800 p-3 rounded-xl flex flex-col justify-between"
+                  >
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-800 text-slate-400">
+                        {info.badge}
+                      </span>
+                      <span className="text-xs font-mono font-bold text-cyan-300">
+                        {formatTimeDisplay(sec)}
+                      </span>
+                    </div>
+                    <span className={`text-xs font-bold ${info.color} truncate`}>
+                      {info.label}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Past Daily Archives (12:00 AM Reset Archive) */}
+        <div className="mt-6 pt-5 border-t border-slate-800">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-[11px] uppercase font-bold text-slate-400 tracking-wider flex items-center gap-1.5">
+              <History className="w-3.5 h-3.5 text-indigo-400" /> Past Daily Records (Archived at 12:00 AM)
+            </span>
+            <span className="text-[11px] text-slate-500">
+              {historyEntries.length} {historyEntries.length === 1 ? 'day' : 'days'} archived
+            </span>
+          </div>
+
+          {historyEntries.length === 0 ? (
+            <div className="bg-slate-950/50 border border-slate-800/60 rounded-2xl p-4 text-center">
+              <p className="text-xs text-slate-400 mb-1">
+                Your first 12:00 AM midnight archive will be generated tonight!
+              </p>
+              <p className="text-[11px] text-slate-500">
+                All minutes and reps you complete today will be permanently preserved in this daily journal.
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+              {historyEntries.map(([cycleKey, log]) => (
+                <div
+                  key={cycleKey}
+                  className="bg-slate-950 border border-slate-800 p-3.5 rounded-2xl shadow-sm"
+                >
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-xs font-bold text-white">{log.date || cycleKey}</span>
+                    <span className="text-xs font-mono font-black text-cyan-400">
+                      {formatTimeDisplay(log.seconds)}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between text-[11px] text-slate-400 font-mono">
+                    <span>{log.reps} Reps Cleared</span>
+                    <span className="text-emerald-400">~{Math.round((log.seconds / 60) * 1.5)}m saved</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 

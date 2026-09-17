@@ -12,12 +12,28 @@ export type GameMode =
   | 'community'
   | 'stats';
 
+export interface DailyTrainingLog {
+  date: string;
+  cycleKey: string;
+  curriculumDay?: number;
+  seconds: number;
+  reps: number;
+  gamesBreakdown: Record<string, number>; // gameMode -> seconds spent
+}
+
 export interface FreeTrainingSessionStats {
   totalMinutesPracticed: number;
+  totalSecondsPracticed: number;
   totalRepsCompleted: number;
   doomScrollMinutesSaved: number;
   sessionsCount: number;
   lastSessionDate: string;
+  currentDayCycle: string;
+  todayCurriculumDay?: number;
+  todaySeconds: number;
+  todayReps: number;
+  todayGamesBreakdown: Record<string, number>;
+  dailyHistory: Record<string, DailyTrainingLog>;
 }
 
 export type FlashSpeed = 2000 | 1200 | 600 | 300 | 150;

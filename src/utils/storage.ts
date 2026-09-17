@@ -8,7 +8,9 @@ import {
   PalaceLocus,
   SpacedCard,
   FreeTrainingSessionStats,
+  DailyTrainingLog,
 } from '../types';
+import { getCurrentCycleInfo } from './protocol';
 
 export const FLASH_SPEED_OPTIONS: FlashSpeedOption[] = [
   { value: 2000, label: '2.0s', tag: 'Beginner', xpMultiplier: 1.0 },
@@ -364,20 +366,105 @@ export function calculateSM2(
 }
 
 const FREE_TRAINING_STATS_KEY = 'pmm_free_training_stats_v1';
+const FREE_TRAINING_RESTART_FLAG = 'pmm_free_training_restarted_v2';
 
 const defaultFreeTrainingStats: FreeTrainingSessionStats = {
   totalMinutesPracticed: 0,
+  totalSecondsPracticed: 0,
   totalRepsCompleted: 0,
   doomScrollMinutesSaved: 0,
   sessionsCount: 0,
   lastSessionDate: new Date().toISOString(),
+  currentDayCycle: getCurrentCycleInfo().cycleKey,
+  todayCurriculumDay: 1,
+  todaySeconds: 0,
+  todayReps: 0,
+  todayGamesBreakdown: {},
+  dailyHistory: {},
 };
 
-export function loadFreeTrainingStats(): FreeTrainingSessionStats {
+export function recalculateAllTimeTotals(stats: FreeTrainingSessionStats): FreeTrainingSessionStats {
+  const historySeconds = Object.values(stats.dailyHistory || {}).reduce(
+    (acc, log) => acc + (log.seconds || 0),
+    0
+  );
+  const historyReps = Object.values(stats.dailyHistory || {}).reduce(
+    (acc, log) => acc + (log.reps || 0),
+    0
+  );
+
+  const totalSecs = historySeconds + (stats.todaySeconds || 0);
+  const totalReps = historyReps + (stats.todayReps || 0);
+
+  stats.totalSecondsPracticed = totalSecs;
+  stats.totalMinutesPracticed = Math.floor(totalSecs / 60);
+  stats.totalRepsCompleted = totalReps;
+  stats.doomScrollMinutesSaved = Math.round((totalSecs / 60) * 1.5);
+  return stats;
+}
+
+export function resetFreeTrainingStatsToZero(curriculumDay: number = 1): FreeTrainingSessionStats {
+  const currentCycle = getCurrentCycleInfo().cycleKey;
+  const cleanStats: FreeTrainingSessionStats = {
+    ...defaultFreeTrainingStats,
+    currentDayCycle: currentCycle,
+    todayCurriculumDay: curriculumDay,
+    lastSessionDate: new Date().toISOString(),
+  };
+  localStorage.setItem(FREE_TRAINING_RESTART_FLAG, 'true');
+  saveFreeTrainingStats(cleanStats);
+  return cleanStats;
+}
+
+export function loadFreeTrainingStats(curriculumDay: number = 1): FreeTrainingSessionStats {
   try {
+    // Check one-time restart to zero requested by user
+    const hasRestarted = localStorage.getItem(FREE_TRAINING_RESTART_FLAG);
+    if (!hasRestarted) {
+      return resetFreeTrainingStatsToZero(curriculumDay);
+    }
+
     const raw = localStorage.getItem(FREE_TRAINING_STATS_KEY);
-    if (!raw) return defaultFreeTrainingStats;
-    return { ...defaultFreeTrainingStats, ...JSON.parse(raw) };
+    const currentCycle = getCurrentCycleInfo().cycleKey;
+
+    if (!raw) {
+      return resetFreeTrainingStatsToZero(curriculumDay);
+    }
+
+    const parsed = JSON.parse(raw);
+    const stats: FreeTrainingSessionStats = {
+      ...defaultFreeTrainingStats,
+      ...parsed,
+      todayCurriculumDay: parsed.todayCurriculumDay || curriculumDay,
+      todayGamesBreakdown: parsed.todayGamesBreakdown || {},
+      dailyHistory: parsed.dailyHistory || {},
+    };
+
+    // Check if 12:00 AM midnight rollover occurred
+    if (stats.currentDayCycle && stats.currentDayCycle !== currentCycle) {
+      if (stats.todaySeconds > 0 || stats.todayReps > 0) {
+        const prevDate = stats.lastSessionDate ? stats.lastSessionDate.split('T')[0] : 'Previous Day';
+        stats.dailyHistory[stats.currentDayCycle] = {
+          date: prevDate,
+          cycleKey: stats.currentDayCycle,
+          curriculumDay: stats.todayCurriculumDay || curriculumDay,
+          seconds: stats.todaySeconds,
+          reps: stats.todayReps,
+          gamesBreakdown: { ...stats.todayGamesBreakdown },
+        };
+      }
+      // Reset for today's new 12:00 AM cycle
+      stats.currentDayCycle = currentCycle;
+      stats.todayCurriculumDay = curriculumDay;
+      stats.todaySeconds = 0;
+      stats.todayReps = 0;
+      stats.todayGamesBreakdown = {};
+    }
+
+    // Always enforce exact mathematical consistency: All-time = sum(dailyHistory) + todaySeconds
+    recalculateAllTimeTotals(stats);
+    saveFreeTrainingStats(stats);
+    return stats;
   } catch {
     return defaultFreeTrainingStats;
   }
@@ -391,16 +478,57 @@ export function saveFreeTrainingStats(stats: FreeTrainingSessionStats): void {
   }
 }
 
+export function recordFreeTrainingTime(
+  secondsToAdd: number,
+  repsToAdd: number = 0,
+  gameMode?: string,
+  curriculumDay: number = 1
+): FreeTrainingSessionStats {
+  const stats = loadFreeTrainingStats(curriculumDay);
+  if (secondsToAdd <= 0 && repsToAdd <= 0) return stats;
+
+  const currentCycle = getCurrentCycleInfo().cycleKey;
+
+  // Check rollover during recording
+  if (stats.currentDayCycle && stats.currentDayCycle !== currentCycle) {
+    if (stats.todaySeconds > 0 || stats.todayReps > 0) {
+      const prevDate = stats.lastSessionDate ? stats.lastSessionDate.split('T')[0] : 'Previous Day';
+      stats.dailyHistory[stats.currentDayCycle] = {
+        date: prevDate,
+        cycleKey: stats.currentDayCycle,
+        curriculumDay: stats.todayCurriculumDay || curriculumDay,
+        seconds: stats.todaySeconds,
+        reps: stats.todayReps,
+        gamesBreakdown: { ...stats.todayGamesBreakdown },
+      };
+    }
+    stats.currentDayCycle = currentCycle;
+    stats.todayCurriculumDay = curriculumDay;
+    stats.todaySeconds = 0;
+    stats.todayReps = 0;
+    stats.todayGamesBreakdown = {};
+  }
+
+  stats.todaySeconds += secondsToAdd;
+  stats.todayReps += repsToAdd;
+  stats.todayCurriculumDay = curriculumDay;
+
+  if (repsToAdd > 0 || secondsToAdd >= 20) {
+    stats.sessionsCount += 1;
+  }
+  stats.lastSessionDate = new Date().toISOString();
+
+  if (gameMode) {
+    stats.todayGamesBreakdown[gameMode] = (stats.todayGamesBreakdown[gameMode] || 0) + secondsToAdd;
+  }
+
+  // Recalculate all-time numbers strictly from history + today
+  recalculateAllTimeTotals(stats);
+  saveFreeTrainingStats(stats);
+  return stats;
+}
+
 export function recordFreeTrainingSession(minutes: number, reps: number): FreeTrainingSessionStats {
-  const current = loadFreeTrainingStats();
-  const updated: FreeTrainingSessionStats = {
-    totalMinutesPracticed: current.totalMinutesPracticed + minutes,
-    totalRepsCompleted: current.totalRepsCompleted + reps,
-    doomScrollMinutesSaved: current.doomScrollMinutesSaved + Math.round(minutes * 1.5),
-    sessionsCount: current.sessionsCount + 1,
-    lastSessionDate: new Date().toISOString(),
-  };
-  saveFreeTrainingStats(updated);
-  return updated;
+  return recordFreeTrainingTime(minutes * 60, reps);
 }
 

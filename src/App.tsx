@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { GameMode, FlashSpeed, UserStats, DailyPQRecord, UserProfile, DailyProtocolState } from './types';
+import { GameMode, FlashSpeed, UserStats, DailyPQRecord, UserProfile, DailyProtocolState, FreeTrainingSessionStats } from './types';
 import {
   loadUserStats,
   saveUserStats,
@@ -8,6 +8,8 @@ import {
   getRankForXp,
   loadLocalProfile,
   createLocalAthleteProfile,
+  loadFreeTrainingStats,
+  recordFreeTrainingTime,
 } from './utils/storage';
 import { sound } from './utils/audio';
 import { Header } from './components/Header';
@@ -31,7 +33,7 @@ import { DailyMilestoneModal } from './components/DailyMilestoneModal';
 import { FreeTrainingView } from './components/FreeTrainingView';
 import { loadDailyProtocol, saveDailyProtocol } from './utils/protocol';
 import { getPlanSpeedForDay } from './utils/flashPlan';
-import { Award, Sparkles, X } from 'lucide-react';
+import { Award, Sparkles, X, Clock, Play, Pause, RotateCcw, Flame } from 'lucide-react';
 
 export default function App() {
   const [stats, setStats] = useState<UserStats>(() => loadUserStats());
@@ -84,6 +86,89 @@ export default function App() {
   const [currentProfile, setCurrentProfile] = useState<UserProfile>(() => {
     return loadLocalProfile() || createLocalAthleteProfile('Solo Athlete', 'ayumu');
   });
+
+  // Free Training & Live Game Session Timer (Daily 12 AM Tracking)
+  const [freeTrainingStats, setFreeTrainingStats] = useState<FreeTrainingSessionStats>(() => loadFreeTrainingStats());
+  const [currentGameSeconds, setCurrentGameSeconds] = useState(0);
+  const [isGameTimerPaused, setIsGameTimerPaused] = useState(false);
+  const unflushedSecondsRef = useRef(0);
+
+  const PLAYABLE_GAME_MODES: GameMode[] = [
+    'eidetic-matrix',
+    'ayumu-chimp',
+    'dual-nback',
+    'mnemonic-pegs',
+    'memory-palace',
+    'spaced-repetition',
+    'symbol-detective',
+    'daily-workout',
+  ];
+
+  const isPlayingGame = PLAYABLE_GAME_MODES.includes(activeMode);
+
+  // Reset session seconds when entering any game
+  useEffect(() => {
+    if (isPlayingGame) {
+      setCurrentGameSeconds(0);
+      setIsGameTimerPaused(false);
+      setFreeTrainingStats(loadFreeTrainingStats(protocol.curriculumDay));
+    }
+  }, [activeMode, isPlayingGame, protocol.curriculumDay]);
+
+  // Active game timer loop - tracks exact playing time and auto-saves to daily 12 AM cycle
+  useEffect(() => {
+    if (!isPlayingGame || isGameTimerPaused) return;
+
+    const interval = setInterval(() => {
+      setCurrentGameSeconds((prev) => prev + 1);
+      unflushedSecondsRef.current += 1;
+
+      // Optimistically increment todaySeconds for real-time responsiveness
+      setFreeTrainingStats((prev) => ({
+        ...prev,
+        todaySeconds: prev.todaySeconds + 1,
+        totalSecondsPracticed: (prev.totalSecondsPracticed || 0) + 1,
+        totalMinutesPracticed: Math.floor(((prev.totalSecondsPracticed || 0) + 1) / 60),
+      }));
+
+      // Flush to disk every 5 seconds
+      if (unflushedSecondsRef.current >= 5) {
+        const secs = unflushedSecondsRef.current;
+        unflushedSecondsRef.current = 0;
+        const updated = recordFreeTrainingTime(secs, 0, activeMode, protocol.curriculumDay);
+        setFreeTrainingStats(updated);
+      }
+    }, 1000);
+
+    return () => {
+      clearInterval(interval);
+      if (unflushedSecondsRef.current > 0) {
+        const secs = unflushedSecondsRef.current;
+        unflushedSecondsRef.current = 0;
+        const updated = recordFreeTrainingTime(secs, 0, activeMode, protocol.curriculumDay);
+        setFreeTrainingStats(updated);
+      }
+    };
+  }, [isPlayingGame, isGameTimerPaused, activeMode, protocol.curriculumDay]);
+
+  // Continuous training reward: +15 XP every active minute
+  useEffect(() => {
+    if (currentGameSeconds > 0 && currentGameSeconds % 60 === 0 && !isGameTimerPaused) {
+      handleAddXp(15);
+    }
+  }, [currentGameSeconds, isGameTimerPaused]);
+
+  const formatTimerClock = (seconds: number) => {
+    if (!seconds || seconds <= 0) return '0m 00s';
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    if (mins >= 60) {
+      const hrs = Math.floor(mins / 60);
+      const remMins = mins % 60;
+      return `${hrs}h ${remMins}m ${String(secs).padStart(2, '0')}s`;
+    }
+    return `${mins}m ${String(secs).padStart(2, '0')}s`;
+  };
 
   // Auto-sync stats to local storage
   useEffect(() => {
@@ -483,51 +568,101 @@ export default function App() {
 
       {/* Primary Dynamic View */}
       <main className="flex-1 w-full pb-12">
-        {/* Free Practice Active Banner */}
-        {freeTrainingConfig?.isFree &&
-          !['daily-protocol', 'free-training', 'stats'].includes(activeMode) && (
-            <div className="max-w-4xl mx-auto px-4 pt-3 pb-1">
-              <div className="bg-gradient-to-r from-cyan-950/90 via-slate-900 to-indigo-950/90 border border-cyan-500/40 rounded-2xl p-3 flex flex-wrap items-center justify-between gap-3 shadow-lg">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-xl bg-cyan-500/20 text-cyan-400 flex items-center justify-center border border-cyan-500/30">
-                    <Sparkles className="w-4 h-4 text-cyan-300" />
+        {/* Active Game Session & Daily 12 AM Timer Bar */}
+        {isPlayingGame && (
+          <div className="max-w-4xl mx-auto px-4 pt-3 pb-1">
+            <div className="bg-gradient-to-r from-slate-900 via-slate-950 to-slate-900 border border-cyan-500/40 rounded-2xl p-3 flex flex-wrap items-center justify-between gap-3 shadow-xl backdrop-blur">
+              <div className="flex items-center gap-3">
+                <div className="relative flex items-center justify-center">
+                  <div
+                    className={`w-9 h-9 rounded-xl flex items-center justify-center border transition-all ${
+                      isGameTimerPaused
+                        ? 'bg-amber-500/20 text-amber-300 border-amber-500/40'
+                        : 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40'
+                    }`}
+                  >
+                    <Clock className="w-4 h-4" />
                   </div>
-                  <div>
-                    <span className="text-xs font-black uppercase tracking-wider text-cyan-300 flex items-center gap-1.5">
-                      Free Training Mode Active
-                      <span className="text-[10px] bg-cyan-900/80 text-cyan-200 px-2 py-0.5 rounded font-mono font-bold">
-                        12 AM Lockout Bypassed
+                  {!isGameTimerPaused && (
+                    <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-emerald-400 ring-2 ring-slate-900 animate-pulse" />
+                  )}
+                </div>
+
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-mono font-bold text-white flex items-center gap-1.5">
+                      Session Time:
+                      <span className="text-cyan-400 font-extrabold text-sm">
+                        {formatTimerClock(currentGameSeconds)}
                       </span>
                     </span>
-                    <p className="text-[11px] text-slate-300">
-                      Unlimited attempts & unlocked level caps. Train deliberate memory instead of doom scrolling.
-                    </p>
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-cyan-950 text-cyan-300 border border-cyan-800">
+                      📅 Today's Free Training: {formatTimerClock(freeTrainingStats.todaySeconds)}
+                    </span>
                   </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => {
-                      sound.playClick();
-                      setActiveMode('free-training');
-                    }}
-                    className="px-3 py-1.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 text-xs font-bold transition-all shadow cursor-pointer flex items-center gap-1"
-                  >
-                    Training Hub
-                  </button>
-                  <button
-                    onClick={() => {
-                      sound.playClick();
-                      setFreeTrainingConfig(null);
-                      setActiveMode('daily-protocol');
-                    }}
-                    className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold transition-all cursor-pointer"
-                  >
-                    Back to Daily
-                  </button>
+                  <p className="text-[11px] text-slate-400 mt-0.5">
+                    {isGameTimerPaused ? (
+                      <span className="text-amber-300 font-bold">Session paused</span>
+                    ) : (
+                      <>
+                        Auto-recording active play • Resets at 12:00 AM •{' '}
+                        <span className="text-emerald-400 font-medium">
+                          ~{Math.round((freeTrainingStats.todaySeconds / 60) * 1.5)}m doom scrolling saved
+                        </span>
+                      </>
+                    )}
+                  </p>
                 </div>
               </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => {
+                    sound.playClick();
+                    setIsGameTimerPaused(!isGameTimerPaused);
+                  }}
+                  className={`px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1 cursor-pointer ${
+                    isGameTimerPaused
+                      ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-sm'
+                      : 'bg-slate-800 hover:bg-slate-700 text-amber-300 border border-slate-700'
+                  }`}
+                  title={isGameTimerPaused ? 'Resume game practice timer' : 'Pause game practice timer'}
+                >
+                  {isGameTimerPaused ? (
+                    <>
+                      <Play className="w-3 h-3 fill-white" /> Resume
+                    </>
+                  ) : (
+                    <>
+                      <Pause className="w-3 h-3" /> Pause
+                    </>
+                  )}
+                </button>
+
+                <button
+                  onClick={() => {
+                    sound.playClick();
+                    setActiveMode('free-training');
+                  }}
+                  className="px-3 py-1.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 text-xs font-bold transition-all shadow cursor-pointer flex items-center gap-1"
+                >
+                  Training Hub
+                </button>
+
+                <button
+                  onClick={() => {
+                    sound.playClick();
+                    setFreeTrainingConfig(null);
+                    setActiveMode('daily-protocol');
+                  }}
+                  className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold transition-all cursor-pointer"
+                >
+                  Daily
+                </button>
+              </div>
             </div>
-          )}
+          </div>
+        )}
 
         {activeMode === 'daily-protocol' && (
           <DailyProtocolTracker
@@ -559,6 +694,8 @@ export default function App() {
             }}
             onStartStepWithConfig={handleStartStepWithConfig}
             onAddXp={handleAddXp}
+            stats={freeTrainingStats}
+            onUpdateStats={setFreeTrainingStats}
           />
         )}
 
