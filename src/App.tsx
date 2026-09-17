@@ -7,6 +7,7 @@ import {
   saveFlashSpeed,
   getRankForXp,
   loadLocalProfile,
+  createLocalAthleteProfile,
 } from './utils/storage';
 import { sound } from './utils/audio';
 import { Header } from './components/Header';
@@ -25,22 +26,12 @@ import { StatsDashboard } from './components/StatsDashboard';
 import { TrainingTipsModal } from './components/TrainingTipsModal';
 import { GeniusRoadmapModal } from './components/GeniusRoadmapModal';
 import { FlashTimePlanModal } from './components/FlashTimePlanModal';
-import { AuthModal } from './components/AuthModal';
 import { UserProfileModal } from './components/UserProfileModal';
-import { CommunityPlayersView } from './components/CommunityPlayersView';
 import { DailyMilestoneModal } from './components/DailyMilestoneModal';
 import { FreeTrainingView } from './components/FreeTrainingView';
 import { loadDailyProtocol, saveDailyProtocol } from './utils/protocol';
 import { getPlanSpeedForDay } from './utils/flashPlan';
-import {
-  subscribeToAuth,
-  getUserProfile,
-  saveUserProfile,
-  loadUserCloudData,
-  saveUserCloudData,
-} from './utils/firebase';
-import { User } from 'firebase/auth';
-import { Award, Sparkles, X, ShieldCheck } from 'lucide-react';
+import { Award, Sparkles, X } from 'lucide-react';
 
 export default function App() {
   const [stats, setStats] = useState<UserStats>(() => loadUserStats());
@@ -80,8 +71,6 @@ export default function App() {
   const [isTipsModalOpen, setIsTipsModalOpen] = useState(false);
   const [isRoadmapModalOpen, setIsRoadmapModalOpen] = useState(false);
   const [isFlashPlanOpen, setIsFlashPlanOpen] = useState(false);
-  const [isAuthOpen, setIsAuthOpen] = useState(false);
-  const [authMode, setAuthMode] = useState<'signin' | 'signup'>('signin');
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isMilestoneModalOpen, setIsMilestoneModalOpen] = useState(false);
 
@@ -91,110 +80,20 @@ export default function App() {
   // Level Up Toast
   const [levelUpAlert, setLevelUpAlert] = useState<{ oldLevel: number; newLevel: number; title: string } | null>(null);
 
-  // Firebase Auth & Cloud Sync State
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [currentProfile, setCurrentProfile] = useState<UserProfile | null>(() => loadLocalProfile());
-  const [authInitialized, setAuthInitialized] = useState(false);
+  // Solo Athlete Profile (100% Offline)
+  const [currentProfile, setCurrentProfile] = useState<UserProfile>(() => {
+    return loadLocalProfile() || createLocalAthleteProfile('Solo Athlete', 'ayumu');
+  });
 
-  // Ref to prevent initial overwrite loops
-  const isSyncingFromCloud = useRef(false);
-
-  // 1. Subscribe to Firebase Auth
-  useEffect(() => {
-    const unsubscribe = subscribeToAuth(async (user) => {
-      setCurrentUser(user);
-      setAuthInitialized(true);
-
-      if (user) {
-        try {
-          // Fetch public profile
-          const profile = await getUserProfile(user.uid);
-          if (profile) {
-            setCurrentProfile(profile);
-            if (profile.lockedFlashSpeed) {
-              setCurrentSpeed(profile.lockedFlashSpeed);
-              saveFlashSpeed(profile.lockedFlashSpeed);
-            }
-            if (typeof profile.isSpeedLockedToPlan === 'boolean') {
-              setIsSpeedLockedToPlan(profile.isSpeedLockedToPlan);
-              localStorage.setItem('eidetic_speed_locked_plan', String(profile.isSpeedLockedToPlan));
-            }
-          }
-
-          // Fetch private cloud data (stats, protocol)
-          const cloudData = await loadUserCloudData(user.uid);
-          if (cloudData) {
-            isSyncingFromCloud.current = true;
-            if (cloudData.stats) {
-              setStats((prev) => ({
-                ...prev,
-                ...cloudData.stats,
-                // keep the higher of local or cloud xp to avoid any regression
-                xp: Math.max(prev.xp, cloudData.stats?.xp || 0),
-                level: Math.max(prev.level, cloudData.stats?.level || 1),
-                bestStreak: Math.max(prev.bestStreak, cloudData.stats?.bestStreak || 0),
-                ayumuMaxNumbers: Math.max(prev.ayumuMaxNumbers, cloudData.stats?.ayumuMaxNumbers || 4),
-                matrixMaxLevel: Math.max(prev.matrixMaxLevel, cloudData.stats?.matrixMaxLevel || 4),
-              }));
-            }
-            if (cloudData.protocol) {
-              setProtocol((prev) => ({
-                ...prev,
-                ...cloudData.protocol,
-                curriculumDay: Math.max(prev.curriculumDay, cloudData.protocol?.curriculumDay || 1),
-              }));
-            }
-            setTimeout(() => {
-              isSyncingFromCloud.current = false;
-            }, 500);
-          }
-        } catch (err) {
-          console.error('Error fetching cloud profile:', err);
-        }
-      } else {
-        const local = loadLocalProfile();
-        setCurrentProfile(local);
-      }
-    });
-
-    return () => unsubscribe();
-  }, []);
-
-  // 2. Auto-sync stats to local storage & cloud
+  // Auto-sync stats to local storage
   useEffect(() => {
     saveUserStats(stats);
+  }, [stats]);
 
-    if (currentUser && !isSyncingFromCloud.current) {
-      const syncTimeout = setTimeout(() => {
-        saveUserCloudData(currentUser.uid, stats, protocol).catch(console.error);
-
-        // Also keep public profile updated with key leaderboard stats
-        if (currentProfile) {
-          const rank = getRankForXp(stats.xp).currentRank;
-          const updatedProfile: UserProfile = {
-            ...currentProfile,
-            level: stats.level,
-            xp: stats.xp,
-            rankTitle: rank.title,
-            curriculumDay: protocol.curriculumDay,
-            currentStreak: stats.currentStreak,
-            bestStreak: stats.bestStreak,
-            ayumuMaxNumbers: stats.ayumuMaxNumbers,
-            matrixMaxLevel: stats.matrixMaxLevel,
-            dualNBackMaxN: stats.dualNBackMaxN,
-            fastestFlashMs: stats.fastestFlashMs,
-            detectiveHighScore: stats.detectiveHighScore,
-            lockedFlashSpeed: currentSpeed,
-            isSpeedLockedToPlan,
-            updatedAt: new Date().toISOString(),
-          };
-          saveUserProfile(currentUser.uid, updatedProfile).catch(console.error);
-        }
-      }, 1500);
-
-      return () => clearTimeout(syncTimeout);
-    }
-  }, [stats, protocol, currentUser, currentSpeed, isSpeedLockedToPlan]);
+  // Auto-sync protocol state to local storage
+  useEffect(() => {
+    saveDailyProtocol(protocol);
+  }, [protocol]);
 
   // 3. Keep speed locked to curriculum day if lock is enabled
   useEffect(() => {
@@ -490,11 +389,6 @@ export default function App() {
     }));
   };
 
-  const openAuth = (mode: 'signin' | 'signup' = 'signin') => {
-    setAuthMode(mode);
-    setIsAuthOpen(true);
-  };
-
   // Check if all 6 mandatory tasks in the daily protocol are completed
   const isMilestoneReady = protocol.tasks.length > 0 && protocol.tasks.every((t) => t.isCompleted);
   const prevCompletedCountRef = useRef(protocol.tasks.filter((t) => t.isCompleted).length);
@@ -549,9 +443,7 @@ export default function App() {
         isLockedOut={protocol.isLockedOut}
         isMilestoneReady={isMilestoneReady}
         onOpenMilestone={() => setIsMilestoneModalOpen(true)}
-        currentUser={currentUser}
         currentProfile={currentProfile}
-        onOpenAuth={openAuth}
         onOpenProfile={() => setIsProfileOpen(true)}
       />
 
@@ -593,7 +485,7 @@ export default function App() {
       <main className="flex-1 w-full pb-12">
         {/* Free Practice Active Banner */}
         {freeTrainingConfig?.isFree &&
-          !['daily-protocol', 'free-training', 'community', 'stats'].includes(activeMode) && (
+          !['daily-protocol', 'free-training', 'stats'].includes(activeMode) && (
             <div className="max-w-4xl mx-auto px-4 pt-3 pb-1">
               <div className="bg-gradient-to-r from-cyan-950/90 via-slate-900 to-indigo-950/90 border border-cyan-500/40 rounded-2xl p-3 flex flex-wrap items-center justify-between gap-3 shadow-lg">
                 <div className="flex items-center gap-2.5">
@@ -791,19 +683,6 @@ export default function App() {
           />
         )}
 
-        {activeMode === 'community' && (
-          <CommunityPlayersView
-            currentUser={currentUser}
-            currentProfile={currentProfile}
-            currentStats={stats}
-            currentSpeed={currentSpeed}
-            isSpeedLockedToPlan={isSpeedLockedToPlan}
-            curriculumDay={protocol.curriculumDay}
-            onOpenAuth={openAuth}
-            onOpenProfile={() => setIsProfileOpen(true)}
-          />
-        )}
-
         {activeMode === 'stats' && <StatsDashboard stats={stats} />}
       </main>
 
@@ -818,31 +697,16 @@ export default function App() {
         onSetSpeed={handleSpeedChange}
       />
 
-      {/* Sign In & Create Account Modal */}
-      <AuthModal
-        isOpen={isAuthOpen}
-        onClose={() => setIsAuthOpen(false)}
-        initialMode={authMode}
-        onAuthSuccess={(profile) => {
-          if (profile) setCurrentProfile(profile);
-        }}
-      />
-
-      {/* User Profile & Account Settings Modal */}
+      {/* Solo Athlete Profile & Offline Settings Modal */}
       <UserProfileModal
         isOpen={isProfileOpen}
         onClose={() => setIsProfileOpen(false)}
-        currentUser={currentUser}
         profile={currentProfile}
         stats={stats}
         currentSpeed={currentSpeed}
         isSpeedLockedToPlan={isSpeedLockedToPlan}
         curriculumDay={protocol.curriculumDay}
         onUpdateProfile={(updated) => setCurrentProfile(updated)}
-        onSignOut={() => {
-          setCurrentUser(null);
-          setCurrentProfile(null);
-        }}
       />
 
       {/* Scientific Technique Guide Modal */}
@@ -875,7 +739,7 @@ export default function App() {
       />
 
       {/* Footer */}
-      <footer className="border-t border-slate-900 bg-slate-950 py-4 px-4 text-center text-xs text-slate-500">
+      <footer className="border-t border-slate-900 bg-slate-950 py-4 px-4 text-center text-xs text-slate-500 safe-bottom">
         <p>
           Photographic Memory Master • 365-Day Retinal Snapshot & Iconic Flash Laboratory
         </p>

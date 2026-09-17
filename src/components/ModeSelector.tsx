@@ -10,7 +10,6 @@ import {
   Brain,
   Flame,
   CalendarCheck,
-  Users,
   Castle,
   Layers,
   Zap,
@@ -96,23 +95,16 @@ export const ModeSelector: React.FC<ModeSelectorProps> = ({ activeMode, onSelect
       badge: 'Test',
     },
     {
-      id: 'community',
-      label: 'All Players',
-      desc: 'Athletes & global rank',
-      icon: <Users className="w-4 h-4 text-teal-400" />,
-      badge: 'Global',
-    },
-    {
       id: 'stats',
       label: 'Mastery & Stats',
-      desc: 'Neural telemetry & ranks',
+      desc: 'Neural telemetry & history',
       icon: <BarChart3 className="w-4 h-4 text-indigo-400" />,
     },
   ];
 
   return (
-    <div className="w-full max-w-6xl mx-auto px-4 pt-4 pb-2">
-      <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
+    <nav aria-label="Game Modes" className="w-full max-w-6xl mx-auto px-3 sm:px-4 pt-3 sm:pt-4 pb-1">
+      <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none touch-pan-x snap-x">
         {modes.map((m) => {
           const isActive = activeMode === m.id;
           return (
@@ -122,20 +114,20 @@ export const ModeSelector: React.FC<ModeSelectorProps> = ({ activeMode, onSelect
                 sound.playClick();
                 onSelectMode(m.id);
               }}
-              className={`flex-1 min-w-[170px] text-left p-2.5 rounded-xl border transition-all duration-200 ${
+              className={`flex-1 min-w-[150px] sm:min-w-[170px] min-h-[48px] text-left p-2.5 rounded-xl border snap-start transition-all duration-200 active:scale-[0.98] cursor-pointer ${
                 isActive
-                  ? 'bg-slate-800 border-cyan-500/80 shadow-md shadow-cyan-500/10 text-white'
+                  ? 'bg-slate-800 border-cyan-500/80 shadow-md shadow-cyan-500/10 text-white ring-1 ring-cyan-500/30'
                   : 'bg-slate-900/70 border-slate-800 hover:border-slate-700 text-slate-400 hover:text-slate-200'
               }`}
             >
               <div className="flex items-center justify-between gap-1 mb-1">
-                <div className="flex items-center gap-1.5 font-semibold text-xs text-slate-200">
+                <div className="flex items-center gap-1.5 font-semibold text-xs text-slate-200 truncate">
                   {m.icon}
-                  <span>{m.label}</span>
+                  <span className="truncate">{m.label}</span>
                 </div>
                 {m.badge && (
                   <span
-                    className={`text-[9px] uppercase px-1.5 py-0.5 rounded font-bold ${
+                    className={`text-[9px] uppercase px-1.5 py-0.5 rounded font-bold shrink-0 ${
                       isActive ? 'bg-cyan-500/20 text-cyan-300' : 'bg-slate-800 text-slate-400'
                     }`}
                   >
@@ -148,6 +140,6 @@ export const ModeSelector: React.FC<ModeSelectorProps> = ({ activeMode, onSelect
           );
         })}
       </div>
-    </div>
+    </nav>
   );
 };

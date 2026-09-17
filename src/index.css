@@ -1,1 +1,15 @@
 @import "tailwindcss";
+
+@layer utilities {
+  .safe-top {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+}
+
+html, body {
+  overscroll-behavior-y: none;
+  -webkit-tap-highlight-color: transparent;
+}

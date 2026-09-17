@@ -1,57 +1,47 @@
 import React, { useState } from 'react';
-import { User } from 'firebase/auth';
 import { UserProfile, UserStats, FlashSpeed } from '../types';
 import {
-  logoutUser,
-  saveUserProfile,
   AVATAR_PRESETS,
   getAvatarPreset,
-} from '../utils/firebase';
+} from '../utils/avatars';
 import { saveLocalProfile } from '../utils/storage';
 import { sound } from '../utils/audio';
 import {
   X,
   User as UserIcon,
   Camera,
-  Award,
   Calendar,
   Flame,
   Clock,
-  LogOut,
   CheckCircle2,
   AlertCircle,
-  Sparkles,
-  CloudCheck,
-  ShieldCheck,
+  HardDrive,
   Lock,
+  Award,
 } from 'lucide-react';
 
 interface UserProfileModalProps {
   isOpen: boolean;
   onClose: () => void;
-  currentUser: User | null;
   profile: UserProfile | null;
   stats: UserStats;
   currentSpeed: FlashSpeed;
   isSpeedLockedToPlan: boolean;
   curriculumDay: number;
   onUpdateProfile: (updated: UserProfile) => void;
-  onSignOut: () => void;
 }
 
 export const UserProfileModal: React.FC<UserProfileModalProps> = ({
   isOpen,
   onClose,
-  currentUser,
   profile,
   stats,
   currentSpeed,
   isSpeedLockedToPlan,
   curriculumDay,
   onUpdateProfile,
-  onSignOut,
 }) => {
-  const [username, setUsername] = useState(profile?.username || currentUser?.displayName || 'Memory Athlete');
+  const [username, setUsername] = useState(profile?.username || 'Memory Athlete');
   const [selectedPresetId, setSelectedPresetId] = useState(profile?.avatarPresetId || 'ayumu');
   const [customPhotoUrl, setCustomPhotoUrl] = useState(
     profile?.photoUrl && profile.photoUrl.startsWith('http') ? profile.photoUrl : ''
@@ -64,17 +54,16 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
 
   const currentPreset = getAvatarPreset(profile?.avatarPresetId || selectedPresetId);
 
-  const handleSaveProfile = async () => {
-    if (!currentUser && !profile) return;
+  const handleSaveProfile = () => {
     setSaving(true);
     sound.playClick();
     try {
       const finalPhoto = customPhotoUrl.trim() || selectedPresetId;
-      const targetId = currentUser?.uid || profile?.id || 'local-athlete';
+      const targetId = profile?.id || 'local-athlete';
       const updated: UserProfile = {
         ...(profile || {
           id: targetId,
-          email: currentUser?.email || '',
+          email: 'offline@local.app',
           level: stats.level,
           xp: stats.xp,
           rankTitle: 'Novice Observer',
@@ -96,9 +85,6 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
         updatedAt: new Date().toISOString(),
       };
 
-      if (currentUser) {
-        await saveUserProfile(currentUser.uid, updated);
-      }
       saveLocalProfile(updated);
       onUpdateProfile(updated);
       sound.playSuccess();
@@ -111,16 +97,6 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
     } finally {
       setSaving(false);
     }
-  };
-
-  const handleLogout = async () => {
-    sound.playClick();
-    if (currentUser) {
-      await logoutUser();
-    }
-    localStorage.removeItem('pmm_local_athlete_profile_v1');
-    onSignOut();
-    onClose();
   };
 
   return (
@@ -162,13 +138,13 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
           <div>
             <div className="flex items-center gap-2">
               <h2 className="text-xl font-black text-white">
-                {profile?.username || currentUser?.displayName || 'Memory Athlete'}
+                {profile?.username || 'Solo Memory Athlete'}
               </h2>
               <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-cyan-950 text-cyan-300 border border-cyan-800">
                 Lvl {stats.level}
               </span>
             </div>
-            <p className="text-xs text-slate-400 mt-0.5">{currentUser?.email || 'Logged in athlete'}</p>
+            <p className="text-xs text-slate-400 mt-0.5">Solo Athlete • Local Offline Profile</p>
             <span className="text-[11px] text-amber-400 font-semibold flex items-center gap-1 mt-0.5">
               <Award className="w-3 h-3" /> {profile?.rankTitle || 'Memory Master in Training'}
             </span>
@@ -335,27 +311,20 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
           </div>
         )}
 
-        {/* Cloud Sync & Individual Account Notice */}
-        <div className="p-3.5 rounded-2xl bg-slate-950 border border-slate-800 text-[11px] text-slate-400 mb-6 flex items-start gap-2.5">
-          <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+        {/* Offline Solo Storage Notice */}
+        <div className="p-3.5 rounded-2xl bg-slate-950 border border-slate-800 text-[11px] text-slate-400 mb-5 flex items-start gap-2.5">
+          <HardDrive className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
           <div>
-            <span className="text-slate-200 font-semibold block">Independent Friend Accounts</span>
-            Your training records and 365-day milestones are automatically isolated under your Firebase UID. When friends sign in, their records will not overwrite yours.
+            <span className="text-slate-200 font-semibold block">100% Offline & Private</span>
+            Your daily protocol completions, streaks, and progress records are saved directly to this device's local storage. No logins, accounts, or internet connection required.
           </div>
         </div>
 
         {/* Footer Actions */}
-        <div className="flex items-center justify-between pt-2 border-t border-slate-800">
-          <button
-            onClick={handleLogout}
-            className="px-4 py-2 rounded-xl bg-rose-950/60 hover:bg-rose-900/60 text-rose-300 border border-rose-800/80 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
-          >
-            <LogOut className="w-3.5 h-3.5" /> Sign Out
-          </button>
-
+        <div className="flex items-center justify-end pt-2 border-t border-slate-800">
           <button
             onClick={onClose}
-            className="px-5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold transition-colors cursor-pointer"
+            className="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 text-xs font-bold transition-colors cursor-pointer"
           >
             Done
           </button>

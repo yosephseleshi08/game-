@@ -1,7 +1,7 @@
 import React from 'react';
 import { UserStats, FlashSpeed, GameMode, UserProfile } from '../types';
-import { getRankForXp, FLASH_SPEED_OPTIONS } from '../utils/storage';
-import { getAvatarPreset } from '../utils/firebase';
+import { getRankForXp } from '../utils/storage';
+import { getAvatarPreset } from '../utils/avatars';
 import { sound } from '../utils/audio';
 import {
   Camera,
@@ -10,18 +10,13 @@ import {
   BookOpen,
   Flame,
   Award,
-  Zap,
   Clock,
   CalendarCheck,
   Lock,
-  Unlock,
-  User as UserIcon,
-  Users,
-  ShieldCheck,
   Sparkles,
 } from 'lucide-react';
 import { AmbientSoundscapePlayer } from './AmbientSoundscapePlayer';
-import { User } from 'firebase/auth';
+import { PWAInstallButton } from './PWAInstallPrompt';
 
 interface HeaderProps {
   stats: UserStats;
@@ -39,9 +34,7 @@ interface HeaderProps {
   isLockedOut?: boolean;
   isMilestoneReady?: boolean;
   onOpenMilestone?: () => void;
-  currentUser: User | null;
   currentProfile: UserProfile | null;
-  onOpenAuth: (mode?: 'signin' | 'signup') => void;
   onOpenProfile: () => void;
 }
 
@@ -61,28 +54,26 @@ export const Header: React.FC<HeaderProps> = ({
   isLockedOut = false,
   isMilestoneReady = false,
   onOpenMilestone,
-  currentUser,
   currentProfile,
-  onOpenAuth,
   onOpenProfile,
 }) => {
   const { currentRank, nextRank, progressPercent } = getRankForXp(stats.xp);
   const avatarPreset = getAvatarPreset(currentProfile?.avatarPresetId);
 
   return (
-    <header className="bg-slate-900 border-b border-slate-800 text-slate-100 sticky top-0 z-30 shadow-lg">
-      <div className="max-w-6xl mx-auto px-4 py-2.5 flex flex-wrap items-center justify-between gap-3">
+    <header className="bg-slate-900 border-b border-slate-800 text-slate-100 sticky top-0 z-30 shadow-lg safe-top">
+      <div className="max-w-6xl mx-auto px-3 sm:px-4 py-2 sm:py-2.5 flex flex-wrap items-center justify-between gap-2.5">
         {/* Brand & Identity */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5 sm:gap-3">
           <div
             onClick={() => onSelectMode('daily-protocol')}
-            className="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-500 to-indigo-600 flex items-center justify-center shadow-md shadow-cyan-500/20 ring-1 ring-cyan-400/30 cursor-pointer"
+            className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-tr from-cyan-500 to-indigo-600 flex items-center justify-center shadow-md shadow-cyan-500/20 ring-1 ring-cyan-400/30 cursor-pointer active:scale-95 transition-transform"
           >
             <Camera className="w-5 h-5 text-white animate-pulse" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-base sm:text-lg font-bold tracking-tight text-white flex items-center gap-1.5">
+              <h1 className="text-sm sm:text-lg font-bold tracking-tight text-white flex items-center gap-1">
                 Photographic Memory <span className="text-cyan-400 font-extrabold">Master</span>
               </h1>
               {isMilestoneReady && !isLockedOut ? (
@@ -92,7 +83,7 @@ export const Header: React.FC<HeaderProps> = ({
                     if (onOpenMilestone) onOpenMilestone();
                     else onSelectMode('daily-protocol');
                   }}
-                  className="text-[10px] uppercase font-black px-2.5 py-0.5 rounded-full border flex items-center gap-1 cursor-pointer transition-all bg-gradient-to-r from-amber-500/20 to-emerald-500/20 border-amber-400/80 text-amber-300 shadow-sm animate-pulse"
+                  className="text-[10px] uppercase font-black px-2 py-0.5 rounded-full border flex items-center gap-1 cursor-pointer transition-all bg-gradient-to-r from-amber-500/20 to-emerald-500/20 border-amber-400/80 text-amber-300 shadow-sm animate-pulse"
                   title="All 6 steps complete! View milestone celebration & claim XP"
                 >
                   <Sparkles className="w-3 h-3 text-amber-400" />
@@ -118,18 +109,18 @@ export const Header: React.FC<HeaderProps> = ({
                   className="text-[10px] uppercase font-bold px-2 py-0.5 rounded-full border flex items-center gap-1 cursor-pointer transition-all bg-emerald-950/80 border-emerald-500/50 text-emerald-300 hover:bg-emerald-900/80"
                 >
                   <CalendarCheck className="w-3 h-3" />
-                  Day {curriculumDay} Protocol
+                  Day {curriculumDay}
                 </button>
               )}
             </div>
-            <p className="text-[11px] text-slate-400">
-              365-Day Cognitive Training & Iconic Retinal Flash Calibration
+            <p className="text-[10px] sm:text-[11px] text-slate-400 hidden xs:block">
+              365-Day Offline Retinal Flash Calibration & Cognitive Laboratory
             </p>
           </div>
         </div>
 
-        {/* Player Rank & XP Bar */}
-        <div className="hidden sm:flex items-center gap-4 bg-slate-800/80 border border-slate-700/70 rounded-xl px-3 py-1.5 min-w-[220px]">
+        {/* Player Rank & XP Bar (Desktop / Tablet) */}
+        <div className="hidden sm:flex items-center gap-3 bg-slate-800/80 border border-slate-700/70 rounded-xl px-3 py-1.5 min-w-[210px]">
           <div className="flex flex-col">
             <div className="flex items-center justify-between text-xs mb-1">
               <span className="font-semibold text-slate-200 flex items-center gap-1">
@@ -142,7 +133,7 @@ export const Header: React.FC<HeaderProps> = ({
             </div>
 
             {/* XP Progress Bar */}
-            <div className="w-36 bg-slate-700/60 rounded-full h-1.5 overflow-hidden relative">
+            <div className="w-32 bg-slate-700/60 rounded-full h-1.5 overflow-hidden relative">
               <div
                 className="bg-gradient-to-r from-cyan-500 to-indigo-500 h-full rounded-full transition-all duration-500"
                 style={{ width: `${progressPercent}%` }}
@@ -164,15 +155,18 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
         </div>
 
-        {/* Global Controls & User Account Pill */}
-        <div className="flex items-center gap-2">
+        {/* Global Controls & Athlete Profile */}
+        <div className="flex items-center gap-1.5 sm:gap-2">
+          {/* PWA Install & Offline Status */}
+          <PWAInstallButton />
+
           {/* 365 Flash Time Plan & Speed Lock Trigger */}
           <button
             onClick={() => {
               sound.playClick();
               onOpenFlashPlan();
             }}
-            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-bold transition-all cursor-pointer shadow-sm ${
+            className={`flex items-center gap-1 px-2 sm:px-2.5 py-1.5 rounded-lg border text-xs font-bold transition-all cursor-pointer shadow-sm ${
               isSpeedLockedToPlan
                 ? 'bg-emerald-950/80 border-emerald-500/60 text-emerald-300 hover:bg-emerald-900/80'
                 : 'bg-slate-800 border-slate-700 text-cyan-300 hover:bg-slate-700'
@@ -184,64 +178,51 @@ export const Header: React.FC<HeaderProps> = ({
             ) : (
               <Clock className="w-3.5 h-3.5 text-cyan-400" />
             )}
-            <span className="hidden xs:inline">Flash:</span>
+            <span className="hidden md:inline">Flash:</span>
             <span>{currentSpeed}ms</span>
             {isSpeedLockedToPlan && (
-              <span className="text-[9px] bg-emerald-500/20 px-1 rounded text-emerald-300">
+              <span className="text-[9px] bg-emerald-500/20 px-1 rounded text-emerald-300 hidden sm:inline">
                 Plan
               </span>
             )}
           </button>
 
-          {/* User Account / Profile Button */}
-          {currentUser ? (
-            <button
-              onClick={() => {
-                sound.playClick();
-                onOpenProfile();
-              }}
-              className="flex items-center gap-2 px-2.5 py-1 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700/90 text-left transition-all cursor-pointer shadow-sm group"
-              title="View your account and profile"
-            >
-              <div className="relative">
-                {currentProfile?.photoUrl && currentProfile.photoUrl.startsWith('http') ? (
-                  <img
-                    src={currentProfile.photoUrl}
-                    alt={currentProfile.username}
-                    referrerPolicy="no-referrer"
-                    className="w-7 h-7 rounded-lg object-cover ring-1 ring-cyan-400"
-                  />
-                ) : (
-                  <div
-                    className={`w-7 h-7 rounded-lg bg-gradient-to-tr ${avatarPreset.bgGradient} flex items-center justify-center text-sm ring-1 ring-cyan-400/40`}
-                  >
-                    {avatarPreset.emoji}
-                  </div>
-                )}
-                <span className="w-2 h-2 rounded-full bg-emerald-400 absolute -bottom-0.5 -right-0.5 ring-1 ring-slate-900" />
-              </div>
-              <div className="hidden md:flex flex-col">
-                <span className="text-xs font-bold text-white group-hover:text-cyan-300 truncate max-w-[100px]">
-                  {currentProfile?.username || currentUser.displayName || 'Athlete'}
-                </span>
-                <span className="text-[9px] text-cyan-400 font-mono">
-                  Day {curriculumDay} • Lvl {stats.level}
-                </span>
-              </div>
-            </button>
-          ) : (
-            <button
-              onClick={() => {
-                sound.playClick();
-                onOpenAuth('signin');
-              }}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-cyan-500 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 text-slate-950 font-black text-xs shadow-md shadow-cyan-500/20 transition-all cursor-pointer"
-              title="Sign in with password or create account"
-            >
-              <UserIcon className="w-3.5 h-3.5" />
-              <span>Sign In / Join</span>
-            </button>
-          )}
+          {/* Solo Athlete Profile Badge (Always available offline) */}
+          <button
+            id="header-athlete-profile-btn"
+            onClick={() => {
+              sound.playClick();
+              onOpenProfile();
+            }}
+            className="flex items-center gap-2 px-2 py-1 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700/90 text-left transition-all cursor-pointer shadow-sm group active:scale-95"
+            title="Customize your athlete nickname and avatar"
+          >
+            <div className="relative">
+              {currentProfile?.photoUrl && currentProfile.photoUrl.startsWith('http') ? (
+                <img
+                  src={currentProfile.photoUrl}
+                  alt={currentProfile.username}
+                  referrerPolicy="no-referrer"
+                  className="w-7 h-7 rounded-lg object-cover ring-1 ring-cyan-400"
+                />
+              ) : (
+                <div
+                  className={`w-7 h-7 rounded-lg bg-gradient-to-tr ${avatarPreset.bgGradient} flex items-center justify-center text-sm ring-1 ring-cyan-400/40`}
+                >
+                  {avatarPreset.emoji}
+                </div>
+              )}
+              <span className="w-2 h-2 rounded-full bg-emerald-400 absolute -bottom-0.5 -right-0.5 ring-1 ring-slate-900" title="Offline Player Active" />
+            </div>
+            <div className="hidden lg:flex flex-col">
+              <span className="text-xs font-bold text-white group-hover:text-cyan-300 truncate max-w-[90px]">
+                {currentProfile?.username || 'Solo Athlete'}
+              </span>
+              <span className="text-[9px] text-cyan-400 font-mono">
+                Day {curriculumDay} • Lvl {stats.level}
+              </span>
+            </div>
+          </button>
 
           {/* Ambient Soundscape Player */}
           <AmbientSoundscapePlayer />
@@ -267,7 +248,7 @@ export const Header: React.FC<HeaderProps> = ({
               sound.playClick();
               onOpenTips();
             }}
-            className="hidden lg:flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-indigo-600/30 hover:bg-indigo-600/40 text-indigo-200 border border-indigo-500/40 font-medium text-xs transition-all shadow-sm"
+            className="hidden xl:flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-indigo-600/30 hover:bg-indigo-600/40 text-indigo-200 border border-indigo-500/40 font-medium text-xs transition-all shadow-sm"
           >
             <BookOpen className="w-3.5 h-3.5 text-indigo-400" />
             <span>Techniques</span>
@@ -277,3 +258,4 @@ export const Header: React.FC<HeaderProps> = ({
     </header>
   );
 };
+
