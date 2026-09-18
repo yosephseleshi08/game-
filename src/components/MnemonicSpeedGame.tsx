@@ -102,23 +102,37 @@ export const MnemonicSpeedGame: React.FC<MnemonicSpeedGameProps> = ({
     }
   };
 
-  // --- Memory Palace Engine ---
-  const startPalaceTour = () => {
-    const pool = [
-      { item: 'Flaming Monster Tire', color: 'text-amber-400' },
-      { item: 'Golden Antigravity Key', color: 'text-yellow-400' },
-      { item: 'Colossal Roaring Lion', color: 'text-orange-400' },
-      { item: 'Neon Crescent Moon', color: 'text-cyan-400' },
-      { item: 'Steaming Blackberry Pie', color: 'text-rose-400' },
-      { item: 'Giant Silk Red Tie', color: 'text-red-500' },
-    ];
+  // --- Memory Palace Engine (Randomized Villa Walkthrough)
+  const PALACE_ITEMS_POOL = [
+    { item: 'Flaming Monster Tire', color: 'text-amber-400' },
+    { item: 'Golden Antigravity Key', color: 'text-yellow-400' },
+    { item: 'Colossal Roaring Lion', color: 'text-orange-400' },
+    { item: 'Neon Crescent Moon', color: 'text-cyan-400' },
+    { item: 'Steaming Blackberry Pie', color: 'text-rose-400' },
+    { item: 'Giant Silk Red Tie', color: 'text-red-500' },
+    { item: 'Diamond Lightning Spear', color: 'text-sky-400' },
+    { item: 'Crystal Hourglass of Time', color: 'text-purple-400' },
+    { item: 'Levitating Grand Clock', color: 'text-emerald-400' },
+    { item: 'Obsidian Flying Eagle', color: 'text-slate-300' },
+    { item: 'Glowing Plasma Torch', color: 'text-cyan-300' },
+    { item: 'Ancient Golden Chalice', color: 'text-yellow-300' },
+  ];
 
-    const assignments = palaceLoci.slice(0, 6).map((locus, i) => ({
+  const [activeTourLoci, setActiveTourLoci] = useState<PalaceLocus[]>([]);
+  const [currentRecallOptions, setCurrentRecallOptions] = useState<string[]>([]);
+
+  const startPalaceTour = () => {
+    // Randomly sample 6 distinct loci from the villa and shuffle their order
+    const shuffledLoci = [...DEFAULT_PALACE_LOCI].sort(() => 0.5 - Math.random()).slice(0, 6);
+    const shuffledPool = [...PALACE_ITEMS_POOL].sort(() => 0.5 - Math.random());
+
+    const assignments = shuffledLoci.map((locus, i) => ({
       locusId: locus.id,
-      item: pool[i].item,
-      color: pool[i].color,
+      item: shuffledPool[i % shuffledPool.length].item,
+      color: shuffledPool[i % shuffledPool.length].color,
     }));
 
+    setActiveTourLoci(shuffledLoci);
     setAssignedItems(assignments);
     setUserRecalls({});
     setPalaceScore(null);
@@ -132,11 +146,23 @@ export const MnemonicSpeedGame: React.FC<MnemonicSpeedGameProps> = ({
       sound.playClick();
       setCurrentLocusIndex((i) => i + 1);
     } else {
-      // Completed viewing tour, switch to recall mode
+      // Completed viewing tour, switch to recall mode with randomized options
       sound.playSuccess();
       setPalaceStage('recalling');
       setCurrentLocusIndex(0);
+      setupRecallOptions(0, assignedItems);
     }
+  };
+
+  const setupRecallOptions = (index: number, items: { locusId: number; item: string; color: string }[]) => {
+    if (!items[index]) return;
+    const correct = items[index].item;
+    const otherAssigned = items.filter((_, i) => i !== index).map((it) => it.item);
+    const distractors = PALACE_ITEMS_POOL.filter((p) => p.item !== correct && !otherAssigned.includes(p.item)).map((p) => p.item);
+    const poolChoices = [...otherAssigned, ...distractors];
+    const shuffledPoolChoices = poolChoices.sort(() => 0.5 - Math.random()).slice(0, 3);
+    const fourChoices = [correct, ...shuffledPoolChoices].sort(() => 0.5 - Math.random());
+    setCurrentRecallOptions(fourChoices);
   };
 
   const submitPalaceRecall = (chosenItem: string) => {
@@ -150,7 +176,9 @@ export const MnemonicSpeedGame: React.FC<MnemonicSpeedGameProps> = ({
     setUserRecalls(updatedRecalls);
 
     if (currentLocusIndex < assignedItems.length - 1) {
-      setCurrentLocusIndex((i) => i + 1);
+      const nextIdx = currentLocusIndex + 1;
+      setCurrentLocusIndex(nextIdx);
+      setupRecallOptions(nextIdx, assignedItems);
     } else {
       // Finished all loci recall, calculate score
       let correct = 0;
@@ -318,18 +346,15 @@ export const MnemonicSpeedGame: React.FC<MnemonicSpeedGameProps> = ({
               </div>
             )}
 
-            {/* Target Prompt Card */}
+            {/* Target Prompt Card - Number Only (Phonetic letters hidden as requested) */}
             {currentPeg && (
               <div className="w-full flex flex-col items-center mb-6">
                 <span className="text-xs uppercase tracking-widest text-slate-400 font-bold mb-2">
-                  Translate to Mental Image
+                  Translate Number to Mental Object
                 </span>
                 <div className="w-36 h-36 rounded-3xl bg-gradient-to-tr from-amber-500/20 to-orange-500/20 border-2 border-amber-500/80 flex flex-col items-center justify-center shadow-xl shadow-amber-500/10">
-                  <span className="text-5xl font-black text-amber-400 font-mono tracking-tight">
+                  <span className="text-6xl font-black text-amber-400 font-mono tracking-tight">
                     {currentPeg.number}
-                  </span>
-                  <span className="text-[10px] text-amber-300/80 font-mono mt-1">
-                    {currentPeg.phoneticRule}
                   </span>
                 </div>
               </div>
@@ -387,7 +412,7 @@ export const MnemonicSpeedGame: React.FC<MnemonicSpeedGameProps> = ({
               <div className="w-full text-center animate-fade-in">
                 <div className="flex justify-between items-center text-xs text-slate-400 mb-4 font-mono">
                   <span>Locus Station {currentLocusIndex + 1} of {assignedItems.length}</span>
-                  <span className="text-amber-400 font-bold">{palaceLoci[currentLocusIndex].room}</span>
+                  <span className="text-amber-400 font-bold">{(activeTourLoci[currentLocusIndex] || DEFAULT_PALACE_LOCI[0]).room}</span>
                 </div>
 
                 <div className="bg-slate-950 border border-slate-800 p-6 rounded-2xl mb-6">
@@ -395,7 +420,7 @@ export const MnemonicSpeedGame: React.FC<MnemonicSpeedGameProps> = ({
                     Anchoring at:
                   </span>
                   <h4 className="text-lg font-bold text-white mb-4">
-                    {palaceLoci[currentLocusIndex].name}
+                    {(activeTourLoci[currentLocusIndex] || DEFAULT_PALACE_LOCI[0]).name}
                   </h4>
 
                   <div className="w-28 h-28 rounded-2xl bg-slate-900 border-2 border-amber-500/80 flex items-center justify-center mx-auto mb-4 shadow-lg">
@@ -406,13 +431,13 @@ export const MnemonicSpeedGame: React.FC<MnemonicSpeedGameProps> = ({
                     {assignedItems[currentLocusIndex].item}
                   </span>
                   <p className="text-xs text-slate-400 mt-1">
-                    Mentally visualize this item sitting directly on the {palaceLoci[currentLocusIndex].name.toLowerCase()}!
+                    Mentally visualize this item sitting directly on the {(activeTourLoci[currentLocusIndex] || DEFAULT_PALACE_LOCI[0]).name.toLowerCase()}!
                   </p>
                 </div>
 
                 <button
                   onClick={advancePalaceLocus}
-                  className="w-full py-3.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs shadow-md transition-all flex items-center justify-center gap-1.5"
+                  className="w-full py-3.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs shadow-md transition-all flex items-center justify-center gap-1.5 cursor-pointer"
                 >
                   {currentLocusIndex < assignedItems.length - 1 ? (
                     <>Advance to Next Station <ArrowRight className="w-4 h-4" /></>
@@ -430,20 +455,20 @@ export const MnemonicSpeedGame: React.FC<MnemonicSpeedGameProps> = ({
                   Station {currentLocusIndex + 1} of {assignedItems.length}
                 </div>
                 <h4 className="text-lg font-bold text-white mb-1">
-                  {palaceLoci[currentLocusIndex].name}
+                  {(activeTourLoci[currentLocusIndex] || DEFAULT_PALACE_LOCI[0]).name}
                 </h4>
                 <p className="text-xs text-slate-400 mb-6">
-                  What item did you anchor here in the {palaceLoci[currentLocusIndex].room}?
+                  What item did you anchor here in the {(activeTourLoci[currentLocusIndex] || DEFAULT_PALACE_LOCI[0]).room}?
                 </p>
 
                 <div className="grid grid-cols-2 gap-3 mb-4">
-                  {assignedItems.map((ai) => (
+                  {(currentRecallOptions.length > 0 ? currentRecallOptions : assignedItems.map((a) => a.item)).map((opt) => (
                     <button
-                      key={ai.item}
-                      onClick={() => submitPalaceRecall(ai.item)}
-                      className="py-3 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-semibold text-xs border border-slate-700 transition-all hover:border-amber-400"
+                      key={opt}
+                      onClick={() => submitPalaceRecall(opt)}
+                      className="py-3 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-semibold text-xs border border-slate-700 transition-all hover:border-amber-400 cursor-pointer active:scale-98"
                     >
-                      {ai.item}
+                      {opt}
                     </button>
                   ))}
                 </div>

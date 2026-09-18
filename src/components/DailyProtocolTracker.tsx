@@ -135,6 +135,21 @@ export const DailyProtocolTracker: React.FC<DailyProtocolTrackerProps> = ({
               Your next level unlocks cleanly at <strong className="text-emerald-300">12:00 AM (Midnight)</strong> daily.
             </p>
             <div className="flex flex-wrap items-center gap-2 mt-3">
+              <button
+                id="protocol-to-four-hour-plan-btn"
+                onClick={() => {
+                  sound.playClick();
+                  onNavigateMode('four-hour-plan');
+                }}
+                className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-500/20 to-orange-500/20 hover:from-amber-500/30 hover:to-orange-500/30 border border-amber-500/40 text-amber-300 text-xs font-bold transition-all cursor-pointer shadow-sm active:scale-98"
+              >
+                <Clock className="w-3.5 h-3.5 text-amber-400" />
+                4-Hour Master Plan Checklist
+                <span className="text-[10px] bg-amber-500/20 px-1.5 py-0.5 rounded text-amber-200 font-mono">
+                  240m Daily
+                </span>
+              </button>
+
               {onOpenFlashPlan && (
                 <button
                   onClick={onOpenFlashPlan}

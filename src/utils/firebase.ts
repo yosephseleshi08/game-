@@ -20,9 +20,11 @@ import {
   query,
   orderBy,
   limit,
+  onSnapshot,
 } from 'firebase/firestore';
 import firebaseConfig from '../../firebase-applet-config.json';
-import { UserProfile, UserStats, DailyProtocolState } from '../types';
+import { UserProfile, UserStats, DailyProtocolState, FreeTrainingSessionStats } from '../types';
+import { getRankForXp } from './storage';
 
 // Preset avatar styles for user profiles
 export interface AvatarPreset {
@@ -233,36 +235,79 @@ export async function fetchAllCommunityPlayers(): Promise<UserProfile[]> {
 }
 
 /**
- * Save private game save & deep telemetry under users/{userId}/private/data
+ * Full Cloud Data payload containing all athlete telemetry
+ */
+export interface UserCloudSyncPayload {
+  stats: UserStats;
+  protocol: DailyProtocolState;
+  freeTrainingStats?: FreeTrainingSessionStats;
+  profile?: UserProfile;
+  lastSyncedAt: string;
+}
+
+/**
+ * Save game save, daily protocol, and free training telemetry under users/{userId}/private/data
+ * Also updates public player profile for leaderboard and community synchronization.
  */
 export async function saveUserCloudData(
   userId: string,
   stats: UserStats,
-  protocol: DailyProtocolState
+  protocol: DailyProtocolState,
+  freeTrainingStats?: FreeTrainingSessionStats,
+  profile?: UserProfile
 ): Promise<void> {
   try {
     const privateDocRef = doc(db, 'users', userId, 'private', 'data');
+    const nowIso = new Date().toISOString();
+
     await setDoc(
       privateDocRef,
       {
         userId,
         statsJson: JSON.stringify(stats),
         protocolJson: JSON.stringify(protocol),
-        updatedAt: new Date().toISOString(),
+        freeTrainingJson: freeTrainingStats ? JSON.stringify(freeTrainingStats) : null,
+        profileJson: profile ? JSON.stringify(profile) : null,
+        updatedAt: nowIso,
+      },
+      { merge: true }
+    );
+
+    // Keep public user document in sync with the latest progress
+    const publicUserRef = doc(db, 'users', userId);
+    await setDoc(
+      publicUserRef,
+      {
+        id: userId,
+        username: profile?.username || `Athlete-${userId.slice(0, 5)}`,
+        photoUrl: profile?.photoUrl || profile?.avatarPresetId || 'ayumu',
+        avatarPresetId: profile?.avatarPresetId || 'ayumu',
+        level: stats.level,
+        xp: stats.xp,
+        rankTitle: getRankForXp(stats.xp).currentRank.title,
+        curriculumDay: protocol.curriculumDay,
+        currentStreak: stats.currentStreak,
+        bestStreak: stats.bestStreak,
+        ayumuMaxNumbers: stats.ayumuMaxNumbers,
+        matrixMaxLevel: stats.matrixMaxLevel,
+        dualNBackMaxN: stats.dualNBackMaxN,
+        fastestFlashMs: stats.fastestFlashMs,
+        detectiveHighScore: stats.detectiveHighScore,
+        updatedAt: nowIso,
       },
       { merge: true }
     );
   } catch (err) {
-    console.error('Error saving private cloud data:', err);
+    console.error('Error saving user cloud data to Firestore:', err);
   }
 }
 
 /**
- * Load private game save & deep telemetry under users/{userId}/private/data
+ * Load complete private game save & deep telemetry under users/{userId}/private/data
  */
 export async function loadUserCloudData(
   userId: string
-): Promise<{ stats?: UserStats; protocol?: DailyProtocolState } | null> {
+): Promise<UserCloudSyncPayload | null> {
   try {
     const privateDocRef = doc(db, 'users', userId, 'private', 'data');
     const snap = await getDoc(privateDocRef);
@@ -271,6 +316,8 @@ export async function loadUserCloudData(
     const data = snap.data();
     let stats: UserStats | undefined;
     let protocol: DailyProtocolState | undefined;
+    let freeTrainingStats: FreeTrainingSessionStats | undefined;
+    let profile: UserProfile | undefined;
 
     if (data.statsJson) {
       stats = JSON.parse(data.statsJson);
@@ -278,10 +325,182 @@ export async function loadUserCloudData(
     if (data.protocolJson) {
       protocol = JSON.parse(data.protocolJson);
     }
+    if (data.freeTrainingJson) {
+      freeTrainingStats = JSON.parse(data.freeTrainingJson);
+    }
+    if (data.profileJson) {
+      profile = JSON.parse(data.profileJson);
+    }
 
-    return { stats, protocol };
+    if (!stats || !protocol) return null;
+
+    return {
+      stats,
+      protocol,
+      freeTrainingStats,
+      profile,
+      lastSyncedAt: data.updatedAt || new Date().toISOString(),
+    };
   } catch (err) {
     console.error('Error loading private cloud data:', err);
     return null;
   }
+}
+
+/**
+ * Real-time subscription to cloud data changes on other connected devices (Phones & PC)
+ */
+export function subscribeToUserCloudData(
+  userId: string,
+  onRemoteChange: (cloudData: UserCloudSyncPayload) => void
+) {
+  const privateDocRef = doc(db, 'users', userId, 'private', 'data');
+  return onSnapshot(
+    privateDocRef,
+    (snap) => {
+      if (!snap.exists()) return;
+      const data = snap.data();
+      try {
+        if (!data.statsJson || !data.protocolJson) return;
+        const stats: UserStats = JSON.parse(data.statsJson);
+        const protocol: DailyProtocolState = JSON.parse(data.protocolJson);
+        const freeTrainingStats: FreeTrainingSessionStats | undefined = data.freeTrainingJson
+          ? JSON.parse(data.freeTrainingJson)
+          : undefined;
+        const profile: UserProfile | undefined = data.profileJson
+          ? JSON.parse(data.profileJson)
+          : undefined;
+
+        onRemoteChange({
+          stats,
+          protocol,
+          freeTrainingStats,
+          profile,
+          lastSyncedAt: data.updatedAt || new Date().toISOString(),
+        });
+      } catch (err) {
+        console.error('Error parsing remote cloud sync update:', err);
+      }
+    },
+    (err) => {
+      console.warn('Firestore real-time subscription error:', err);
+    }
+  );
+}
+
+/**
+ * Intelligently merge local device state with incoming cloud state so the user NEVER loses progress.
+ * Takes the highest XP, highest level, most advanced curriculum day, best streaks, and records.
+ */
+export function mergeUserProgress(
+  localStats: UserStats,
+  cloudStats: UserStats,
+  localProtocol: DailyProtocolState,
+  cloudProtocol: DailyProtocolState,
+  localFreeStats?: FreeTrainingSessionStats,
+  cloudFreeStats?: FreeTrainingSessionStats
+): {
+  mergedStats: UserStats;
+  mergedProtocol: DailyProtocolState;
+  mergedFreeStats?: FreeTrainingSessionStats;
+} {
+  const mergedXp = Math.max(localStats.xp || 0, cloudStats.xp || 0);
+  const rank = getRankForXp(mergedXp);
+
+  const calculatedStreak = Math.max(
+    localStats.currentStreak || 0,
+    cloudStats.currentStreak || 0,
+    Object.values(localProtocol?.history || {}).filter((h) => h?.completed).length,
+    Object.values(cloudProtocol?.history || {}).filter((h) => h?.completed).length,
+    localProtocol?.curriculumDay && localProtocol.curriculumDay > 1 ? localProtocol.curriculumDay - 1 : 0,
+    cloudProtocol?.curriculumDay && cloudProtocol.curriculumDay > 1 ? cloudProtocol.curriculumDay - 1 : 0
+  );
+
+  const mergedStats: UserStats = {
+    xp: mergedXp,
+    level: rank.currentRank.level,
+    totalGamesPlayed: Math.max(localStats.totalGamesPlayed || 0, cloudStats.totalGamesPlayed || 0),
+    matrixMaxLevel: Math.max(localStats.matrixMaxLevel || 1, cloudStats.matrixMaxLevel || 1),
+    ayumuMaxNumbers: Math.max(localStats.ayumuMaxNumbers || 4, cloudStats.ayumuMaxNumbers || 4),
+    detectiveHighScore: Math.max(localStats.detectiveHighScore || 0, cloudStats.detectiveHighScore || 0),
+    fastestFlashMs: Math.min(
+      localStats.fastestFlashMs > 0 ? localStats.fastestFlashMs : 2000,
+      cloudStats.fastestFlashMs > 0 ? cloudStats.fastestFlashMs : 2000
+    ),
+    currentStreak: calculatedStreak,
+    bestStreak: Math.max(localStats.bestStreak || 0, cloudStats.bestStreak || 0, calculatedStreak),
+    accuracyRate: Math.max(localStats.accuracyRate || 0, cloudStats.accuracyRate || 0),
+    totalAttempts: Math.max(localStats.totalAttempts || 0, cloudStats.totalAttempts || 0),
+    totalCorrectAttempts: Math.max(localStats.totalCorrectAttempts || 0, cloudStats.totalCorrectAttempts || 0),
+    dualNBackMaxN: Math.max(localStats.dualNBackMaxN || 2, cloudStats.dualNBackMaxN || 2),
+    mnemonicConversionCount: Math.max(
+      localStats.mnemonicConversionCount || 0,
+      cloudStats.mnemonicConversionCount || 0
+    ),
+    cardsMastered: Math.max(localStats.cardsMastered || 0, cloudStats.cardsMastered || 0),
+    pqHistory: (cloudStats.pqHistory?.length || 0) >= (localStats.pqHistory?.length || 0)
+      ? cloudStats.pqHistory
+      : localStats.pqHistory,
+    progressHistory: (cloudStats.progressHistory?.length || 0) >= (localStats.progressHistory?.length || 0)
+      ? cloudStats.progressHistory
+      : localStats.progressHistory,
+  };
+
+  // Merge protocol: choose the higher curriculum day, and ALWAYS merge history!
+  const combinedHistory = {
+    ...(localProtocol.history || {}),
+    ...(cloudProtocol.history || {}),
+  };
+
+  let mergedProtocol: DailyProtocolState;
+  if (cloudProtocol.curriculumDay > localProtocol.curriculumDay) {
+    mergedProtocol = {
+      ...cloudProtocol,
+      history: combinedHistory,
+    };
+  } else if (localProtocol.curriculumDay > cloudProtocol.curriculumDay) {
+    mergedProtocol = {
+      ...localProtocol,
+      history: combinedHistory,
+    };
+  } else {
+    // Same day: merge task completions
+    const mergedTasks = localProtocol.tasks.map((localTask) => {
+      const cloudTask = cloudProtocol.tasks.find((ct) => ct.id === localTask.id);
+      if (!cloudTask) return localTask;
+      return {
+        ...localTask,
+        isCompleted: localTask.isCompleted || cloudTask.isCompleted,
+        currentCount: Math.max(localTask.currentCount, cloudTask.currentCount),
+      };
+    });
+
+    mergedProtocol = {
+      ...cloudProtocol,
+      curriculumDay: localProtocol.curriculumDay,
+      tasks: mergedTasks,
+      isLockedOut: localProtocol.isLockedOut || cloudProtocol.isLockedOut,
+      history: combinedHistory,
+    };
+  }
+
+  // Merge free training stats
+  let mergedFreeStats: FreeTrainingSessionStats | undefined;
+  if (localFreeStats && cloudFreeStats) {
+    mergedFreeStats = {
+      ...cloudFreeStats,
+      totalSecondsPracticed: Math.max(localFreeStats.totalSecondsPracticed, cloudFreeStats.totalSecondsPracticed),
+      totalMinutesPracticed: Math.max(localFreeStats.totalMinutesPracticed, cloudFreeStats.totalMinutesPracticed),
+      totalRepsCompleted: Math.max(localFreeStats.totalRepsCompleted, cloudFreeStats.totalRepsCompleted),
+      sessionsCount: Math.max(localFreeStats.sessionsCount, cloudFreeStats.sessionsCount),
+      dailyHistory: {
+        ...(localFreeStats.dailyHistory || {}),
+        ...(cloudFreeStats.dailyHistory || {}),
+      },
+    };
+  } else {
+    mergedFreeStats = cloudFreeStats || localFreeStats;
+  }
+
+  return { mergedStats, mergedProtocol, mergedFreeStats };
 }

@@ -1,5 +1,6 @@
 export type GameMode =
   | 'daily-protocol'
+  | 'four-hour-plan'
   | 'free-training'
   | 'eidetic-matrix'
   | 'ayumu-chimp'
@@ -11,6 +12,43 @@ export type GameMode =
   | 'daily-workout'
   | 'community'
   | 'stats';
+
+export interface FourHourTask {
+  id: string;
+  title: string;
+  category: 'morning' | 'midday' | 'evening' | 'night';
+  targetMinutes: number;
+  gameMode?: GameMode;
+  description: string;
+  neuroImpact: string;
+  isCompleted: boolean;
+  completedAt?: string;
+  elapsedSeconds?: number;
+}
+
+export interface FourHourDailyLog {
+  date: string;
+  tasks: FourHourTask[];
+  allTrainingCompleted: boolean;
+  totalTrainingMinutes: number;
+  completedAt?: string;
+}
+
+export interface FourHourPlanState {
+  currentDate: string;
+  tasks: FourHourTask[];
+  currentStreak: number;
+  bestStreak: number;
+  totalSessionsCompleted: number;
+  history: Record<string, FourHourDailyLog>;
+  nsdrElapsedSeconds?: number;
+  sleepRecord?: {
+    bedtime: string;
+    wakeTime: string;
+    durationHours: number;
+    verified: boolean;
+  };
+}
 
 export interface DailyTrainingLog {
   date: string;

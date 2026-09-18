@@ -14,6 +14,9 @@ import {
   CalendarCheck,
   Lock,
   Sparkles,
+  Cloud,
+  RefreshCw,
+  Smartphone,
 } from 'lucide-react';
 import { AmbientSoundscapePlayer } from './AmbientSoundscapePlayer';
 import { PWAInstallButton } from './PWAInstallPrompt';
@@ -36,6 +39,10 @@ interface HeaderProps {
   onOpenMilestone?: () => void;
   currentProfile: UserProfile | null;
   onOpenProfile: () => void;
+  currentUser?: { email?: string | null; displayName?: string | null } | null;
+  cloudSyncStatus?: 'synced' | 'syncing' | 'offline' | 'error';
+  onOpenAuth?: () => void;
+  onForceSync?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -56,6 +63,10 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenMilestone,
   currentProfile,
   onOpenProfile,
+  currentUser,
+  cloudSyncStatus = 'offline',
+  onOpenAuth,
+  onForceSync,
 }) => {
   const { currentRank, nextRank, progressPercent } = getRankForXp(stats.xp);
   const avatarPreset = getAvatarPreset(currentProfile?.avatarPresetId);
@@ -160,6 +171,25 @@ export const Header: React.FC<HeaderProps> = ({
           {/* PWA Install & Offline Status */}
           <PWAInstallButton />
 
+          {/* 4-Hour Master Plan & Daily Checklist */}
+          <button
+            id="header-four-hour-plan-btn"
+            onClick={() => {
+              sound.playClick();
+              onSelectMode('four-hour-plan');
+            }}
+            className={`flex items-center gap-1 px-2 sm:px-2.5 py-1.5 rounded-lg border text-xs font-bold transition-all cursor-pointer shadow-sm ${
+              activeMode === 'four-hour-plan'
+                ? 'bg-amber-950/90 border-amber-500/80 text-amber-300 ring-1 ring-amber-400/40'
+                : 'bg-slate-800 border-slate-700 text-amber-300 hover:bg-slate-700 hover:text-amber-200'
+            }`}
+            title="Open 4-Hour Daily Plan & Interactive Checklist"
+          >
+            <Clock className="w-3.5 h-3.5 text-amber-400" />
+            <span className="hidden sm:inline">4h Plan</span>
+            <span className="sm:hidden">4h</span>
+          </button>
+
           {/* 365 Flash Time Plan & Speed Lock Trigger */}
           <button
             onClick={() => {
@@ -187,7 +217,41 @@ export const Header: React.FC<HeaderProps> = ({
             )}
           </button>
 
-          {/* Solo Athlete Profile Badge (Always available offline) */}
+          {/* Cross-Device Cloud Sync Button (2 Phones & 1 PC) */}
+          {currentUser ? (
+            <button
+              id="header-cloud-synced-btn"
+              onClick={() => {
+                sound.playClick();
+                if (onForceSync) onForceSync();
+                else onOpenProfile();
+              }}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-750 border border-cyan-500/40 text-cyan-300 text-xs font-semibold cursor-pointer transition-all shadow-sm group active:scale-95"
+              title="Click to manually refresh sync across your 2 phones & PC"
+            >
+              <Cloud className={`w-3.5 h-3.5 text-cyan-400 ${cloudSyncStatus === 'syncing' ? 'animate-bounce' : ''}`} />
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+              <span className="hidden sm:inline text-[11px] font-mono">
+                {cloudSyncStatus === 'syncing' ? 'Syncing...' : 'Synced'}
+              </span>
+            </button>
+          ) : (
+            <button
+              id="header-cloud-sync-devices-btn"
+              onClick={() => {
+                sound.playClick();
+                if (onOpenAuth) onOpenAuth();
+              }}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-gradient-to-r from-cyan-600/90 to-indigo-600/90 hover:from-cyan-500 hover:to-indigo-500 text-white text-xs font-bold cursor-pointer transition-all shadow-md shadow-cyan-950/40 active:scale-95"
+              title="Connect one account to automatically sync your progress across 2 phones and PC"
+            >
+              <Smartphone className="w-3.5 h-3.5 text-cyan-200" />
+              <span className="hidden sm:inline">Sync Devices</span>
+              <span className="sm:hidden">Sync</span>
+            </button>
+          )}
+
+          {/* Solo Athlete Profile Badge */}
           <button
             id="header-athlete-profile-btn"
             onClick={() => {

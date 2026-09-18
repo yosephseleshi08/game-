@@ -236,7 +236,7 @@ export const MAJOR_SYSTEM_PEGS: MajorPeg[] = [
   { number: '99', phoneticRule: 'P + P', word: 'PIPE', visualImage: 'A polished brass bubble pipe blowing giant iridescent orbs', category: 'Decades' },
 ];
 
-// Pre-configured Memory Palace Loci
+// Pre-configured Memory Palace Loci (Expanded Villa Pool for Random Walkthroughs)
 export const DEFAULT_PALACE_LOCI: PalaceLocus[] = [
   { id: 1, name: 'Palace Grand Entrance', room: 'Foyer', defaultIcon: 'DoorClosed' },
   { id: 2, name: 'Crystal Chandelier', room: 'Foyer', defaultIcon: 'Lamp' },
@@ -246,6 +246,18 @@ export const DEFAULT_PALACE_LOCI: PalaceLocus[] = [
   { id: 6, name: 'Sprawling Marble Balcony', room: 'Terrace', defaultIcon: 'Sun' },
   { id: 7, name: 'Observation Telescope', room: 'Observatory', defaultIcon: 'Telescope' },
   { id: 8, name: 'Steaming Roman Bath', room: 'Spa', defaultIcon: 'Bath' },
+  { id: 9, name: 'Polished Grand Piano', room: 'Music Salon', defaultIcon: 'Music' },
+  { id: 10, name: 'Ancient Knight Armor', room: 'Gallery', defaultIcon: 'Shield' },
+  { id: 11, name: 'Vintage Oak Wine Rack', room: 'Wine Vault', defaultIcon: 'Wine' },
+  { id: 12, name: 'Glowing Infinity Fountain', room: 'Zen Garden', defaultIcon: 'Droplets' },
+  { id: 13, name: 'Spiral Stone Turret', room: 'Watchtower', defaultIcon: 'Compass' },
+  { id: 14, name: 'Gilded Marble Fireplace', room: 'Ballroom', defaultIcon: 'Flame' },
+  { id: 15, name: 'Holographic Star Projector', room: 'Laboratory', defaultIcon: 'Sparkles' },
+  { id: 16, name: 'Glass Skylight Atrium', room: 'Conservatory', defaultIcon: 'Sun' },
+  { id: 17, name: 'Egyptian Obsidian Sphinx', room: 'Courtyard', defaultIcon: 'Pyramid' },
+  { id: 18, name: 'Sunken Reading Pit', room: 'Archive', defaultIcon: 'BookOpen' },
+  { id: 19, name: 'Hanging Botanical Chandelier', room: 'Orangery', defaultIcon: 'Flower' },
+  { id: 20, name: 'Bronze Astronomical Sundial', room: 'Solarium', defaultIcon: 'Clock' },
 ];
 
 // SuperMemo SM-2 Spaced Repetition Initial Decks

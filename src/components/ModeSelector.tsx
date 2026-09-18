@@ -14,6 +14,7 @@ import {
   Layers,
   Zap,
   Infinity,
+  Clock,
 } from 'lucide-react';
 
 interface ModeSelectorProps {
@@ -30,6 +31,13 @@ export const ModeSelector: React.FC<ModeSelectorProps> = ({ activeMode, onSelect
       desc: '6-Step 12 AM Lockout Plan',
       icon: <CalendarCheck className="w-4 h-4 text-emerald-400" />,
       badge: isLockedOut ? 'Mastered' : 'Daily',
+    },
+    {
+      id: 'four-hour-plan',
+      label: '4-Hour Plan & Checklist',
+      desc: '240m Master Conditioning',
+      icon: <Clock className="w-4 h-4 text-cyan-400" />,
+      badge: '4h Elite',
     },
     {
       id: 'free-training',

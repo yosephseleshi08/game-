@@ -301,18 +301,15 @@ export const MnemonicPegsGame: React.FC<MnemonicPegsGameProps> = ({
             </div>
           )}
 
-          {/* Target Prompt Card */}
+          {/* Target Prompt Card - Number Only (Phonetic letters hidden as requested) */}
           {currentPeg && (
             <div className="w-full flex flex-col items-center mb-6">
               <span className="text-xs uppercase tracking-widest text-slate-400 font-bold mb-2">
-                Translate to Mental Image
+                Translate Number to Mental Object
               </span>
               <div className="w-36 h-36 rounded-3xl bg-gradient-to-tr from-amber-500/20 to-orange-500/20 border-2 border-amber-500/80 flex flex-col items-center justify-center shadow-xl shadow-amber-500/10">
-                <span className="text-5xl font-black text-amber-400 font-mono tracking-tight">
+                <span className="text-6xl font-black text-amber-400 font-mono tracking-tight">
                   {currentPeg.number}
-                </span>
-                <span className="text-[10px] text-amber-300/80 font-mono mt-1">
-                  {currentPeg.phoneticRule}
                 </span>
               </div>
             </div>

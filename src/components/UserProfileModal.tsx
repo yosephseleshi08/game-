@@ -18,6 +18,11 @@ import {
   HardDrive,
   Lock,
   Award,
+  Cloud,
+  RefreshCw,
+  Smartphone,
+  LogOut,
+  Laptop,
 } from 'lucide-react';
 
 interface UserProfileModalProps {
@@ -29,6 +34,12 @@ interface UserProfileModalProps {
   isSpeedLockedToPlan: boolean;
   curriculumDay: number;
   onUpdateProfile: (updated: UserProfile) => void;
+  currentUser?: { email?: string | null; displayName?: string | null } | null;
+  cloudSyncStatus?: 'synced' | 'syncing' | 'offline' | 'error';
+  lastSyncedAt?: Date | null;
+  onOpenAuth?: () => void;
+  onForceSync?: () => Promise<void> | void;
+  onSignOut?: () => void;
 }
 
 export const UserProfileModal: React.FC<UserProfileModalProps> = ({
@@ -40,6 +51,12 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
   isSpeedLockedToPlan,
   curriculumDay,
   onUpdateProfile,
+  currentUser,
+  cloudSyncStatus = 'offline',
+  lastSyncedAt,
+  onOpenAuth,
+  onForceSync,
+  onSignOut,
 }) => {
   const [username, setUsername] = useState(profile?.username || 'Memory Athlete');
   const [selectedPresetId, setSelectedPresetId] = useState(profile?.avatarPresetId || 'ayumu');
@@ -48,9 +65,27 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
   );
   const [isEditing, setIsEditing] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [syncingManual, setSyncingManual] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
 
   if (!isOpen) return null;
+
+  const handleManualSyncClick = async () => {
+    if (!onForceSync) return;
+    setSyncingManual(true);
+    sound.playClick();
+    try {
+      await onForceSync();
+      sound.playSuccess();
+      setMsg('Synchronized across all your devices!');
+      setTimeout(() => setMsg(null), 3000);
+    } catch {
+      sound.playError();
+      setMsg('Sync failed. Check connection.');
+    } finally {
+      setSyncingManual(false);
+    }
+  };
 
   const currentPreset = getAvatarPreset(profile?.avatarPresetId || selectedPresetId);
 
@@ -311,13 +346,106 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
           </div>
         )}
 
-        {/* Offline Solo Storage Notice */}
-        <div className="p-3.5 rounded-2xl bg-slate-950 border border-slate-800 text-[11px] text-slate-400 mb-5 flex items-start gap-2.5">
-          <HardDrive className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
-          <div>
-            <span className="text-slate-200 font-semibold block">100% Offline & Private</span>
-            Your daily protocol completions, streaks, and progress records are saved directly to this device's local storage. No logins, accounts, or internet connection required.
+        {/* Cross-Device Synchronization (2 Phones & PC) */}
+        <div className="p-4 rounded-2xl bg-gradient-to-b from-slate-950 to-slate-900 border border-slate-800 text-xs mb-5">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <div className="p-1.5 rounded-lg bg-cyan-500/20 text-cyan-400">
+                <Cloud className="w-4 h-4" />
+              </div>
+              <div>
+                <h4 className="font-bold text-white text-xs flex items-center gap-1.5">
+                  Cross-Device Sync (2 Phones & PC)
+                </h4>
+                <span className="text-[10px] text-slate-400">
+                  {currentUser ? 'Active Cloud Account Connected' : 'Local Device Only'}
+                </span>
+              </div>
+            </div>
+
+            {currentUser ? (
+              <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-800 text-[10px] font-mono">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                {cloudSyncStatus === 'syncing' ? 'Syncing...' : 'Synchronized'}
+              </span>
+            ) : (
+              <span className="px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 text-[10px] font-mono">
+                Local Only
+              </span>
+            )}
           </div>
+
+          {currentUser ? (
+            <div className="space-y-3">
+              <div className="p-3 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-between">
+                <div className="truncate mr-2">
+                  <span className="text-[10px] text-slate-400 uppercase tracking-wider block font-bold">
+                    Connected Account
+                  </span>
+                  <span className="text-xs font-mono text-cyan-300 truncate block">
+                    {currentUser.email || currentUser.displayName || 'Authenticated User'}
+                  </span>
+                </div>
+                <div className="text-right shrink-0">
+                  <span className="text-[10px] text-slate-400 block">Last Synced</span>
+                  <span className="text-[10px] font-mono text-slate-300">
+                    {lastSyncedAt ? lastSyncedAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : 'Just now'}
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  disabled={syncingManual || cloudSyncStatus === 'syncing'}
+                  onClick={handleManualSyncClick}
+                  className="flex-1 py-2.5 px-3 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-md shadow-cyan-950/40 disabled:opacity-50"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${syncingManual || cloudSyncStatus === 'syncing' ? 'animate-spin' : ''}`} />
+                  <span>{syncingManual ? 'Syncing...' : 'Sync All Devices Now'}</span>
+                </button>
+
+                {onSignOut && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      sound.playClick();
+                      onSignOut();
+                    }}
+                    className="py-2.5 px-3 rounded-xl bg-slate-800 hover:bg-rose-950/60 text-slate-300 hover:text-rose-300 border border-slate-700 hover:border-rose-800 text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer"
+                    title="Sign out of this device"
+                  >
+                    <LogOut className="w-3.5 h-3.5" />
+                    <span>Sign Out</span>
+                  </button>
+                )}
+              </div>
+
+              <p className="text-[10px] text-slate-400 leading-relaxed">
+                ✓ Any progress made on this device automatically syncs to your other phone and PC whenever you open the app.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <p className="text-[11px] text-slate-300 leading-relaxed">
+                Play on multiple devices? Connect a single account using Google or Email so your <strong>Day {curriculumDay} Protocol</strong>, <strong>{stats.xp} XP</strong>, streaks, and records automatically stay in sync on your 2 phones and PC.
+              </p>
+
+              <button
+                type="button"
+                onClick={() => {
+                  sound.playClick();
+                  onClose();
+                  if (onOpenAuth) onOpenAuth();
+                }}
+                className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-cyan-500 via-indigo-500 to-cyan-400 hover:from-cyan-400 hover:to-indigo-400 text-slate-950 font-black text-xs transition-all flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-cyan-950/50"
+              >
+                <Smartphone className="w-4 h-4 text-slate-950" />
+                <Laptop className="w-4 h-4 text-slate-950" />
+                <span>Connect Account to Sync 2 Phones & PC</span>
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Footer Actions */}

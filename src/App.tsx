@@ -7,8 +7,10 @@ import {
   saveFlashSpeed,
   getRankForXp,
   loadLocalProfile,
+  saveLocalProfile,
   createLocalAthleteProfile,
   loadFreeTrainingStats,
+  saveFreeTrainingStats,
   recordFreeTrainingTime,
 } from './utils/storage';
 import { sound } from './utils/audio';
@@ -31,13 +33,46 @@ import { FlashTimePlanModal } from './components/FlashTimePlanModal';
 import { UserProfileModal } from './components/UserProfileModal';
 import { DailyMilestoneModal } from './components/DailyMilestoneModal';
 import { FreeTrainingView } from './components/FreeTrainingView';
+import { FourHourPlanView } from './components/FourHourPlanView';
+import { AuthModal } from './components/AuthModal';
+import {
+  subscribeToAuth,
+  saveUserCloudData,
+  loadUserCloudData,
+  subscribeToUserCloudData,
+  mergeUserProgress,
+  logoutUser,
+} from './utils/firebase';
+import type { User } from 'firebase/auth';
 import { loadDailyProtocol, saveDailyProtocol } from './utils/protocol';
 import { getPlanSpeedForDay } from './utils/flashPlan';
 import { Award, Sparkles, X, Clock, Play, Pause, RotateCcw, Flame } from 'lucide-react';
 
 export default function App() {
-  const [stats, setStats] = useState<UserStats>(() => loadUserStats());
   const [protocol, setProtocol] = useState(() => loadDailyProtocol());
+  const [stats, setStats] = useState<UserStats>(() => {
+    const loaded = loadUserStats();
+    const proto = loadDailyProtocol();
+    const historyDays = Object.values(proto.history || {}).filter((h: any) => h?.completed).length;
+    const safeStreak = Math.max(
+      loaded.currentStreak || 0,
+      historyDays,
+      proto.curriculumDay && proto.curriculumDay > 1 ? proto.curriculumDay - 1 : 0
+    );
+    return {
+      ...loaded,
+      currentStreak: safeStreak,
+      bestStreak: Math.max(loaded.bestStreak || 0, safeStreak),
+    };
+  });
+
+  // Cross-Device Authentication & Cloud Synchronization (2 Phones & 1 PC)
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [cloudSyncStatus, setCloudSyncStatus] = useState<'synced' | 'syncing' | 'offline' | 'error'>('offline');
+  const [lastSyncedTime, setLastSyncedTime] = useState<Date | null>(null);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const isSyncingFromRemoteRef = useRef(false);
+  const syncTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // 365-Day Flash Speed Lock State
   const [isSpeedLockedToPlan, setIsSpeedLockedToPlan] = useState<boolean>(() => {
@@ -104,7 +139,26 @@ export default function App() {
     'daily-workout',
   ];
 
+  const FOUR_HOUR_MODULE_TARGETS: Partial<Record<GameMode, { title: string; minutes: number }>> = {
+    'ayumu-chimp': { title: 'Ayumu Chimp', minutes: 40 },
+    'dual-nback': { title: 'Dual N-Back', minutes: 45 },
+    'symbol-detective': { title: 'Symbol Detective', minutes: 35 },
+    'eidetic-matrix': { title: 'Eidetic Matrix', minutes: 40 },
+    'mnemonic-pegs': { title: 'Major Pegs', minutes: 40 },
+    'memory-palace': { title: 'Memory Palace', minutes: 40 },
+  };
+
   const isPlayingGame = PLAYABLE_GAME_MODES.includes(activeMode);
+
+  const activeFourHourTarget = FOUR_HOUR_MODULE_TARGETS[activeMode];
+  const activeModeSeconds = activeFourHourTarget ? (freeTrainingStats.todayGamesBreakdown?.[activeMode] || 0) : 0;
+  const targetSeconds = activeFourHourTarget ? activeFourHourTarget.minutes * 60 : 0;
+  const fourHourRemainingSecs = Math.max(0, targetSeconds - activeModeSeconds);
+  const isFourHourGoalMet = activeFourHourTarget && (
+    fourHourRemainingSecs === 0 ||
+    protocol.tasks.find((t) => t.id === activeMode)?.isCompleted ||
+    protocol.isLockedOut
+  );
 
   // Reset session seconds when entering any game
   useEffect(() => {
@@ -123,12 +177,18 @@ export default function App() {
       setCurrentGameSeconds((prev) => prev + 1);
       unflushedSecondsRef.current += 1;
 
-      // Optimistically increment todaySeconds for real-time responsiveness
+      // Optimistically increment todaySeconds and todayGamesBreakdown for real-time responsiveness
       setFreeTrainingStats((prev) => ({
         ...prev,
         todaySeconds: prev.todaySeconds + 1,
         totalSecondsPracticed: (prev.totalSecondsPracticed || 0) + 1,
         totalMinutesPracticed: Math.floor(((prev.totalSecondsPracticed || 0) + 1) / 60),
+        todayGamesBreakdown: activeMode
+          ? {
+              ...(prev.todayGamesBreakdown || {}),
+              [activeMode]: ((prev.todayGamesBreakdown || {})[activeMode] || 0) + 1,
+            }
+          : prev.todayGamesBreakdown,
       }));
 
       // Flush to disk every 5 seconds
@@ -179,6 +239,235 @@ export default function App() {
   useEffect(() => {
     saveDailyProtocol(protocol);
   }, [protocol]);
+
+  // ----------------------------------------------------
+  // Cross-Device Cloud Sync Engine (2 Phones & 1 PC)
+  // ----------------------------------------------------
+  useEffect(() => {
+    let unsubSnapshot: (() => void) | null = null;
+
+    const unsubAuth = subscribeToAuth(async (user) => {
+      setCurrentUser(user);
+
+      if (unsubSnapshot) {
+        unsubSnapshot();
+        unsubSnapshot = null;
+      }
+
+      if (!user) {
+        setCloudSyncStatus('offline');
+        return;
+      }
+
+      // User logged in: pull cloud data and merge with current device
+      setCloudSyncStatus('syncing');
+      try {
+        const cloudData = await loadUserCloudData(user.uid);
+        if (cloudData) {
+          // Merge local device state with cloud state (takes highest XP, level, curriculum day, streak)
+          const merged = mergeUserProgress(
+            stats,
+            cloudData.stats,
+            protocol,
+            cloudData.protocol,
+            freeTrainingStats,
+            cloudData.freeTrainingStats
+          );
+
+          isSyncingFromRemoteRef.current = true;
+          setStats(merged.mergedStats);
+          saveUserStats(merged.mergedStats);
+
+          setProtocol(merged.mergedProtocol);
+          saveDailyProtocol(merged.mergedProtocol);
+
+          if (merged.mergedFreeStats) {
+            setFreeTrainingStats(merged.mergedFreeStats);
+            saveFreeTrainingStats(merged.mergedFreeStats);
+          }
+
+          let updatedProfile = currentProfile;
+          if (cloudData.profile) {
+            updatedProfile = {
+              ...currentProfile,
+              ...cloudData.profile,
+              level: merged.mergedStats.level,
+              xp: merged.mergedStats.xp,
+              curriculumDay: merged.mergedProtocol.curriculumDay,
+              currentStreak: merged.mergedStats.currentStreak,
+              bestStreak: merged.mergedStats.bestStreak,
+            };
+            setCurrentProfile(updatedProfile);
+            saveLocalProfile(updatedProfile);
+          }
+
+          // Push merged highest-watermark state back to cloud so both device and cloud are completely unified
+          await saveUserCloudData(
+            user.uid,
+            merged.mergedStats,
+            merged.mergedProtocol,
+            merged.mergedFreeStats || freeTrainingStats,
+            updatedProfile
+          );
+          setLastSyncedTime(new Date());
+          setCloudSyncStatus('synced');
+
+          setTimeout(() => {
+            isSyncingFromRemoteRef.current = false;
+          }, 1000);
+        } else {
+          // First time this account is seen on cloud: push local device records to cloud
+          await saveUserCloudData(
+            user.uid,
+            stats,
+            protocol,
+            freeTrainingStats,
+            currentProfile
+          );
+          setLastSyncedTime(new Date());
+          setCloudSyncStatus('synced');
+        }
+
+        // Live real-time listener for multi-device synchronization
+        unsubSnapshot = subscribeToUserCloudData(user.uid, (remoteData) => {
+          if (!remoteData || isSyncingFromRemoteRef.current) return;
+
+          setStats((prevStats) => {
+            setProtocol((prevProtocol) => {
+              setFreeTrainingStats((prevFree) => {
+                const merged = mergeUserProgress(
+                  prevStats,
+                  remoteData.stats,
+                  prevProtocol,
+                  remoteData.protocol,
+                  prevFree,
+                  remoteData.freeTrainingStats
+                );
+                isSyncingFromRemoteRef.current = true;
+                saveUserStats(merged.mergedStats);
+                saveDailyProtocol(merged.mergedProtocol);
+                if (merged.mergedFreeStats) {
+                  saveFreeTrainingStats(merged.mergedFreeStats);
+                }
+                setTimeout(() => {
+                  isSyncingFromRemoteRef.current = false;
+                }, 800);
+                return merged.mergedFreeStats || prevFree;
+              });
+              return prevProtocol;
+            });
+            return prevStats;
+          });
+          setLastSyncedTime(new Date());
+          setCloudSyncStatus('synced');
+        });
+      } catch (err) {
+        console.error('Error in cross-device cloud sync:', err);
+        setCloudSyncStatus('error');
+      }
+    });
+
+    return () => {
+      unsubAuth();
+      if (unsubSnapshot) unsubSnapshot();
+    };
+  }, []);
+
+  // Debounced auto-save to cloud when user completes training on this device
+  useEffect(() => {
+    if (!currentUser || isSyncingFromRemoteRef.current) return;
+
+    if (syncTimeoutRef.current) {
+      clearTimeout(syncTimeoutRef.current);
+    }
+
+    syncTimeoutRef.current = setTimeout(async () => {
+      try {
+        setCloudSyncStatus('syncing');
+        await saveUserCloudData(
+          currentUser.uid,
+          stats,
+          protocol,
+          freeTrainingStats,
+          currentProfile
+        );
+        setCloudSyncStatus('synced');
+        setLastSyncedTime(new Date());
+      } catch (err) {
+        console.error('Failed to sync to cloud:', err);
+        setCloudSyncStatus('error');
+      }
+    }, 2000);
+
+    return () => {
+      if (syncTimeoutRef.current) clearTimeout(syncTimeoutRef.current);
+    };
+  }, [stats, protocol, freeTrainingStats, currentProfile, currentUser]);
+
+  const handleForceSync = async () => {
+    if (!currentUser) {
+      setIsAuthModalOpen(true);
+      return;
+    }
+    setCloudSyncStatus('syncing');
+    try {
+      const cloudData = await loadUserCloudData(currentUser.uid);
+      if (cloudData) {
+        const merged = mergeUserProgress(
+          stats,
+          cloudData.stats,
+          protocol,
+          cloudData.protocol,
+          freeTrainingStats,
+          cloudData.freeTrainingStats
+        );
+        isSyncingFromRemoteRef.current = true;
+        setStats(merged.mergedStats);
+        saveUserStats(merged.mergedStats);
+        setProtocol(merged.mergedProtocol);
+        saveDailyProtocol(merged.mergedProtocol);
+        if (merged.mergedFreeStats) {
+          setFreeTrainingStats(merged.mergedFreeStats);
+          saveFreeTrainingStats(merged.mergedFreeStats);
+        }
+
+        await saveUserCloudData(
+          currentUser.uid,
+          merged.mergedStats,
+          merged.mergedProtocol,
+          merged.mergedFreeStats || freeTrainingStats,
+          currentProfile
+        );
+        setTimeout(() => {
+          isSyncingFromRemoteRef.current = false;
+        }, 800);
+      } else {
+        await saveUserCloudData(
+          currentUser.uid,
+          stats,
+          protocol,
+          freeTrainingStats,
+          currentProfile
+        );
+      }
+      setCloudSyncStatus('synced');
+      setLastSyncedTime(new Date());
+    } catch (err) {
+      console.error('Force sync error:', err);
+      setCloudSyncStatus('error');
+      throw err;
+    }
+  };
+
+  const handleSignOut = async () => {
+    try {
+      await logoutUser();
+      setCurrentUser(null);
+      setCloudSyncStatus('offline');
+    } catch (err) {
+      console.error('Sign out error:', err);
+    }
+  };
 
   // 3. Keep speed locked to curriculum day if lock is enabled
   useEffect(() => {
@@ -236,8 +525,6 @@ export default function App() {
 
   const handleRecordAyumuResult = (isSuccess: boolean, digitsCount: number) => {
     setStats((prev) => {
-      const newStreak = isSuccess ? prev.currentStreak + 1 : 0;
-      const newBestStreak = Math.max(prev.bestStreak, newStreak);
       const newMaxDigits = isSuccess ? Math.max(prev.ayumuMaxNumbers, digitsCount) : prev.ayumuMaxNumbers;
       const newFastest = isSuccess ? Math.min(prev.fastestFlashMs, currentSpeed) : prev.fastestFlashMs;
 
@@ -262,8 +549,6 @@ export default function App() {
         totalAttempts: prev.totalAttempts + 1,
         totalCorrectAttempts: prev.totalCorrectAttempts + (isSuccess ? 1 : 0),
         ayumuMaxNumbers: newMaxDigits,
-        currentStreak: newStreak,
-        bestStreak: newBestStreak,
         fastestFlashMs: newFastest,
         progressHistory: updatedHistory,
       };
@@ -293,8 +578,6 @@ export default function App() {
 
   const handleRecordDetectiveResult = (isSuccess: boolean, score: number) => {
     setStats((prev) => {
-      const newStreak = isSuccess ? prev.currentStreak + 1 : 0;
-      const newBestStreak = Math.max(prev.bestStreak, newStreak);
       const newHighScore = Math.max(prev.detectiveHighScore, score);
 
       return {
@@ -303,8 +586,6 @@ export default function App() {
         totalAttempts: prev.totalAttempts + 1,
         totalCorrectAttempts: prev.totalCorrectAttempts + (isSuccess ? 1 : 0),
         detectiveHighScore: newHighScore,
-        currentStreak: newStreak,
-        bestStreak: newBestStreak,
       };
     });
   };
@@ -449,8 +730,6 @@ export default function App() {
       });
     }
     setStats((prev) => {
-      const newStreak = isSuccess ? prev.currentStreak + 1 : 0;
-      const newBestStreak = Math.max(prev.bestStreak, newStreak);
       const newMaxLevel = isSuccess ? Math.max(prev.matrixMaxLevel, level) : prev.matrixMaxLevel;
       const newFastest = isSuccess ? Math.min(prev.fastestFlashMs, currentSpeed) : prev.fastestFlashMs;
 
@@ -460,8 +739,6 @@ export default function App() {
         totalAttempts: prev.totalAttempts + 1,
         totalCorrectAttempts: prev.totalCorrectAttempts + (isSuccess ? 1 : 0),
         matrixMaxLevel: newMaxLevel,
-        currentStreak: newStreak,
-        bestStreak: newBestStreak,
         fastestFlashMs: newFastest,
       };
     });
@@ -491,6 +768,15 @@ export default function App() {
 
   const handleFinalizeDailyProtocol = () => {
     sound.playMilestoneFanfare();
+    const historyCount = Object.values(protocol.history || {}).filter((h: any) => h?.completed).length;
+    const nextStreak = Math.max((stats.currentStreak || 0) + 1, protocol.curriculumDay, historyCount + 1);
+
+    setStats((prev) => ({
+      ...prev,
+      currentStreak: nextStreak,
+      bestStreak: Math.max(prev.bestStreak, nextStreak),
+    }));
+
     const updated: DailyProtocolState = {
       ...protocol,
       isLockedOut: true,
@@ -530,6 +816,10 @@ export default function App() {
         onOpenMilestone={() => setIsMilestoneModalOpen(true)}
         currentProfile={currentProfile}
         onOpenProfile={() => setIsProfileOpen(true)}
+        currentUser={currentUser}
+        cloudSyncStatus={cloudSyncStatus}
+        onOpenAuth={() => setIsAuthModalOpen(true)}
+        onForceSync={handleForceSync}
       />
 
       {/* Mode Navigation Tabs */}
@@ -589,7 +879,7 @@ export default function App() {
                 </div>
 
                 <div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
                     <span className="text-xs font-mono font-bold text-white flex items-center gap-1.5">
                       Session Time:
                       <span className="text-cyan-400 font-extrabold text-sm">
@@ -597,8 +887,27 @@ export default function App() {
                       </span>
                     </span>
                     <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-cyan-950 text-cyan-300 border border-cyan-800">
-                      📅 Today's Free Training: {formatTimerClock(freeTrainingStats.todaySeconds)}
+                      📅 Today: {formatTimerClock(freeTrainingStats.todaySeconds)}
                     </span>
+                    {activeFourHourTarget && (
+                      <span
+                        className={`text-[10px] font-mono px-2 py-0.5 rounded-full border flex items-center gap-1 ${
+                          isFourHourGoalMet
+                            ? 'bg-emerald-950/80 text-emerald-300 border-emerald-800'
+                            : 'bg-amber-950/80 text-amber-300 border-amber-800 animate-pulse'
+                        }`}
+                        title="4-Hour Cognitive Plan Live Countdown: Auto-verifies when completed"
+                      >
+                        <Clock className="w-3 h-3" />
+                        4h Plan: {isFourHourGoalMet ? (
+                          <span className="text-emerald-300 font-bold">✓ Mastered</span>
+                        ) : (
+                          <span>
+                            {Math.floor(fourHourRemainingSecs / 60)}m {fourHourRemainingSecs % 60}s left
+                          </span>
+                        )}
+                      </span>
+                    )}
                   </div>
                   <p className="text-[11px] text-slate-400 mt-0.5">
                     {isGameTimerPaused ? (
@@ -680,6 +989,16 @@ export default function App() {
             onOpenMilestone={() => setIsMilestoneModalOpen(true)}
             currentSpeed={currentSpeed}
             isSpeedLockedToPlan={isSpeedLockedToPlan}
+          />
+        )}
+
+        {activeMode === 'four-hour-plan' && (
+          <FourHourPlanView
+            onNavigateMode={setActiveMode}
+            onAddXp={handleAddXp}
+            todayGamesBreakdown={freeTrainingStats.todayGamesBreakdown}
+            protocol={protocol}
+            todaySeconds={freeTrainingStats.todaySeconds}
           />
         )}
 
@@ -834,7 +1153,7 @@ export default function App() {
         onSetSpeed={handleSpeedChange}
       />
 
-      {/* Solo Athlete Profile & Offline Settings Modal */}
+      {/* Athlete Profile & Cross-Device Sync Modal */}
       <UserProfileModal
         isOpen={isProfileOpen}
         onClose={() => setIsProfileOpen(false)}
@@ -843,7 +1162,34 @@ export default function App() {
         currentSpeed={currentSpeed}
         isSpeedLockedToPlan={isSpeedLockedToPlan}
         curriculumDay={protocol.curriculumDay}
-        onUpdateProfile={(updated) => setCurrentProfile(updated)}
+        onUpdateProfile={(updated) => {
+          setCurrentProfile(updated);
+          saveLocalProfile(updated);
+          if (currentUser) {
+            saveUserCloudData(currentUser.uid, stats, protocol, freeTrainingStats, updated);
+          }
+        }}
+        currentUser={currentUser}
+        cloudSyncStatus={cloudSyncStatus}
+        lastSyncedAt={lastSyncedTime}
+        onOpenAuth={() => {
+          setIsProfileOpen(false);
+          setIsAuthModalOpen(true);
+        }}
+        onForceSync={handleForceSync}
+        onSignOut={handleSignOut}
+      />
+
+      {/* Cross-Device Unified Account Sign-In / Sign-Up Modal */}
+      <AuthModal
+        isOpen={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
+        onAuthSuccess={async () => {
+          setIsAuthModalOpen(false);
+          if (currentUser) {
+            await handleForceSync();
+          }
+        }}
       />
 
       {/* Scientific Technique Guide Modal */}

@@ -36,6 +36,18 @@ const MEMORY_ITEMS_POOL = [
   { item: 'Giant Silk Red Tie', color: 'text-red-500' },
   { item: 'Diamond Lightning Spear', color: 'text-sky-400' },
   { item: 'Crystal Hourglass of Time', color: 'text-purple-400' },
+  { item: 'Levitating Grand Clock', color: 'text-emerald-400' },
+  { item: 'Obsidian Flying Eagle', color: 'text-slate-300' },
+  { item: 'Glowing Plasma Torch', color: 'text-cyan-300' },
+  { item: 'Ancient Golden Chalice', color: 'text-yellow-300' },
+  { item: 'Spinning Emerald Compass', color: 'text-emerald-400' },
+  { item: 'Velvet Royal Crown', color: 'text-amber-300' },
+  { item: 'Silver Hummingbird Drone', color: 'text-slate-200' },
+  { item: 'Molten Meteorite Shard', color: 'text-orange-500' },
+  { item: 'Deep Sea Nautilus Pearl', color: 'text-teal-300' },
+  { item: 'Laser Prism Pyramid', color: 'text-fuchsia-400' },
+  { item: 'Ancient Dragon Skull', color: 'text-amber-200' },
+  { item: 'Thunderous Viking Drum', color: 'text-red-400' },
 ];
 
 export const MemoryPalaceGame: React.FC<MemoryPalaceGameProps> = ({
@@ -53,12 +65,13 @@ export const MemoryPalaceGame: React.FC<MemoryPalaceGameProps> = ({
   const [freePracticeActive, setFreePracticeActive] = useState(isFreeTraining);
   const [selectedLociCount, setSelectedLociCount] = useState<number>(() => initialLoci || palaceConfig.lociCount);
 
-  const [palaceLoci] = useState<PalaceLocus[]>(DEFAULT_PALACE_LOCI);
+  const [activeTourLoci, setActiveTourLoci] = useState<PalaceLocus[]>([]);
   const [stage, setStage] = useState<'setup' | 'flashing' | 'recalling' | 'review'>('setup');
   const [currentLocusIndex, setCurrentLocusIndex] = useState<number>(0);
   const [assignedItems, setAssignedItems] = useState<{ locusId: number; item: string; color: string }[]>([]);
   const [userRecalls, setUserRecalls] = useState<Record<number, string>>({});
   const [palaceScore, setPalaceScore] = useState<number | null>(null);
+  const [currentRecallOptions, setCurrentRecallOptions] = useState<string[]>([]);
 
   if (isLockedOut && !freePracticeActive) {
     return (
@@ -73,18 +86,38 @@ export const MemoryPalaceGame: React.FC<MemoryPalaceGameProps> = ({
 
   const effectiveLociCount = freePracticeActive ? selectedLociCount : palaceConfig.lociCount;
 
+  const setupRecallOptionsForStation = (
+    index: number,
+    items: { locusId: number; item: string; color: string }[]
+  ) => {
+    if (!items[index]) return;
+    const correct = items[index].item;
+    const otherAssigned = items.filter((_, i) => i !== index).map((it) => it.item);
+    const distractors = MEMORY_ITEMS_POOL.filter(
+      (p) => p.item !== correct && !otherAssigned.includes(p.item)
+    ).map((p) => p.item);
+    const poolChoices = [...otherAssigned, ...distractors];
+    const shuffledPoolChoices = poolChoices.sort(() => 0.5 - Math.random()).slice(0, 3);
+    const fourChoices = [correct, ...shuffledPoolChoices].sort(() => 0.5 - Math.random());
+    setCurrentRecallOptions(fourChoices);
+  };
+
   const startPalaceTour = () => {
-    // Take lociCount stations based on chosen count
-    const activeLoci = palaceLoci.slice(0, effectiveLociCount);
+    // Randomly sample effectiveLociCount distinct loci from the full 20-loci villa pool
+    const shuffledLoci = [...DEFAULT_PALACE_LOCI]
+      .sort(() => 0.5 - Math.random())
+      .slice(0, Math.min(effectiveLociCount, DEFAULT_PALACE_LOCI.length));
+
     // Shuffle pool items
     const shuffledPool = [...MEMORY_ITEMS_POOL].sort(() => 0.5 - Math.random());
 
-    const assignments = activeLoci.map((locus, i) => ({
+    const assignments = shuffledLoci.map((locus, i) => ({
       locusId: locus.id,
       item: shuffledPool[i % shuffledPool.length].item,
       color: shuffledPool[i % shuffledPool.length].color,
     }));
 
+    setActiveTourLoci(shuffledLoci);
     setAssignedItems(assignments);
     setUserRecalls({});
     setPalaceScore(null);
@@ -101,6 +134,7 @@ export const MemoryPalaceGame: React.FC<MemoryPalaceGameProps> = ({
       sound.playSuccess();
       setStage('recalling');
       setCurrentLocusIndex(0);
+      setupRecallOptionsForStation(0, assignedItems);
     }
   };
 
@@ -115,7 +149,9 @@ export const MemoryPalaceGame: React.FC<MemoryPalaceGameProps> = ({
     setUserRecalls(updatedRecalls);
 
     if (currentLocusIndex < assignedItems.length - 1) {
-      setCurrentLocusIndex((i) => i + 1);
+      const nextIdx = currentLocusIndex + 1;
+      setCurrentLocusIndex(nextIdx);
+      setupRecallOptionsForStation(nextIdx, assignedItems);
     } else {
       let correct = 0;
       assignedItems.forEach((item) => {
@@ -125,7 +161,6 @@ export const MemoryPalaceGame: React.FC<MemoryPalaceGameProps> = ({
       setStage('review');
 
       // 100% PERFECT STRIKE REQUIREMENT:
-      // "if i don't make it 100% or perfect strike i will not pass"
       const isPerfectRecall = correct === assignedItems.length;
       if (isPerfectRecall) {
         sound.playLevelUp();
@@ -253,7 +288,7 @@ export const MemoryPalaceGame: React.FC<MemoryPalaceGameProps> = ({
             <div className="w-full text-center animate-fade-in">
               <div className="flex justify-between items-center text-xs text-slate-400 mb-4 font-mono">
                 <span>Locus Station {currentLocusIndex + 1} of {assignedItems.length}</span>
-                <span className="text-amber-400 font-bold">{palaceLoci[currentLocusIndex].room}</span>
+                <span className="text-amber-400 font-bold">{(activeTourLoci[currentLocusIndex] || DEFAULT_PALACE_LOCI[0]).room}</span>
               </div>
 
               <div className="bg-slate-950 border border-slate-800 p-6 rounded-2xl mb-6 shadow-inner">
@@ -261,7 +296,7 @@ export const MemoryPalaceGame: React.FC<MemoryPalaceGameProps> = ({
                   Anchoring at:
                 </span>
                 <h4 className="text-lg font-bold text-white mb-4">
-                  {palaceLoci[currentLocusIndex].name}
+                  {(activeTourLoci[currentLocusIndex] || DEFAULT_PALACE_LOCI[0]).name}
                 </h4>
 
                 <div className="w-28 h-28 rounded-2xl bg-slate-900 border-2 border-amber-500/80 flex items-center justify-center mx-auto mb-4 shadow-lg">
@@ -272,7 +307,7 @@ export const MemoryPalaceGame: React.FC<MemoryPalaceGameProps> = ({
                   {assignedItems[currentLocusIndex].item}
                 </span>
                 <p className="text-xs text-slate-400 mt-1 max-w-xs mx-auto">
-                  Mentally attach this item interacting intensely with the {palaceLoci[currentLocusIndex].name.toLowerCase()}!
+                  Mentally attach this item interacting intensely with the {(activeTourLoci[currentLocusIndex] || DEFAULT_PALACE_LOCI[0]).name.toLowerCase()}!
                 </p>
               </div>
 
@@ -296,20 +331,20 @@ export const MemoryPalaceGame: React.FC<MemoryPalaceGameProps> = ({
                 Station {currentLocusIndex + 1} of {assignedItems.length}
               </div>
               <h4 className="text-lg font-bold text-white mb-1">
-                {palaceLoci[currentLocusIndex].name}
+                {(activeTourLoci[currentLocusIndex] || DEFAULT_PALACE_LOCI[0]).name}
               </h4>
               <p className="text-xs text-slate-400 mb-6">
-                What item did you anchor here in the {palaceLoci[currentLocusIndex].room}?
+                What item did you anchor here in the {(activeTourLoci[currentLocusIndex] || DEFAULT_PALACE_LOCI[0]).room}?
               </p>
 
               <div className="grid grid-cols-2 gap-3 mb-4">
-                {assignedItems.map((ai) => (
+                {(currentRecallOptions.length > 0 ? currentRecallOptions : assignedItems.map((a) => a.item)).map((opt) => (
                   <button
-                    key={ai.item}
-                    onClick={() => submitPalaceRecall(ai.item)}
+                    key={opt}
+                    onClick={() => submitPalaceRecall(opt)}
                     className="py-3.5 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-semibold text-xs border border-slate-700 transition-all hover:border-amber-400 cursor-pointer active:scale-98"
                   >
-                    {ai.item}
+                    {opt}
                   </button>
                 ))}
               </div>

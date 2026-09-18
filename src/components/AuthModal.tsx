@@ -29,6 +29,7 @@ import {
   Copy,
   Check,
   Zap,
+  Smartphone,
 } from 'lucide-react';
 import { UserProfile } from '../types';
 
@@ -246,6 +247,17 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 ? 'Resume your 365-day progress and cloud telemetry'
                 : 'Save your own progress, profile photo & compete with friends'}
             </p>
+          </div>
+        </div>
+
+        {/* Cross-Device Sync Notice */}
+        <div className="mb-4 p-3 rounded-2xl bg-cyan-950/60 border border-cyan-500/30 flex items-start gap-2.5 text-xs text-cyan-200">
+          <Smartphone className="w-4 h-4 text-cyan-400 shrink-0 mt-0.5" />
+          <div className="leading-tight">
+            <span className="font-bold text-white block">One Account for 2 Phones & PC</span>
+            <span className="text-[11px] text-cyan-300/80">
+              Sign in once. All your daily training days, protocol progress, XP, and speed records will sync automatically across all your devices.
+            </span>
           </div>
         </div>
 
