@@ -23,7 +23,7 @@ import {
   onSnapshot,
 } from 'firebase/firestore';
 import firebaseConfig from '../../firebase-applet-config.json';
-import { UserProfile, UserStats, DailyProtocolState, FreeTrainingSessionStats } from '../types';
+import { UserProfile, UserStats, DailyProtocolState, FreeTrainingSessionStats, FourHourPlanState } from '../types';
 import { getRankForXp } from './storage';
 
 // Preset avatar styles for user profiles
@@ -241,6 +241,7 @@ export interface UserCloudSyncPayload {
   stats: UserStats;
   protocol: DailyProtocolState;
   freeTrainingStats?: FreeTrainingSessionStats;
+  fourHourPlan?: FourHourPlanState;
   profile?: UserProfile;
   lastSyncedAt: string;
 }
@@ -254,7 +255,8 @@ export async function saveUserCloudData(
   stats: UserStats,
   protocol: DailyProtocolState,
   freeTrainingStats?: FreeTrainingSessionStats,
-  profile?: UserProfile
+  profile?: UserProfile,
+  fourHourPlan?: FourHourPlanState
 ): Promise<void> {
   try {
     const privateDocRef = doc(db, 'users', userId, 'private', 'data');
@@ -267,6 +269,7 @@ export async function saveUserCloudData(
         statsJson: JSON.stringify(stats),
         protocolJson: JSON.stringify(protocol),
         freeTrainingJson: freeTrainingStats ? JSON.stringify(freeTrainingStats) : null,
+        fourHourPlanJson: fourHourPlan ? JSON.stringify(fourHourPlan) : null,
         profileJson: profile ? JSON.stringify(profile) : null,
         updatedAt: nowIso,
       },
@@ -317,6 +320,7 @@ export async function loadUserCloudData(
     let stats: UserStats | undefined;
     let protocol: DailyProtocolState | undefined;
     let freeTrainingStats: FreeTrainingSessionStats | undefined;
+    let fourHourPlan: FourHourPlanState | undefined;
     let profile: UserProfile | undefined;
 
     if (data.statsJson) {
@@ -328,6 +332,9 @@ export async function loadUserCloudData(
     if (data.freeTrainingJson) {
       freeTrainingStats = JSON.parse(data.freeTrainingJson);
     }
+    if (data.fourHourPlanJson) {
+      fourHourPlan = JSON.parse(data.fourHourPlanJson);
+    }
     if (data.profileJson) {
       profile = JSON.parse(data.profileJson);
     }
@@ -338,6 +345,7 @@ export async function loadUserCloudData(
       stats,
       protocol,
       freeTrainingStats,
+      fourHourPlan,
       profile,
       lastSyncedAt: data.updatedAt || new Date().toISOString(),
     };
@@ -367,6 +375,9 @@ export function subscribeToUserCloudData(
         const freeTrainingStats: FreeTrainingSessionStats | undefined = data.freeTrainingJson
           ? JSON.parse(data.freeTrainingJson)
           : undefined;
+        const fourHourPlan: FourHourPlanState | undefined = data.fourHourPlanJson
+          ? JSON.parse(data.fourHourPlanJson)
+          : undefined;
         const profile: UserProfile | undefined = data.profileJson
           ? JSON.parse(data.profileJson)
           : undefined;
@@ -375,6 +386,7 @@ export function subscribeToUserCloudData(
           stats,
           protocol,
           freeTrainingStats,
+          fourHourPlan,
           profile,
           lastSyncedAt: data.updatedAt || new Date().toISOString(),
         });
@@ -504,3 +516,51 @@ export function mergeUserProgress(
 
   return { mergedStats, mergedProtocol, mergedFreeStats };
 }
+
+/**
+ * Merge 4-Hour Daily Plan and Physical Training logs across connected devices.
+ */
+export function mergeFourHourPlans(
+  localPlan?: FourHourPlanState,
+  cloudPlan?: FourHourPlanState
+): FourHourPlanState | undefined {
+  if (!localPlan && !cloudPlan) return undefined;
+  if (!localPlan) return cloudPlan;
+  if (!cloudPlan) return localPlan;
+
+  const combinedHistory = {
+    ...(localPlan.history || {}),
+    ...(cloudPlan.history || {}),
+  };
+
+  const isLocalNewer = localPlan.currentDate > cloudPlan.currentDate;
+  const isCloudNewer = cloudPlan.currentDate > localPlan.currentDate;
+
+  let mergedTasks = localPlan.tasks;
+  if (!isLocalNewer && !isCloudNewer) {
+    // Same calendar day: combine completed tasks and elapsed seconds
+    mergedTasks = localPlan.tasks.map((lt) => {
+      const ct = cloudPlan.tasks.find((t) => t.id === lt.id);
+      if (!ct) return lt;
+      return {
+        ...lt,
+        isCompleted: lt.isCompleted || ct.isCompleted,
+        elapsedSeconds: Math.max(lt.elapsedSeconds || 0, ct.elapsedSeconds || 0),
+        completedAt: lt.completedAt || ct.completedAt,
+      };
+    });
+  } else if (isCloudNewer) {
+    mergedTasks = cloudPlan.tasks;
+  }
+
+  return {
+    currentDate: isCloudNewer ? cloudPlan.currentDate : localPlan.currentDate,
+    tasks: mergedTasks,
+    currentStreak: Math.max(localPlan.currentStreak || 0, cloudPlan.currentStreak || 0),
+    bestStreak: Math.max(localPlan.bestStreak || 0, cloudPlan.bestStreak || 0),
+    totalSessionsCompleted: Math.max(localPlan.totalSessionsCompleted || 0, cloudPlan.totalSessionsCompleted || 0),
+    history: combinedHistory,
+    nsdrElapsedSeconds: Math.max(localPlan.nsdrElapsedSeconds || 0, cloudPlan.nsdrElapsedSeconds || 0),
+  };
+}
+

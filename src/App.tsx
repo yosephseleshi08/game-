@@ -41,12 +41,14 @@ import {
   loadUserCloudData,
   subscribeToUserCloudData,
   mergeUserProgress,
+  mergeFourHourPlans,
   logoutUser,
 } from './utils/firebase';
+import { loadFourHourPlan, saveFourHourPlan } from './utils/fourHourPlan';
 import type { User } from 'firebase/auth';
 import { loadDailyProtocol, saveDailyProtocol } from './utils/protocol';
 import { getPlanSpeedForDay } from './utils/flashPlan';
-import { Award, Sparkles, X, Clock, Play, Pause, RotateCcw, Flame } from 'lucide-react';
+import { Award, Sparkles, X, Clock, Play, Pause, RotateCcw, Flame, Smartphone, Cloud, RefreshCw } from 'lucide-react';
 
 export default function App() {
   const [protocol, setProtocol] = useState(() => loadDailyProtocol());
@@ -255,6 +257,8 @@ export default function App() {
       setCloudSyncStatus('syncing');
       try {
         const cloudData = await loadUserCloudData(user.uid);
+        const localFourHour = loadFourHourPlan();
+
         if (cloudData) {
           // Merge local device state with cloud state (takes highest XP, level, curriculum day, streak)
           const merged = mergeUserProgress(
@@ -265,6 +269,12 @@ export default function App() {
             freeTrainingStats,
             cloudData.freeTrainingStats
           );
+
+          // Merge 4-hour plan across devices
+          const mergedFourHour = mergeFourHourPlans(localFourHour, cloudData.fourHourPlan);
+          if (mergedFourHour) {
+            saveFourHourPlan(mergedFourHour);
+          }
 
           isSyncingFromRemoteRef.current = true;
           setStats(merged.mergedStats);
@@ -299,7 +309,8 @@ export default function App() {
             merged.mergedStats,
             merged.mergedProtocol,
             merged.mergedFreeStats || freeTrainingStats,
-            updatedProfile
+            updatedProfile,
+            mergedFourHour || localFourHour
           );
           setLastSyncedTime(new Date());
           setCloudSyncStatus('synced');
@@ -314,7 +325,8 @@ export default function App() {
             stats,
             protocol,
             freeTrainingStats,
-            currentProfile
+            currentProfile,
+            localFourHour
           );
           setLastSyncedTime(new Date());
           setCloudSyncStatus('synced');
@@ -323,6 +335,14 @@ export default function App() {
         // Live real-time listener for multi-device synchronization
         unsubSnapshot = subscribeToUserCloudData(user.uid, (remoteData) => {
           if (!remoteData || isSyncingFromRemoteRef.current) return;
+
+          if (remoteData.fourHourPlan) {
+            const currentPlan = loadFourHourPlan();
+            const merged = mergeFourHourPlans(currentPlan, remoteData.fourHourPlan);
+            if (merged) {
+              saveFourHourPlan(merged);
+            }
+          }
 
           setStats((prevStats) => {
             setProtocol((prevProtocol) => {
@@ -376,12 +396,14 @@ export default function App() {
     syncTimeoutRef.current = setTimeout(async () => {
       try {
         setCloudSyncStatus('syncing');
+        const plan = loadFourHourPlan();
         await saveUserCloudData(
           currentUser.uid,
           stats,
           protocol,
           freeTrainingStats,
-          currentProfile
+          currentProfile,
+          plan
         );
         setCloudSyncStatus('synced');
         setLastSyncedTime(new Date());
@@ -404,6 +426,8 @@ export default function App() {
     setCloudSyncStatus('syncing');
     try {
       const cloudData = await loadUserCloudData(currentUser.uid);
+      const localPlan = loadFourHourPlan();
+
       if (cloudData) {
         const merged = mergeUserProgress(
           stats,
@@ -413,6 +437,11 @@ export default function App() {
           freeTrainingStats,
           cloudData.freeTrainingStats
         );
+        const mergedPlan = mergeFourHourPlans(localPlan, cloudData.fourHourPlan);
+        if (mergedPlan) {
+          saveFourHourPlan(mergedPlan);
+        }
+
         isSyncingFromRemoteRef.current = true;
         setStats(merged.mergedStats);
         saveUserStats(merged.mergedStats);
@@ -428,7 +457,8 @@ export default function App() {
           merged.mergedStats,
           merged.mergedProtocol,
           merged.mergedFreeStats || freeTrainingStats,
-          currentProfile
+          currentProfile,
+          mergedPlan || localPlan
         );
         setTimeout(() => {
           isSyncingFromRemoteRef.current = false;
@@ -439,7 +469,8 @@ export default function App() {
           stats,
           protocol,
           freeTrainingStats,
-          currentProfile
+          currentProfile,
+          localPlan
         );
       }
       setCloudSyncStatus('synced');
@@ -850,6 +881,60 @@ export default function App() {
 
       {/* Primary Dynamic View */}
       <main className="flex-1 w-full pb-12">
+        {/* Multi-Device Cloud Sync Notice (Phones & PC) */}
+        <div className="max-w-4xl mx-auto px-4 pt-3 pb-1">
+          {!currentUser ? (
+            <div className="p-3 sm:p-3.5 rounded-2xl bg-gradient-to-r from-cyan-950/80 via-slate-900 to-indigo-950/80 border border-cyan-500/50 shadow-lg flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+              <div className="flex items-start gap-3">
+                <div className="p-2 rounded-xl bg-cyan-500/20 text-cyan-300 shrink-0 mt-0.5 sm:mt-0 ring-1 ring-cyan-400/30">
+                  <Smartphone className="w-4 h-4" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h3 className="text-xs font-bold text-white flex items-center gap-1.5">
+                      Training on 2 Phones & PC?
+                    </h3>
+                    <span className="text-[9px] uppercase font-mono font-bold px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                      Local Offline Mode
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-300 leading-relaxed mt-0.5">
+                    Each device saves progress in its own local browser by default. To sync all 3 devices, <strong>sign in with the same account (Google or Email)</strong> on each phone and your PC!
+                  </p>
+                </div>
+              </div>
+              <button
+                id="banner-sync-devices-btn"
+                onClick={() => {
+                  sound.playClick();
+                  setIsAuthModalOpen(true);
+                }}
+                className="w-full sm:w-auto px-4 py-2 rounded-xl bg-gradient-to-r from-cyan-500 to-indigo-500 hover:from-cyan-400 hover:to-indigo-400 text-slate-950 font-black text-xs shrink-0 flex items-center justify-center gap-1.5 shadow-md shadow-cyan-950/50 cursor-pointer active:scale-95 transition-all"
+              >
+                <Cloud className="w-3.5 h-3.5" />
+                <span>Sync All 3 Devices</span>
+              </button>
+            </div>
+          ) : (
+            <div className="px-3 py-1.5 rounded-xl bg-slate-900/90 border border-emerald-500/30 flex items-center justify-between text-xs shadow-sm">
+              <div className="flex items-center gap-2 truncate">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
+                <span className="text-[11px] text-emerald-300 font-semibold truncate">
+                  Cloud Synced across devices: <span className="font-mono text-cyan-200">{currentUser.email || currentUser.displayName || 'Connected Account'}</span>
+                </span>
+              </div>
+              <button
+                onClick={handleForceSync}
+                className="text-[10px] font-mono text-cyan-400 hover:text-cyan-300 px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 transition-colors flex items-center gap-1 shrink-0 ml-2 cursor-pointer"
+                title="Force instant synchronization across all devices"
+              >
+                <RefreshCw className={`w-2.5 h-2.5 ${cloudSyncStatus === 'syncing' ? 'animate-spin' : ''}`} />
+                <span>{cloudSyncStatus === 'syncing' ? 'Syncing...' : 'Sync Now'}</span>
+              </button>
+            </div>
+          )}
+        </div>
+
         {/* Active Game Session & Daily 12 AM Timer Bar */}
         {isPlayingGame && (
           <div className="max-w-4xl mx-auto px-4 pt-3 pb-1">
