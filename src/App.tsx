@@ -129,23 +129,15 @@ export default function App() {
   const unflushedSecondsRef = useRef(0);
 
   const PLAYABLE_GAME_MODES: GameMode[] = [
-    'eidetic-matrix',
     'ayumu-chimp',
     'dual-nback',
-    'mnemonic-pegs',
     'memory-palace',
-    'spaced-repetition',
-    'symbol-detective',
-    'daily-workout',
   ];
 
   const FOUR_HOUR_MODULE_TARGETS: Partial<Record<GameMode, { title: string; minutes: number }>> = {
-    'ayumu-chimp': { title: 'Ayumu Chimp', minutes: 40 },
-    'dual-nback': { title: 'Dual N-Back', minutes: 45 },
-    'symbol-detective': { title: 'Symbol Detective', minutes: 35 },
-    'eidetic-matrix': { title: 'Eidetic Matrix', minutes: 40 },
-    'mnemonic-pegs': { title: 'Major Pegs', minutes: 40 },
-    'memory-palace': { title: 'Memory Palace', minutes: 40 },
+    'ayumu-chimp': { title: 'Ayumu Chimp (Flash RAM)', minutes: 18 },
+    'dual-nback': { title: 'Dual N-Back (Working Memory RAM)', minutes: 18 },
+    'memory-palace': { title: 'Memory Palace (Digital Loci)', minutes: 84 },
   };
 
   const isPlayingGame = PLAYABLE_GAME_MODES.includes(activeMode);

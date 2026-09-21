@@ -34,32 +34,22 @@ export function getCurrentCycleInfo(now = new Date()) {
 }
 
 /**
- * Generates the prescribed 6-stage daily tasks for a given curriculum day.
+ * Generates the prescribed 3-pillar daily tasks for a given curriculum day.
+ * Focused strictly on:
+ * 1. Ayumu Sequence (Flash RAM & Subitizing)
+ * 2. Dual N-Back (Working Memory RAM)
+ * 3. Memory Palace (Method of Loci Architecture)
  */
 export function generateTasksForDay(day: number): ProtocolTask[] {
-  const matrixConfig = getMaxMatrixLevelForDay(day);
   const ayumuConfig = getMaxAyumuDigitsForDay(day);
   const nBackConfig = getMaxDualNBackForDay(day);
-  const pegConfig = getPegTargetForDay(day);
   const palaceConfig = getPalaceConfigForDay(day);
-  const spacedConfig = getSpacedCardQuotaForDay(day);
 
   return [
     {
-      id: 'eidetic-matrix',
-      title: 'Eidetic Matrix Visual Snapshot',
-      discipline: 'Retinal Trace & Visual Chunking',
-      targetDescription: `Clear 2 perfect levels at Level ${matrixConfig.maxLevel} (Day ${day} cap; 100% accuracy required)`,
-      targetCount: 2,
-      currentCount: 0,
-      maxAllowedLevel: matrixConfig.maxLevel,
-      isCompleted: false,
-      gameMode: 'eidetic-matrix',
-    },
-    {
       id: 'ayumu-chimp',
       title: 'Ayumu Iconic Sequence Benchmark',
-      discipline: 'Iconic Memory Span & Spatial Gaze',
+      discipline: 'Iconic Memory Span & Sub-second Flash',
       targetDescription: `Master 2 sequence levels at ${ayumuConfig.maxDigits} digits (Day ${day} cap; 100% perfect strike)`,
       targetCount: 2,
       currentCount: 0,
@@ -69,8 +59,8 @@ export function generateTasksForDay(day: number): ProtocolTask[] {
     },
     {
       id: 'dual-nback',
-      title: 'Dual N-Back Working Memory',
-      discipline: 'Fluid Focus & Prefrontal Cortex',
+      title: 'Dual N-Back Working Memory Buffer',
+      discipline: 'Fluid Focus & Prefrontal Cortex (Gf)',
       targetDescription:
         day < 4
           ? `Complete 2 perfect rounds (16 trials each) at N=1 with 100% accuracy (N=2 strictly locked until Day 4)`
@@ -82,37 +72,15 @@ export function generateTasksForDay(day: number): ProtocolTask[] {
       gameMode: 'dual-nback',
     },
     {
-      id: 'mnemonic-pegs',
-      title: 'Mnemonic Peg Speed Conversions',
-      discipline: 'Major System Encoding Reflex',
-      targetDescription: `Complete 2 levels of rapid conversions (${pegConfig.targetCount} each with 100% perfect strike)`,
-      targetCount: 2,
-      currentCount: 0,
-      maxAllowedLevel: pegConfig.label,
-      isCompleted: false,
-      gameMode: 'mnemonic-pegs',
-    },
-    {
       id: 'memory-palace',
-      title: 'Memory Palace Villa Walkthrough',
-      discipline: 'Method of Loci Spatial Encoding',
+      title: 'Memory Palace Villa & Loci Walkthrough',
+      discipline: 'Method of Loci Spatial Architecture',
       targetDescription: `Complete 2 walkthrough levels with 100% perfect recall (${palaceConfig.lociCount} stations each)`,
       targetCount: 2,
       currentCount: 0,
       maxAllowedLevel: palaceConfig.label,
       isCompleted: false,
       gameMode: 'memory-palace',
-    },
-    {
-      id: 'spaced-repetition',
-      title: 'Spaced Repetition SM-2 Mastery',
-      discipline: 'SuperMemo Active Retrieval Cards',
-      targetDescription: `Complete 2 review levels (${spacedConfig.targetCards} cards each) with 100% retention strike`,
-      targetCount: 2,
-      currentCount: 0,
-      maxAllowedLevel: spacedConfig.targetCards,
-      isCompleted: false,
-      gameMode: 'spaced-repetition',
     },
   ];
 }
@@ -156,8 +124,8 @@ export function loadDailyProtocol(): DailyProtocolState {
       return newProtocol;
     }
 
-    // Upgrade migration: If current cycle has older tasks layout (< 6 tasks), seamlessly upgrade to 6 steps
-    if (!parsed.tasks || parsed.tasks.length < 6) {
+    // Upgrade migration: If current cycle has older tasks layout (distraction games or !== 3 tasks), seamlessly upgrade to the 3 core pillars
+    if (!parsed.tasks || parsed.tasks.length !== 3 || parsed.tasks.some((t) => ['eidetic-matrix', 'mnemonic-pegs', 'spaced-repetition'].includes(t.id))) {
       const freshTasks = generateTasksForDay(parsed.curriculumDay || 1);
       // Retain completion state for tasks that were already completed
       const upgradedTasks = freshTasks.map((newTask) => {

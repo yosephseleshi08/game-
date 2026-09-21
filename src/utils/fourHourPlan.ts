@@ -3,36 +3,47 @@ import { FourHourPlanState, FourHourTask, DailyProtocolState } from '../types';
 export const FOUR_HOUR_PLAN_STORAGE_KEY = 'pmm_four_hour_plan_state';
 
 export const DEFAULT_FOUR_HOUR_TASKS: Omit<FourHourTask, 'isCompleted' | 'completedAt' | 'elapsedSeconds'>[] = [
-  // Morning Block (2 Hours)
+  // 1. Digital In-App Training Block (2 Hours = 120 Mins | Strict 30% / 70% Balance)
+  // Part A: 30% Processor & Working Memory RAM (36 Minutes)
   {
-    id: 'ayumu-morning',
-    title: 'Ayumu Chimp Test',
+    id: 'ayumu-digital',
+    title: 'Ayumu Chimp Test (Flash Intake & Subitizing)',
     category: 'morning',
-    targetMinutes: 40,
+    targetMinutes: 18,
     gameMode: 'ayumu-chimp',
-    description: 'Sub-second visual flash capture & iconic memory expansion',
-    neuroImpact: 'Retinal iconic trace formation, subitizing, and parallel visual chunking without subvocalization.',
+    description: 'Sub-second visual flash capture & parallel number subitizing without subvocalization',
+    neuroImpact: 'Retinal iconic trace formation, subitizing threshold expansion, and rapid parallel visual intake.',
   },
   {
-    id: 'dual-nback-morning',
-    title: 'Dual N-Back',
+    id: 'dual-nback-digital',
+    title: 'Dual N-Back (Working Memory RAM Buffer)',
     category: 'morning',
-    targetMinutes: 45,
+    targetMinutes: 18,
     gameMode: 'dual-nback',
-    description: 'Deep working memory expansion & fluid intelligence (Gf)',
-    neuroImpact: 'Frontoparietal executive network loading, interference inhibition, and cognitive buffer scaling.',
+    description: 'Fluid intelligence (Gf) & multi-stream working memory buffer scaling',
+    neuroImpact: 'Dorsolateral Prefrontal Cortex (DLPFC) dopamine D1 receptor density and executive RAM buffer expansion.',
+  },
+  // Part B: 70% Memory Palace Digital Architecture (84 Minutes)
+  {
+    id: 'palace-encoding-digital',
+    title: 'Digital Palace: Loci Blueprinting & Fast Encoding',
+    category: 'morning',
+    targetMinutes: 42,
+    gameMode: 'memory-palace',
+    description: 'Constructing digital loci routes & high-speed multi-sensory item anchoring',
+    neuroImpact: 'Bilateral parahippocampal cortex and spatial grid cell recruitment for rapid associative binding.',
   },
   {
-    id: 'symbol-morning',
-    title: 'Symbol Detective',
+    id: 'palace-retrieval-digital',
+    title: 'Digital Palace: Reverse-Walk & Stress-Test Retrieval',
     category: 'morning',
-    targetMinutes: 35,
-    gameMode: 'symbol-detective',
-    description: 'High-speed visual search & pattern discrimination',
-    neuroImpact: 'Chromatic feature extraction, visual saccadic precision, and target pop-out acceleration.',
+    targetMinutes: 42,
+    gameMode: 'memory-palace',
+    description: 'Reverse traversal, random-access testing, and clearing ghostly residual images',
+    neuroImpact: 'Hippocampal CA3-CA1 Long-Term Potentiation (LTP), spatial pathway consolidation, and ghosting elimination.',
   },
 
-  // Midday Recovery Anchor
+  // 2. Midday Recovery Anchor (20 Minutes)
   {
     id: 'midday-nsdr',
     title: 'NSDR / Power Nap & Hydration',
@@ -42,36 +53,27 @@ export const DEFAULT_FOUR_HOUR_TASKS: Omit<FourHourTask, 'isCompleted' | 'comple
     neuroImpact: 'Resets striatal dopamine reserves, dissipates cognitive adenosine, and restores afternoon mental stamina.',
   },
 
-  // Evening Block (2 Hours)
+  // 3. Real-Life Physical Practice Block (2 Hours = 120 Minutes)
   {
-    id: 'matrix-evening',
-    title: 'Eidetic Matrix',
+    id: 'physical-loci-scouting',
+    title: 'Real-World Loci Scouting & Physical Anchoring',
     category: 'evening',
-    targetMinutes: 40,
-    gameMode: 'eidetic-matrix',
-    description: 'Spatial grid mapping & retinal afterimage memory',
-    neuroImpact: 'Parieto-occipital coordinate mapping, visual after-image retention, and mental grid stability.',
+    targetMinutes: 60,
+    isPhysical: true,
+    description: 'Physically walk through real locations (home, neighborhood, campus, library, city streets). Scout, touch, and number 25–50 crisp permanent physical loci per location with a strict clockwise, non-crossing route.',
+    neuroImpact: 'Retrosplenial cortex and posterior parietal coordinate mapping grounded in true proprioception, physical navigation, and vestibular-ocular stabilization.',
   },
   {
-    id: 'pegs-evening',
-    title: 'Major Mnemonic Pegs',
+    id: 'physical-loci-retrieval',
+    title: 'Physical Loci Live Encoding & Walking Retrieval',
     category: 'evening',
-    targetMinutes: 40,
-    gameMode: 'mnemonic-pegs',
-    description: 'Instant numerical-to-phonetic symbol conversion',
-    neuroImpact: 'Left temporoparietal lexical encoding, cross-modal phonetic-numeric binding, and speed retrieval.',
-  },
-  {
-    id: 'palace-evening',
-    title: 'Memory Palace Villa',
-    category: 'evening',
-    targetMinutes: 40,
-    gameMode: 'memory-palace',
-    description: 'Navigational loci storage & speech/data filing',
-    neuroImpact: 'Parahippocampal place area activation, spatial architectural storage, and pre-sleep memory consolidation.',
+    targetMinutes: 60,
+    isPhysical: true,
+    description: 'Physically walk your real-world route while depositing complex real-world data; execute physical retrieval walks with eyes open under real-world movement and sensory load.',
+    neuroImpact: 'High-order spatial-cognitive binding, stress-resilient recall under physical motion, and permanent biological memory consolidation.',
   },
 
-  // Nightly Sleep Protocol
+  // 4. Nightly Sleep Protocol (7 Hours)
   {
     id: 'nightly-sleep',
     title: '7-Hour Restorative Sleep Protocol',
@@ -153,6 +155,16 @@ export function loadFourHourPlan(): FourHourPlanState {
       return refreshed;
     }
 
+    // Ensure the tasks strictly reflect the new 30/70 digital (2h) + physical (2h) schema
+    const hasObsoleteTask = parsed.tasks.some((t) =>
+      ['matrix-evening', 'pegs-evening', 'symbol-morning', 'ayumu-morning', 'dual-nback-morning', 'palace-evening'].includes(t.id)
+    );
+    if (hasObsoleteTask || parsed.tasks.length !== DEFAULT_FOUR_HOUR_TASKS.length) {
+      parsed.tasks = createFreshDailyTasks();
+      saveFourHourPlan(parsed);
+      return parsed;
+    }
+
     // Ensure all default tasks exist in case of schema update
     const existingTaskIds = new Set(parsed.tasks.map((t) => t.id));
     const mergedTasks = [...parsed.tasks];
@@ -203,24 +215,27 @@ export function syncFourHourPlanWithTraining(
   protocolState?: DailyProtocolState
 ): { updatedState: FourHourPlanState; newlyCompletedTaskIds: string[] } {
   const newlyCompletedTaskIds: string[] = [];
-  const prevCompletedSet = new Set(currentState.tasks.filter((t) => t.isCompleted).map((t) => t.id));
 
   const updatedTasks = currentState.tasks.map((task) => {
     // 1. If already completed, preserve status and update elapsed seconds if higher
     let elapsedSeconds = task.elapsedSeconds || 0;
 
-    if (task.gameMode) {
-      const modeSeconds = todayGamesBreakdown[task.gameMode] || 0;
-      elapsedSeconds = Math.max(elapsedSeconds, modeSeconds);
+    // Memory Palace split handling:
+    // palace-encoding-digital uses the first 42 mins (2520s)
+    // palace-retrieval-digital uses the second 42 mins (seconds from 2520 to 5040)
+    if (task.gameMode === 'memory-palace') {
+      const palaceTotalSeconds = todayGamesBreakdown['memory-palace'] || 0;
+      if (task.id === 'palace-encoding-digital') {
+        elapsedSeconds = Math.max(elapsedSeconds, Math.min(2520, palaceTotalSeconds));
+      } else if (task.id === 'palace-retrieval-digital') {
+        elapsedSeconds = Math.max(elapsedSeconds, Math.max(0, Math.min(2520, palaceTotalSeconds - 2520)));
+      } else {
+        elapsedSeconds = Math.max(elapsedSeconds, palaceTotalSeconds);
+      }
 
       const targetSeconds = task.targetMinutes * 60;
-      const protocolTaskDone = protocolState?.tasks?.find((pt) => pt.id === task.gameMode)?.isCompleted;
+      const protocolTaskDone = protocolState?.tasks?.find((pt) => pt.id === 'memory-palace')?.isCompleted;
       const fullProtocolLocked = protocolState?.isLockedOut;
-
-      // Automatically verify completion when:
-      // a) The user has spent the full target minutes in active gameplay
-      // OR
-      // b) The user has finished today's daily protocol requirement for this discipline
       const isMet = elapsedSeconds >= targetSeconds || protocolTaskDone || fullProtocolLocked;
 
       if (isMet && !task.isCompleted) {
@@ -237,6 +252,46 @@ export function syncFourHourPlanWithTraining(
         ...task,
         elapsedSeconds,
       };
+    }
+
+    if (task.gameMode) {
+      const modeSeconds = todayGamesBreakdown[task.gameMode] || 0;
+      elapsedSeconds = Math.max(elapsedSeconds, modeSeconds);
+
+      const targetSeconds = task.targetMinutes * 60;
+      const protocolTaskDone = protocolState?.tasks?.find((pt) => pt.id === task.gameMode)?.isCompleted;
+      const fullProtocolLocked = protocolState?.isLockedOut;
+
+      const isMet = elapsedSeconds >= targetSeconds || protocolTaskDone || fullProtocolLocked;
+
+      if (isMet && !task.isCompleted) {
+        newlyCompletedTaskIds.push(task.id);
+        return {
+          ...task,
+          elapsedSeconds,
+          isCompleted: true,
+          completedAt: new Date().toISOString(),
+        };
+      }
+
+      return {
+        ...task,
+        elapsedSeconds,
+      };
+    }
+
+    // Physical tasks auto-check
+    if (task.isPhysical) {
+      const targetSeconds = task.targetMinutes * 60;
+      if (elapsedSeconds >= targetSeconds && !task.isCompleted) {
+        newlyCompletedTaskIds.push(task.id);
+        return {
+          ...task,
+          isCompleted: true,
+          completedAt: new Date().toISOString(),
+        };
+      }
+      return task;
     }
 
     // 2. Midday NSDR Task auto-verification
@@ -296,6 +351,72 @@ export function syncFourHourPlanWithTraining(
 
   saveFourHourPlan(updatedState);
   return { updatedState, newlyCompletedTaskIds };
+}
+
+/**
+ * Records physical training seconds and notes for real-world loci practice
+ */
+export function recordPhysicalPracticeTime(
+  taskId: string,
+  secondsToAdd: number,
+  notes?: string
+): FourHourPlanState {
+  const current = loadFourHourPlan();
+  const updatedTasks = current.tasks.map((t) => {
+    if (t.id === taskId) {
+      const nextSeconds = (t.elapsedSeconds || 0) + secondsToAdd;
+      const targetSeconds = t.targetMinutes * 60;
+      const isCompleted = nextSeconds >= targetSeconds || t.isCompleted;
+      return {
+        ...t,
+        elapsedSeconds: nextSeconds,
+        isCompleted,
+        completedAt: isCompleted && !t.isCompleted ? new Date().toISOString() : t.completedAt,
+        physicalNotes: notes !== undefined ? notes : t.physicalNotes,
+      };
+    }
+    return t;
+  });
+
+  const updated: FourHourPlanState = {
+    ...current,
+    tasks: updatedTasks,
+  };
+
+  saveFourHourPlan(updated);
+  return updated;
+}
+
+/**
+ * Toggles manual completion for real-world physical practice (e.g. if completed outdoors away from device)
+ */
+export function togglePhysicalTaskManualCompletion(
+  taskId: string,
+  isDone: boolean,
+  notes?: string
+): FourHourPlanState {
+  const current = loadFourHourPlan();
+  const updatedTasks = current.tasks.map((t) => {
+    if (t.id === taskId) {
+      const targetSeconds = t.targetMinutes * 60;
+      return {
+        ...t,
+        isCompleted: isDone,
+        elapsedSeconds: isDone ? Math.max(t.elapsedSeconds || 0, targetSeconds) : 0,
+        completedAt: isDone ? new Date().toISOString() : undefined,
+        physicalNotes: notes !== undefined ? notes : t.physicalNotes,
+      };
+    }
+    return t;
+  });
+
+  const updated: FourHourPlanState = {
+    ...current,
+    tasks: updatedTasks,
+  };
+
+  saveFourHourPlan(updated);
+  return updated;
 }
 
 /**

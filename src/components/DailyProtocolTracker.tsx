@@ -253,14 +253,14 @@ export const DailyProtocolTracker: React.FC<DailyProtocolTrackerProps> = ({
           </div>
 
           {/* Accomplished Today Checklist */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 max-w-4xl mx-auto mb-6">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 max-w-3xl mx-auto mb-6">
             {protocol.tasks.map((task, idx) => (
-              <div key={task.id} className="bg-slate-900/90 border border-slate-800 p-3 rounded-xl text-left">
+              <div key={task.id} className="bg-slate-900/90 border border-slate-800 p-3.5 rounded-xl text-left">
                 <div className="flex items-center gap-1.5 text-emerald-400 text-xs font-bold mb-1">
                   <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
-                  <span className="truncate">Step {idx + 1}</span>
+                  <span className="truncate">Pillar {idx + 1}</span>
                 </div>
-                <p className="text-[10px] text-slate-300 font-medium truncate">{task.title}</p>
+                <p className="text-[11px] text-slate-200 font-semibold truncate">{task.title}</p>
                 <p className="text-[9px] text-slate-400 truncate">{task.discipline}</p>
               </div>
             ))}
@@ -313,7 +313,7 @@ export const DailyProtocolTracker: React.FC<DailyProtocolTrackerProps> = ({
             <div>
               <h3 className="text-base font-bold text-white flex items-center gap-2">
                 <Sparkles className="w-4 h-4 text-emerald-400" />
-                Today's Prescribed Quota (6 Disciplines)
+                Today's Prescribed Quota (3 Core Pillars)
               </h3>
               <p className="text-xs text-slate-400 mt-0.5">
                 Complete each lab below to unlock Day {protocol.curriculumDay} milestone & anti-burnout lockout
@@ -437,7 +437,7 @@ export const DailyProtocolTracker: React.FC<DailyProtocolTrackerProps> = ({
                   <div>
                     <div className="text-sm font-black text-white flex items-center gap-1.5">
                       <Sparkles className="w-4 h-4 text-emerald-400" />
-                      Day {protocol.curriculumDay} All 6 Disciplines Mastered!
+                      Day {protocol.curriculumDay} All 3 Core Pillars Mastered!
                     </div>
                     <div className="text-xs text-slate-300">
                       Your Daily Milestone celebration is ready with +250 XP bonus.

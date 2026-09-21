@@ -16,7 +16,7 @@ export type GameMode =
 export interface FourHourTask {
   id: string;
   title: string;
-  category: 'morning' | 'midday' | 'evening' | 'night';
+  category: 'digital' | 'morning' | 'midday' | 'evening' | 'physical' | 'night';
   targetMinutes: number;
   gameMode?: GameMode;
   description: string;
@@ -24,6 +24,8 @@ export interface FourHourTask {
   isCompleted: boolean;
   completedAt?: string;
   elapsedSeconds?: number;
+  isPhysical?: boolean;
+  physicalNotes?: string;
 }
 
 export interface FourHourDailyLog {

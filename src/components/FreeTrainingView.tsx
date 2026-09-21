@@ -530,192 +530,131 @@ export const FreeTrainingView: React.FC<FreeTrainingViewProps> = ({
         </div>
       </div>
 
-      {/* Quick-Start Downtime Circuits (Perfect for 3-12 minute breaks) */}
+      {/* Quick-Start 30/70 Circuits */}
       <div className="mb-8">
         <div className="flex items-center justify-between mb-3 px-1">
           <div>
             <h3 className="text-lg font-black text-white flex items-center gap-2">
               <Zap className="w-5 h-5 text-amber-400 fill-amber-400" />
-              Quick-Start Downtime Circuits
+              Quick-Start 30/70 Cognitive Circuits
             </h3>
             <p className="text-xs text-slate-400">
-              Curated micro-workouts calibrated for when you have a 3, 7, or 12-minute break:
+              Zero distraction workouts calibrated strictly for the 30% RAM / 70% Loci protocol:
             </p>
           </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {/* Circuit 1: 3-Min Sprint */}
+          {/* Circuit 1: 10-Min RAM Primer */}
           <div className="bg-slate-900 border border-slate-800 hover:border-amber-500/50 rounded-2xl p-5 transition-all shadow-lg flex flex-col justify-between">
             <div>
               <div className="flex items-center justify-between mb-2">
                 <span className="text-[10px] font-mono font-bold uppercase px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40">
-                  ⚡ 3 Minutes
+                  ⚡ 10 Minutes (RAM)
                 </span>
-                <span className="text-[11px] text-slate-400 font-bold">+100 XP</span>
+                <span className="text-[11px] text-slate-400 font-bold">+150 XP</span>
               </div>
-              <h4 className="text-base font-bold text-white mb-1">Anti-Scroll Micro Sprint</h4>
+              <h4 className="text-base font-bold text-white mb-1">Prefrontal RAM Primer</h4>
               <p className="text-xs text-slate-400 mb-4 leading-relaxed">
-                Rapid neural reboot: 1 round Eidetic Matrix + 1 round Ayumu sequence + 1 round Major Pegs.
+                5m Ayumu iconic sequence flash + 5m Dual N-Back working memory buffer.
               </p>
               <div className="space-y-1.5 mb-4 text-xs text-slate-300">
                 <div className="flex items-center gap-2">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-cyan-400" /> Step 1: Matrix Flash (4x4)
+                  <CheckCircle2 className="w-3.5 h-3.5 text-amber-400" /> Ayumu Iconic Flash (6-9 Digits)
                 </div>
                 <div className="flex items-center gap-2">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-amber-400" /> Step 2: Ayumu Chimp (5 Digits)
-                </div>
-                <div className="flex items-center gap-2">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-orange-400" /> Step 4: Peg Conversions (10x)
+                  <CheckCircle2 className="w-3.5 h-3.5 text-sky-400" /> Dual N-Back (N=2 / N=3 Focus)
                 </div>
               </div>
             </div>
             <button
-              onClick={() => handleLaunchStep('eidetic-matrix', { level: 4 })}
+              onClick={() => handleLaunchStep('ayumu-chimp', { digits: 7 })}
               className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black text-xs transition-all flex items-center justify-center gap-1.5 shadow-md cursor-pointer active:scale-98"
             >
-              <Play className="w-3.5 h-3.5 fill-slate-950" /> Start 3-Min Sprint
+              <Play className="w-3.5 h-3.5 fill-slate-950" /> Start 10-Min RAM Circuit
             </button>
           </div>
 
-          {/* Circuit 2: 7-Min Prefrontal Gym */}
-          <div className="bg-slate-900 border border-slate-800 hover:border-sky-500/50 rounded-2xl p-5 transition-all shadow-lg flex flex-col justify-between">
+          {/* Circuit 2: 20-Min Deep Loci Storage */}
+          <div className="bg-slate-900 border border-slate-800 hover:border-amber-400/50 rounded-2xl p-5 transition-all shadow-lg flex flex-col justify-between">
             <div>
               <div className="flex items-center justify-between mb-2">
-                <span className="text-[10px] font-mono font-bold uppercase px-2 py-0.5 rounded bg-sky-500/20 text-sky-300 border border-sky-500/40">
-                  🧠 7 Minutes
+                <span className="text-[10px] font-mono font-bold uppercase px-2 py-0.5 rounded bg-amber-400/20 text-amber-300 border border-amber-400/40">
+                  🏛️ 20 Minutes (70% Loci)
                 </span>
-                <span className="text-[11px] text-slate-400 font-bold">+200 XP</span>
+                <span className="text-[11px] text-slate-400 font-bold">+250 XP</span>
               </div>
-              <h4 className="text-base font-bold text-white mb-1">Prefrontal & Fluid IQ Gym</h4>
+              <h4 className="text-base font-bold text-white mb-1">Deep Loci Storage Session</h4>
               <p className="text-xs text-slate-400 mb-4 leading-relaxed">
-                Deep working memory boost: Dual N-Back (N=2/3) + Memory Palace Walkthrough + Spaced SM-2.
+                Dedicated Method of Loci journey: Walk villa stations with vivid multisensory anchorings.
               </p>
               <div className="space-y-1.5 mb-4 text-xs text-slate-300">
                 <div className="flex items-center gap-2">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-sky-400" /> Step 3: Dual N-Back (N=2 / 16 trials)
+                  <CheckCircle2 className="w-3.5 h-3.5 text-amber-300" /> 8-12 Loci Architectural Path
                 </div>
                 <div className="flex items-center gap-2">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-amber-400" /> Step 5: Palace Villa (6 Loci)
-                </div>
-                <div className="flex items-center gap-2">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-purple-400" /> Step 6: Spaced SM-2 Active Drill
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" /> Forward & Reverse Route Traversal
                 </div>
               </div>
             </div>
             <button
-              onClick={() => handleLaunchStep('dual-nback', { nBack: 2 })}
-              className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-sky-500 to-indigo-500 hover:from-sky-400 hover:to-indigo-400 text-white font-black text-xs transition-all flex items-center justify-center gap-1.5 shadow-md cursor-pointer active:scale-98"
+              onClick={() => handleLaunchStep('memory-palace')}
+              className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-amber-400 to-yellow-500 hover:from-amber-300 hover:to-yellow-400 text-slate-950 font-black text-xs transition-all flex items-center justify-center gap-1.5 shadow-md cursor-pointer active:scale-98"
             >
-              <Play className="w-3.5 h-3.5 fill-white" /> Start 7-Min Workout
+              <Play className="w-3.5 h-3.5 fill-slate-950" /> Start 20-Min Loci Circuit
             </button>
           </div>
 
-          {/* Circuit 3: 12-Min Full Circuit */}
-          <div className="bg-slate-900 border border-slate-800 hover:border-emerald-500/50 rounded-2xl p-5 transition-all shadow-lg flex flex-col justify-between">
+          {/* Circuit 3: 30-Min Master 30/70 Cycle */}
+          <div className="bg-slate-900 border border-slate-800 hover:border-cyan-500/50 rounded-2xl p-5 transition-all shadow-lg flex flex-col justify-between">
             <div>
               <div className="flex items-center justify-between mb-2">
-                <span className="text-[10px] font-mono font-bold uppercase px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
-                  🏆 12 Minutes
+                <span className="text-[10px] font-mono font-bold uppercase px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/40">
+                  🏆 30 Minutes
                 </span>
-                <span className="text-[11px] text-slate-400 font-bold">+350 XP</span>
+                <span className="text-[11px] text-slate-400 font-bold">+400 XP</span>
               </div>
-              <h4 className="text-base font-bold text-white mb-1">Grandmaster 6-Step Circuit</h4>
+              <h4 className="text-base font-bold text-white mb-1">Full 30/70 Micro-Block</h4>
               <p className="text-xs text-slate-400 mb-4 leading-relaxed">
-                The ultimate full-brain circuit: Complete all 6 disciplines sequentially with uninterrupted focus.
+                4.5m Ayumu + 4.5m Dual N-Back (9m RAM = 30%) + 21m Memory Palace (70% Storage).
               </p>
               <div className="space-y-1.5 mb-4 text-xs text-slate-300">
                 <div className="flex items-center gap-2">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" /> All 6 Steps In Sequence
+                  <CheckCircle2 className="w-3.5 h-3.5 text-cyan-400" /> Exact Mathematical 30/70 Proportions
                 </div>
                 <div className="flex items-center gap-2">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-cyan-400" /> Unrestricted Level Progression
-                </div>
-                <div className="flex items-center gap-2">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-indigo-400" /> Maximum Neuroplasticity ROI
+                  <CheckCircle2 className="w-3.5 h-3.5 text-amber-400" /> Seamless Prefrontal Activation
                 </div>
               </div>
             </div>
             <button
-              onClick={() => handleLaunchStep('eidetic-matrix')}
-              className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-400 hover:to-cyan-400 text-slate-950 font-black text-xs transition-all flex items-center justify-center gap-1.5 shadow-md cursor-pointer active:scale-98"
+              onClick={() => handleLaunchStep('ayumu-chimp', { digits: 7 })}
+              className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-cyan-500 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 text-white font-black text-xs transition-all flex items-center justify-center gap-1.5 shadow-md cursor-pointer active:scale-98"
             >
-              <Play className="w-3.5 h-3.5 fill-slate-950" /> Start Full 6-Step Circuit
+              <Play className="w-3.5 h-3.5 fill-white" /> Start 30-Min Circuit
             </button>
           </div>
         </div>
       </div>
 
-      {/* ALL 6 COGNITIVE STEPS: FREE TRAINING LABORATORY */}
+      {/* CORE 30/70 DISCIPLINES: NO DISTRACTIONS */}
       <div className="mb-8">
         <div className="flex items-center justify-between mb-4 px-1">
           <div>
             <h3 className="text-lg font-black text-white flex items-center gap-2">
               <Sliders className="w-5 h-5 text-cyan-400" />
-              Train All 6 Steps Freely • Custom Level Selectors
+              Core 30/70 Disciplines (Zero Distractions)
             </h3>
             <p className="text-xs text-slate-400">
-              Pick your exact target difficulty and practice with zero daily lockout:
+              Strictly focused on the 3 core pillars: 30% RAM (Ayumu + N-Back) & 70% Storage (Memory Palace):
             </p>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Step 1: Eidetic Matrix */}
-          <div className="bg-slate-900 border border-slate-800 hover:border-slate-700 rounded-2xl p-5 shadow-lg flex flex-col justify-between">
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-2">
-                  <div className="p-2 rounded-xl bg-cyan-500/20 text-cyan-400 border border-cyan-500/30">
-                    <Grid3X3 className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <span className="text-[10px] uppercase font-bold text-cyan-400 tracking-wider">Step 1 of 6</span>
-                    <h4 className="text-base font-bold text-white">Eidetic Matrix Recall</h4>
-                  </div>
-                </div>
-                <span className="text-[10px] px-2 py-0.5 rounded bg-slate-800 text-cyan-300 font-mono">
-                  Spatial Flash
-                </span>
-              </div>
-              <p className="text-xs text-slate-400 mb-3">
-                Train your retinal after-image on 3x3 to 6x6 grids with customizable target numbers.
-              </p>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
 
-              {/* Free Level Picker */}
-              <div className="bg-slate-950 p-3 rounded-xl border border-slate-800 mb-4">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-2">
-                  Select Training Level (Unlocked):
-                </span>
-                <div className="flex flex-wrap gap-1.5">
-                  {[1, 3, 5, 7, 9, 11, 14].map((lvl) => (
-                    <button
-                      key={lvl}
-                      onClick={() => setMatrixLevelChoice(lvl)}
-                      className={`px-2.5 py-1 rounded-lg text-xs font-mono font-bold transition-all cursor-pointer ${
-                        matrixLevelChoice === lvl
-                          ? 'bg-cyan-500 text-slate-950 shadow-sm'
-                          : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
-                      }`}
-                    >
-                      Lvl {lvl}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            <button
-              onClick={() => handleLaunchStep('eidetic-matrix', { level: matrixLevelChoice })}
-              className="w-full py-2.5 px-4 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs flex items-center justify-center gap-2 cursor-pointer active:scale-98 shadow-md"
-            >
-              <Play className="w-3.5 h-3.5 fill-white" />
-              Train Matrix at Level {matrixLevelChoice}
-            </button>
-          </div>
-
-          {/* Step 2: Ayumu Chimp Test */}
-          <div className="bg-slate-900 border border-slate-800 hover:border-slate-700 rounded-2xl p-5 shadow-lg flex flex-col justify-between">
+          {/* Pillar 1: Ayumu Chimp (15% RAM) */}
+          <div className="bg-slate-900 border border-slate-800 hover:border-amber-500/50 rounded-2xl p-5 shadow-lg flex flex-col justify-between">
             <div>
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
@@ -723,12 +662,12 @@ export const FreeTrainingView: React.FC<FreeTrainingViewProps> = ({
                     <Hash className="w-4 h-4" />
                   </div>
                   <div>
-                    <span className="text-[10px] uppercase font-bold text-amber-400 tracking-wider">Step 2 of 6</span>
-                    <h4 className="text-base font-bold text-white">Ayumu Iconic Sequence</h4>
+                    <span className="text-[10px] uppercase font-bold text-amber-400 tracking-wider">RAM Pillar (15%)</span>
+                    <h4 className="text-base font-bold text-white">Ayumu Iconic Flash</h4>
                   </div>
                 </div>
-                <span className="text-[10px] px-2 py-0.5 rounded bg-slate-800 text-amber-300 font-mono">
-                  Iconic Span
+                <span className="text-[10px] px-2 py-0.5 rounded bg-amber-950/80 text-amber-300 font-mono border border-amber-800/60">
+                  Target: 18m
                 </span>
               </div>
               <p className="text-xs text-slate-400 mb-3">
@@ -767,8 +706,8 @@ export const FreeTrainingView: React.FC<FreeTrainingViewProps> = ({
             </button>
           </div>
 
-          {/* Step 3: Dual N-Back */}
-          <div className="bg-slate-900 border border-slate-800 hover:border-slate-700 rounded-2xl p-5 shadow-lg flex flex-col justify-between">
+          {/* Pillar 2: Dual N-Back (15% RAM) */}
+          <div className="bg-slate-900 border border-slate-800 hover:border-sky-500/50 rounded-2xl p-5 shadow-lg flex flex-col justify-between">
             <div>
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
@@ -776,12 +715,12 @@ export const FreeTrainingView: React.FC<FreeTrainingViewProps> = ({
                     <Brain className="w-4 h-4" />
                   </div>
                   <div>
-                    <span className="text-[10px] uppercase font-bold text-sky-400 tracking-wider">Step 3 of 6</span>
+                    <span className="text-[10px] uppercase font-bold text-sky-400 tracking-wider">RAM Pillar (15%)</span>
                     <h4 className="text-base font-bold text-white">Dual N-Back Working Memory</h4>
                   </div>
                 </div>
-                <span className="text-[10px] px-2 py-0.5 rounded bg-slate-800 text-sky-300 font-mono">
-                  Fluid IQ
+                <span className="text-[10px] px-2 py-0.5 rounded bg-sky-950/80 text-sky-300 font-mono border border-sky-800/60">
+                  Target: 18m
                 </span>
               </div>
               <p className="text-xs text-slate-400 mb-3">
@@ -820,79 +759,21 @@ export const FreeTrainingView: React.FC<FreeTrainingViewProps> = ({
             </button>
           </div>
 
-          {/* Step 4: Major Pegs */}
-          <div className="bg-slate-900 border border-slate-800 hover:border-slate-700 rounded-2xl p-5 shadow-lg flex flex-col justify-between">
+          {/* Pillar 3: Memory Palace (70% Storage) */}
+          <div className="bg-slate-900 border border-slate-800 hover:border-amber-400/50 rounded-2xl p-5 shadow-lg flex flex-col justify-between">
             <div>
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
-                  <div className="p-2 rounded-xl bg-orange-500/20 text-orange-400 border border-orange-500/30">
-                    <Zap className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <span className="text-[10px] uppercase font-bold text-orange-400 tracking-wider">Step 4 of 6</span>
-                    <h4 className="text-base font-bold text-white">Mnemonic Major Pegs</h4>
-                  </div>
-                </div>
-                <span className="text-[10px] px-2 py-0.5 rounded bg-slate-800 text-orange-300 font-mono">
-                  Major System
-                </span>
-              </div>
-              <p className="text-xs text-slate-400 mb-3">
-                Convert numbers to vivid phonetic mental imagery (1=T/D, 4=R, 0=S/Z) at lightning reflex speed.
-              </p>
-
-              {/* Free Peg Range Picker */}
-              <div className="bg-slate-950 p-3 rounded-xl border border-slate-800 mb-4">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-2">
-                  Select Peg Library Range:
-                </span>
-                <div className="flex flex-wrap gap-1.5">
-                  {[
-                    { id: '0-9', label: 'Single (0–9)' },
-                    { id: '00-30', label: 'Teens (00–30)' },
-                    { id: '00-70', label: 'Mid (00–70)' },
-                    { id: '00-99', label: 'All 00–99' },
-                  ].map((item) => (
-                    <button
-                      key={item.id}
-                      onClick={() => setPegRangeChoice(item.id as any)}
-                      className={`px-2.5 py-1 rounded-lg text-xs font-mono font-bold transition-all cursor-pointer ${
-                        pegRangeChoice === item.id
-                          ? 'bg-orange-500 text-slate-950 shadow-sm'
-                          : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
-                      }`}
-                    >
-                      {item.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            <button
-              onClick={() => handleLaunchStep('mnemonic-pegs')}
-              className="w-full py-2.5 px-4 rounded-xl bg-orange-600 hover:bg-orange-500 text-white font-bold text-xs flex items-center justify-center gap-2 cursor-pointer active:scale-98 shadow-md"
-            >
-              <Play className="w-3.5 h-3.5 fill-white" />
-              Train Major Pegs Speed Drills
-            </button>
-          </div>
-
-          {/* Step 5: Memory Palace */}
-          <div className="bg-slate-900 border border-slate-800 hover:border-slate-700 rounded-2xl p-5 shadow-lg flex flex-col justify-between">
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-2">
-                  <div className="p-2 rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/30">
+                  <div className="p-2 rounded-xl bg-amber-500/20 text-amber-300 border border-amber-500/30">
                     <Castle className="w-4 h-4" />
                   </div>
                   <div>
-                    <span className="text-[10px] uppercase font-bold text-amber-400 tracking-wider">Step 5 of 6</span>
+                    <span className="text-[10px] uppercase font-bold text-amber-300 tracking-wider">Storage Pillar (70%)</span>
                     <h4 className="text-base font-bold text-white">Memory Palace Villa</h4>
                   </div>
                 </div>
-                <span className="text-[10px] px-2 py-0.5 rounded bg-slate-800 text-amber-300 font-mono">
-                  Method of Loci
+                <span className="text-[10px] px-2 py-0.5 rounded bg-amber-950/80 text-amber-300 font-mono border border-amber-800/60">
+                  Target: 84m
                 </span>
               </div>
               <p className="text-xs text-slate-400 mb-3">
@@ -930,79 +811,41 @@ export const FreeTrainingView: React.FC<FreeTrainingViewProps> = ({
               Train Memory Palace ({palaceLociChoice} Loci)
             </button>
           </div>
-
-          {/* Step 6: Spaced Repetition SM-2 */}
-          <div className="bg-slate-900 border border-slate-800 hover:border-slate-700 rounded-2xl p-5 shadow-lg flex flex-col justify-between">
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-2">
-                  <div className="p-2 rounded-xl bg-purple-500/20 text-purple-400 border border-purple-500/30">
-                    <Layers className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <span className="text-[10px] uppercase font-bold text-purple-400 tracking-wider">Step 6 of 6</span>
-                    <h4 className="text-base font-bold text-white">Spaced Repetition SM-2</h4>
-                  </div>
-                </div>
-                <span className="text-[10px] px-2 py-0.5 rounded bg-slate-800 text-purple-300 font-mono">
-                  SuperMemo
-                </span>
-              </div>
-              <p className="text-xs text-slate-400 mb-3">
-                Active recall algorithms calculating optimal review intervals to guarantee permanent memory consolidation.
-              </p>
-
-              {/* Free Card Review Info */}
-              <div className="bg-slate-950 p-3 rounded-xl border border-slate-800 mb-4">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
-                  Card Library Mode:
-                </span>
-                <span className="text-xs text-purple-300 font-medium">
-                  Unlimited Continuous Flashcards Review
-                </span>
-              </div>
-            </div>
-
-            <button
-              onClick={() => handleLaunchStep('spaced-repetition')}
-              className="w-full py-2.5 px-4 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs flex items-center justify-center gap-2 cursor-pointer active:scale-98 shadow-md"
-            >
-              <Play className="w-3.5 h-3.5 fill-white" />
-              Train Spaced SM-2 Cards
-            </button>
-          </div>
         </div>
       </div>
 
-      {/* Bonus Labs: Symbol Detective & Daily PQ Test */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
-        <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl flex items-center justify-between">
-          <div>
-            <span className="text-[10px] uppercase font-bold text-pink-400 tracking-wider">Bonus Vision Lab</span>
-            <h4 className="text-sm font-bold text-white">Symbol Detective Snapshot</h4>
-            <p className="text-xs text-slate-400 mt-0.5">Rapid dual-channel shape & color extraction</p>
+      {/* Real-World Physical Practice Gateway (2 Hours) */}
+      <div className="bg-gradient-to-r from-slate-900 via-slate-900 to-indigo-950/60 border border-indigo-800/50 rounded-2xl p-5 mb-8 shadow-xl flex flex-col md:flex-row items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <div className="p-3 rounded-xl bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 shrink-0">
+            <Castle className="w-6 h-6 text-indigo-300" />
           </div>
-          <button
-            onClick={() => handleLaunchStep('symbol-detective')}
-            className="py-2 px-3.5 rounded-xl bg-pink-600 hover:bg-pink-500 text-white font-bold text-xs cursor-pointer shadow-sm transition-all"
-          >
-            Launch Lab
-          </button>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] uppercase font-bold text-indigo-300 bg-indigo-950/80 px-2 py-0.5 rounded border border-indigo-800/60">
+                2 Hours Physical Practice
+              </span>
+              <span className="text-[10px] text-slate-400 font-mono">Real-World Scouting & Traversal</span>
+            </div>
+            <h4 className="text-base font-bold text-white mt-1">
+              Method of Loci Real-Life Architecture (120 Mins)
+            </h4>
+            <p className="text-xs text-slate-400 mt-0.5 max-w-xl">
+              Physical walks through real buildings, libraries, museums, and streets. Chart 20+ permanent physical landmarks and drill reverse mental traversals.
+            </p>
+          </div>
         </div>
 
-        <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl flex items-center justify-between">
-          <div>
-            <span className="text-[10px] uppercase font-bold text-emerald-400 tracking-wider">Comprehensive Test</span>
-            <h4 className="text-sm font-bold text-white">Full Photographic Quotient (PQ)</h4>
-            <p className="text-xs text-slate-400 mt-0.5">Benchmark your overall mental quotient</p>
-          </div>
-          <button
-            onClick={() => handleLaunchStep('daily-workout')}
-            className="py-2 px-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold text-xs cursor-pointer shadow-sm transition-all"
-          >
-            Take Test
-          </button>
-        </div>
+        <button
+          onClick={() => {
+            sound.playClick();
+            onNavigateMode('four-hour-plan');
+          }}
+          className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs flex items-center gap-2 shrink-0 cursor-pointer shadow-md transition-all active:scale-98"
+        >
+          Open 4-Hour Checklist & Physical Timer
+          <ArrowRight className="w-4 h-4" />
+        </button>
       </div>
 
       {/* Doom Scrolling Screen Time Impact Calculator */}
