@@ -42,6 +42,8 @@ import {
   ChevronRight,
   Dna,
   Target,
+  Compass,
+  MapPin,
 } from 'lucide-react';
 
 interface FourHourPlanViewProps {
@@ -295,9 +297,13 @@ export const FourHourPlanView: React.FC<FourHourPlanViewProps> = ({
     {
       month: 1,
       quarter: 'Q1: Neural Baseline',
-      title: 'Month 1: Saccadic Calibration & Resistance',
+      tierBadge: 'Top 15% Discipline',
+      title: 'Month 1: Saccadic Calibration & Distraction Purge',
       hours: 'Hours 1–120',
       tagline: 'Neuro-Metabolic Shock & Baseline Conditioning',
+      ramTarget: '30% RAM: Dual N-Back N=2 baseline, Ayumu 5 digits @ 500ms',
+      palaceTarget: '70% Palace: Major System 00–49, 40 home loci indexed',
+      physicalTarget: 'Physical: 60h walking home/office rooms, placing 40 tangible anchors',
       observation:
         'Involuntary eye darting drops by 70%. Saccadic eye movements stabilize, and peripheral visual clutter is filtered out at the retinal ganglion cell level.',
       studying:
@@ -313,9 +319,13 @@ export const FourHourPlanView: React.FC<FourHourPlanViewProps> = ({
     {
       month: 2,
       quarter: 'Q1: Neural Baseline',
+      tierBadge: 'Top 5% Memory Athlete',
       title: 'Month 2: Subitizing Breakthrough & Parallel Intake',
       hours: 'Hours 121–240',
       tagline: 'Visual Grouping & Iconic Flash Acceleration',
+      ramTarget: '30% RAM: N=2 Flawless / N=3 Intro, Ayumu 6 digits @ 400ms',
+      palaceTarget: '70% Palace: Full 00–99 Major System, 80 loci across 2 palaces',
+      physicalTarget: 'Physical: 120h walking neighborhood streets & local markets',
       observation:
         'Objects register in parallel visual clusters rather than serial counting. Subitizing threshold expands from 4 to 8 elements in under 200 milliseconds.',
       studying:
@@ -331,16 +341,20 @@ export const FourHourPlanView: React.FC<FourHourPlanViewProps> = ({
     {
       month: 3,
       quarter: 'Q1: Neural Baseline',
-      title: 'Month 3: Working Memory Buffer Expansion',
+      tierBadge: '🎯 TOP 0.1% (1 in 1,000 Milestone)',
+      title: 'Month 3: TOP 0.1% (1 in 1,000) Unlocked in 90 Days!',
       hours: 'Hours 241–360',
-      tagline: 'Dual N-Back 4-Back & Interference Resistance',
+      tagline: 'Working Memory Quadrupling & 1-in-1,000 Milestone',
+      ramTarget: '30% RAM: Solid N=3 (85%+), Ayumu 7 digits @ 300ms chimpanzee flash',
+      palaceTarget: '70% Palace: 150+ Loci across 4 distinct physical palaces, sub-second encoding',
+      physicalTarget: 'Physical: 180h real-world mapping; municipal libraries, parks & campus routes',
       observation:
         'Dense visual matrices (codebases, financial sheets, architecture plans) index automatically without eye strain or mental fatigue.',
       studying:
         'Multi-variable logic, complex equations, or nested legal structures remain active in mental RAM without needing scratch paper or re-reading.',
       communication:
-        'Exact verbal recall. You can quote back previous statements verbatim and immediately identify logical inconsistencies in complex discussions.',
-      vibe: 'Deep emotional poise; cognitive overload anxiety is permanently replaced with methodical confidence.',
+        'Exact verbal recall. You deliver 45-minute technical lectures or pitches without notes by walking internal 3D memory palaces.',
+      vibe: 'Top 0.1% mental athlete; cognitive overload anxiety is permanently replaced with methodical confidence.',
       neuroMechanism:
         'Dorsolateral Prefrontal Cortex (DLPFC) dopamine D1 receptor density increase and working memory buffer myelination.',
       milestoneQuote:
@@ -349,13 +363,17 @@ export const FourHourPlanView: React.FC<FourHourPlanViewProps> = ({
     {
       month: 4,
       quarter: 'Q2: Architectural Mastery',
+      tierBadge: 'Top 0.08% Global Tier',
       title: 'Month 4: Total Recall Architecture & Structural Encoding',
       hours: 'Hours 361–480',
       tagline: 'Memory Palace Villa & Phonetic Peg Mastery',
+      ramTarget: '30% RAM: N=3 / N=4 Transition, Ayumu 8 digits @ 250ms',
+      palaceTarget: '70% Palace: 220+ Loci, sub-second 2-digit number encoding',
+      physicalTarget: 'Physical: 240h physical exploration; multi-floor complexes and museums',
       observation:
         'Hyper-acute situational awareness: immediate visual indexing of physical spaces, entrance/exit routes, lighting shifts, and spatial geometries.',
       studying:
-        'Ability to deliver 45-minute technical lectures or client pitches with zero notes by walking through internal 3D memory palaces.',
+        'Ability to assimilate dense technical literature and architectural diagrams into dedicated spatial wings permanently.',
       communication:
         'Heightened social intelligence; changes in vocal cadence, micro-inflections, and subtle emotional tension become instantly readable.',
       vibe: 'The Living Archive; structured, reliable, and encyclopedic in immediate recall.',
@@ -367,9 +385,13 @@ export const FourHourPlanView: React.FC<FourHourPlanViewProps> = ({
     {
       month: 5,
       quarter: 'Q2: Architectural Mastery',
+      tierBadge: 'Top 0.04% Global Tier',
       title: 'Month 5: Visual Chunking & Intuitive Synthesis',
       hours: 'Hours 481–600',
       tagline: 'Dynamic Mental 3D Modeling & Problem Solving',
+      ramTarget: '30% RAM: Consistent N=4, Ayumu 8 digits @ 220ms',
+      palaceTarget: '70% Palace: 300+ Loci, foreign language keyword association',
+      physicalTarget: 'Physical: 300h physical exploration; botanical gardens, subway lines, highways',
       observation:
         'Complex architectural systems, financial charts, and code bases reveal underlying anomalies and structural flaws in seconds.',
       studying:
@@ -385,16 +407,20 @@ export const FourHourPlanView: React.FC<FourHourPlanViewProps> = ({
     {
       month: 6,
       quarter: 'Q2: Architectural Mastery',
+      tierBadge: 'Top 0.02% Outlier (1 in 5,000)',
       title: 'Month 6: The Transformed Baseline (Cognitive Outlier)',
       hours: 'Hours 601–720',
       tagline: 'Permanent Myelination & Superhuman Baseline',
+      ramTarget: '30% RAM: High-accuracy N=4, Ayumu 9 digits in 210ms chimpanzee flash',
+      palaceTarget: '70% Palace: 380+ Loci across 10 permanent physical environments',
+      physicalTarget: 'Physical: 360h physical practice; full outdoor trail and transit systems',
       observation:
         'World-class photographic intake, instantaneous anomaly detection, and crystal-clear panoramic gaze across wide visual fields.',
       studying:
         'Learning curves for novel, intricate domains compress from months down to weeks; rapid assimilation of dense technical literature.',
       communication:
         'Magnetic presence, airtight dialectic structure, and extraordinary working memory retention during high-stakes negotiations.',
-      vibe: 'Top 0.1% mental athlete; unflappable clarity, laser focus, and intellectual dominance.',
+      vibe: 'Top 0.02% mental athlete; unflappable clarity, laser focus, and intellectual dominance.',
       neuroMechanism:
         'Oligodendrocyte-driven myelination of the Superior Longitudinal Fasciculus, locking in high-speed neural transmission permanently.',
       milestoneQuote:
@@ -403,9 +429,13 @@ export const FourHourPlanView: React.FC<FourHourPlanViewProps> = ({
     {
       month: 7,
       quarter: 'Q3: Deep Automaticity',
+      tierBadge: 'Top 0.015% Global Tier',
       title: 'Month 7: Neuro-Synaptic Consolidation & Hyper-Fluidity',
       hours: 'Hours 721–840',
       tagline: 'Automaticity of Working Memory & Zero-Latency Retrieval',
+      ramTarget: '30% RAM: N=4 / N=5 Transition, Ayumu 9 digits @ 200ms',
+      palaceTarget: '70% Palace: 450+ Loci, rapid 3-digit phonetic chunking',
+      physicalTarget: 'Physical: 420h real-world mapping; commercial business districts & universities',
       observation:
         'Subconscious visual scanning runs non-stop in the background; you spot physical misplaced items, typographical errors, or visual anomalies with zero conscious effort.',
       studying:
@@ -421,9 +451,13 @@ export const FourHourPlanView: React.FC<FourHourPlanViewProps> = ({
     {
       month: 8,
       quarter: 'Q3: Deep Automaticity',
-      title: 'Month 8: Cognitive Immunity & Deep Interference Filtering',
+      tierBadge: '⚡ TOP 0.01% (1 in 10,000 Breakthrough)',
+      title: 'Month 8: Cognitive Immunity & TOP 0.01% Breakthrough',
       hours: 'Hours 841–960',
       tagline: 'Prefrontal Cortex Hegemony & Emotional Invariance',
+      ramTarget: '30% RAM: N=5 Breakthrough, Ayumu 9 digits in 180ms flash',
+      palaceTarget: '70% Palace: 520+ Loci network, multi-tier nested palace wings',
+      physicalTarget: 'Physical: 480h physical navigation; architecture & landmark anchoring',
       observation:
         'Absolute gaze lock and visual impulse control. Distractions, sudden movement, and notifications trigger zero involuntary orienting reflexes.',
       studying:
@@ -439,9 +473,13 @@ export const FourHourPlanView: React.FC<FourHourPlanViewProps> = ({
     {
       month: 9,
       quarter: 'Q3: Deep Automaticity',
+      tierBadge: '⚡ TOP 0.01% (1 in 10,000 Consolidated)',
       title: 'Month 9: Polymathic Grid Architecture & Living Encyclopedias',
       hours: 'Hours 961–1,080',
       tagline: 'Multi-Tiered Memory Palaces & Domain Cross-Pollination',
+      ramTarget: '30% RAM: N=5 High Accuracy (85%+), Ayumu 9 digits in 170ms',
+      palaceTarget: '70% Palace: 600+ Loci, 3-digit PAO system fully active',
+      physicalTarget: 'Physical: 540h physical practice; city-wide landmark grids anchored',
       observation:
         'Photographic blueprint retention: complex schematics, organizational hierarchies, and technical maps are permanently mapped in 1–2 sweeps.',
       studying:
@@ -457,9 +495,13 @@ export const FourHourPlanView: React.FC<FourHourPlanViewProps> = ({
     {
       month: 10,
       quarter: 'Q4: Sovereign Outlier',
+      tierBadge: 'Top 0.008% Global Tier',
       title: 'Month 10: Iconic Flash Mastery & Micro-Temporal Precision',
       hours: 'Hours 1,081–1,200',
       tagline: 'Millisecond Visual Slicing & Cognitive Overclocking',
+      ramTarget: '30% RAM: N=5 / N=6 Transition, Ayumu 9 digits in 160ms',
+      palaceTarget: '70% Palace: 680+ Loci, instantaneous spatial bookmarking',
+      physicalTarget: 'Physical: 600h physical exploration; multi-city landmark travel palacing',
       observation:
         'Subjective time dilation during fast visual events; micro-expressions, facial flickers, and rapid environmental shifts are parsed in slow motion.',
       studying:
@@ -475,9 +517,13 @@ export const FourHourPlanView: React.FC<FourHourPlanViewProps> = ({
     {
       month: 11,
       quarter: 'Q4: Sovereign Outlier',
+      tierBadge: 'Top 0.006% Global Tier',
       title: 'Month 11: Permanent Cortical Remodeling & Cognitive Mastery',
       hours: 'Hours 1,201–1,320',
       tagline: 'Hyper-Thickened Prefrontal Myelin & Structural Plasticity',
+      ramTarget: '30% RAM: Consistent N=6, Ayumu 9 digits in 150ms',
+      palaceTarget: '70% Palace: 750+ Loci, entire technical dictionaries memorized',
+      physicalTarget: 'Physical: 660h physical practice; complete personal life index mapped',
       observation:
         'Panoramic multi-sensory synthesis: visual, auditory, and spatial inputs form a seamless, high-definition real-time model of your surroundings.',
       studying:
@@ -493,9 +539,13 @@ export const FourHourPlanView: React.FC<FourHourPlanViewProps> = ({
     {
       month: 12,
       quarter: 'Q4: Sovereign Outlier',
+      tierBadge: '👑 TOP 0.005% GLOBAL (1 in 20,000 Grandmaster)',
       title: 'Month 12: The Sovereign Mind (1,440 Hours of Neuro-Transformation)',
       hours: 'Hours 1,321–1,440+',
       tagline: '1,440 Hours of Deliberate Neuro-Evolution Complete',
+      ramTarget: '30% RAM: N=6 Peak RAM, photographic millisecond capture',
+      palaceTarget: '70% Palace: 800+ Master Loci Network, lifetime archival structure',
+      physicalTarget: 'Physical: 720h real-world physical navigation; entire urban maps anchored',
       observation:
         'True photographic intake and permanent spatial architecture. Visual indexing is effortless, instinctive, and indestructible.',
       studying:
@@ -887,12 +937,15 @@ export const FourHourPlanView: React.FC<FourHourPlanViewProps> = ({
                   {/* Header info */}
                   <div className="flex flex-wrap items-center justify-between gap-3 mb-4 relative z-10">
                     <div>
-                      <div className="flex items-center gap-2 mb-1">
+                      <div className="flex items-center gap-2 mb-1 flex-wrap">
                         <span className="text-[10px] font-mono font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-cyan-950 text-cyan-300 border border-cyan-800">
                           {activeData.quarter}
                         </span>
                         <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 border border-slate-700">
                           {activeData.hours} Cumulative
+                        </span>
+                        <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40">
+                          {activeData.tierBadge}
                         </span>
                       </div>
                       <h4 className="text-lg sm:text-xl font-black text-white">
@@ -903,6 +956,36 @@ export const FourHourPlanView: React.FC<FourHourPlanViewProps> = ({
                     <span className="text-xs font-mono font-bold text-cyan-300 bg-cyan-950/80 border border-cyan-800 px-3 py-1.5 rounded-xl shadow">
                       🎯 {activeData.tagline}
                     </span>
+                  </div>
+
+                  {/* 30/70 Plan & Physical Real-Life Strip */}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4 text-xs font-mono relative z-10">
+                    <div className="bg-slate-900/90 border border-sky-500/30 p-2.5 rounded-xl">
+                      <span className="text-[10px] text-sky-400 block uppercase font-sans font-bold flex items-center gap-1">
+                        <Brain className="w-3 h-3" /> 30% Working RAM
+                      </span>
+                      <span className="text-sky-200 text-[11px] font-medium leading-tight block mt-0.5">
+                        {activeData.ramTarget}
+                      </span>
+                    </div>
+
+                    <div className="bg-slate-900/90 border border-amber-500/30 p-2.5 rounded-xl">
+                      <span className="text-[10px] text-amber-400 block uppercase font-sans font-bold flex items-center gap-1">
+                        <Compass className="w-3 h-3" /> 70% Palace Storage
+                      </span>
+                      <span className="text-amber-200 text-[11px] font-medium leading-tight block mt-0.5">
+                        {activeData.palaceTarget}
+                      </span>
+                    </div>
+
+                    <div className="bg-slate-900/90 border border-emerald-500/30 p-2.5 rounded-xl">
+                      <span className="text-[10px] text-emerald-400 block uppercase font-sans font-bold flex items-center gap-1">
+                        <MapPin className="w-3 h-3" /> 2h Physical Real-Life
+                      </span>
+                      <span className="text-emerald-200 text-[11px] font-medium leading-tight block mt-0.5">
+                        {activeData.physicalTarget}
+                      </span>
+                    </div>
                   </div>
 
                   {/* 4 Core Pillars */}

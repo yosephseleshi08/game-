@@ -1,17 +1,37 @@
 import React, { useState } from 'react';
-import { UserStats } from '../types';
-import { MASTER_RANKS, getRankForXp } from '../utils/storage';
+import { UserStats, FourHourPlanState, FreeTrainingSessionStats, DailyProtocolState } from '../types';
+import { MASTER_RANKS, getRankForXp, loadFreeTrainingStats } from '../utils/storage';
+import { loadFourHourPlan } from '../utils/fourHourPlan';
 import { ProgressHistoryView } from './ProgressHistoryView';
-import { Award, Zap, Flame, Target, Trophy, Clock, CheckCircle2, TrendingUp, BarChart3, LineChart as LineChartIcon } from 'lucide-react';
+import { ContributionHeatmap } from './ContributionHeatmap';
+import { Award, Zap, Flame, Target, Trophy, Clock, CheckCircle2, TrendingUp, BarChart3, LineChart as LineChartIcon, Calendar } from 'lucide-react';
 
 interface StatsDashboardProps {
   stats: UserStats;
   onResetStats?: () => void;
+  fourHourPlan?: FourHourPlanState;
+  freeTrainingStats?: FreeTrainingSessionStats;
+  protocol?: DailyProtocolState;
+  cloudSyncStatus?: 'synced' | 'syncing' | 'offline' | 'error';
+  lastSyncedTime?: Date | null;
+  onTriggerSync?: () => Promise<void> | void;
 }
 
-export const StatsDashboard: React.FC<StatsDashboardProps> = ({ stats }) => {
-  const [activeTab, setActiveTab] = useState<'overview' | 'history'>('history');
+export const StatsDashboard: React.FC<StatsDashboardProps> = ({
+  stats,
+  fourHourPlan: propFourHourPlan,
+  freeTrainingStats: propFreeTrainingStats,
+  protocol,
+  cloudSyncStatus = 'synced',
+  lastSyncedTime,
+  onTriggerSync,
+}) => {
+  const [activeTab, setActiveTab] = useState<'heatmap' | 'history' | 'overview'>('heatmap');
   const { currentRank, nextRank, progressPercent } = getRankForXp(stats.xp);
+
+  // Fallback to loaded storage if not passed directly via props
+  const resolvedFourHourPlan = propFourHourPlan || loadFourHourPlan();
+  const resolvedFreeTrainingStats = propFreeTrainingStats || loadFreeTrainingStats();
 
   const accuracy =
     stats.totalAttempts > 0
@@ -47,10 +67,21 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({ stats }) => {
       </div>
 
       {/* Tabs Header */}
-      <div className="flex items-center gap-2 mb-6 border-b border-slate-800 pb-2">
+      <div className="flex items-center gap-2 mb-6 border-b border-slate-800 pb-2 overflow-x-auto">
+        <button
+          onClick={() => setActiveTab('heatmap')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 ${
+            activeTab === 'heatmap'
+              ? 'bg-cyan-500 text-slate-950 shadow-md shadow-cyan-500/20'
+              : 'text-slate-400 hover:text-white bg-slate-900/60 hover:bg-slate-900 border border-slate-800'
+          }`}
+        >
+          <Calendar className="w-4 h-4" />
+          12-Month Habit Heatmap & Sync
+        </button>
         <button
           onClick={() => setActiveTab('history')}
-          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 ${
             activeTab === 'history'
               ? 'bg-cyan-500 text-slate-950 shadow-md shadow-cyan-500/20'
               : 'text-slate-400 hover:text-white bg-slate-900/60 hover:bg-slate-900 border border-slate-800'
@@ -61,7 +92,7 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({ stats }) => {
         </button>
         <button
           onClick={() => setActiveTab('overview')}
-          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 ${
             activeTab === 'overview'
               ? 'bg-cyan-500 text-slate-950 shadow-md shadow-cyan-500/20'
               : 'text-slate-400 hover:text-white bg-slate-900/60 hover:bg-slate-900 border border-slate-800'
@@ -72,10 +103,23 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({ stats }) => {
         </button>
       </div>
 
-      {/* Tab 1: Progress History View (Charts & Trend Analysis) */}
+      {/* Tab 1: 12-Month Activity Heatmap */}
+      {activeTab === 'heatmap' && (
+        <ContributionHeatmap
+          stats={stats}
+          fourHourPlan={resolvedFourHourPlan}
+          freeTrainingStats={resolvedFreeTrainingStats}
+          protocol={protocol}
+          cloudSyncStatus={cloudSyncStatus}
+          lastSyncedTime={lastSyncedTime}
+          onTriggerSync={onTriggerSync}
+        />
+      )}
+
+      {/* Tab 2: Progress History View (Charts & Trend Analysis) */}
       {activeTab === 'history' && <ProgressHistoryView stats={stats} />}
 
-      {/* Tab 2: Overview & Mastery Ranks */}
+      {/* Tab 3: Overview & Mastery Ranks */}
       {activeTab === 'overview' && (
         <div className="space-y-6 animate-in fade-in duration-200">
           {/* Primary KPI Grid */}

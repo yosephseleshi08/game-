@@ -1216,7 +1216,17 @@ export default function App() {
           />
         )}
 
-        {activeMode === 'stats' && <StatsDashboard stats={stats} />}
+        {activeMode === 'stats' && (
+          <StatsDashboard
+            stats={stats}
+            fourHourPlan={loadFourHourPlan()}
+            freeTrainingStats={freeTrainingStats}
+            protocol={protocol}
+            cloudSyncStatus={cloudSyncStatus}
+            lastSyncedTime={lastSyncedTime}
+            onTriggerSync={handleForceSync}
+          />
+        )}
       </main>
 
       {/* 365-Day Flash Time Plan & Speed Lock Modal */}
