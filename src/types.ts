@@ -251,6 +251,8 @@ export interface SpacedCard {
 export type SymbolShape = 'star' | 'circle' | 'square' | 'triangle' | 'heart' | 'diamond' | 'shield' | 'zap';
 export type SymbolColor = 'red' | 'blue' | 'emerald' | 'amber' | 'purple' | 'cyan';
 
+export type DetectiveLabMode = 'matrix-binding' | 'anomaly-search' | 'change-blindness' | 'feature-counter';
+
 export interface DetectiveItem {
   id: number;
   row: number;
@@ -258,6 +260,8 @@ export interface DetectiveItem {
   shape: SymbolShape;
   color: SymbolColor;
   label?: string;
+  isAnomaly?: boolean;
+  hasChanged?: boolean;
 }
 
 export interface DetectiveQuestion {
@@ -266,7 +270,51 @@ export interface DetectiveQuestion {
   correctAnswer: string;
   targetRow?: number;
   targetCol?: number;
-  questionType: 'color' | 'shape' | 'count' | 'position';
+  targetShape?: SymbolShape;
+  targetColor?: SymbolColor;
+  questionType: 'color' | 'shape' | 'count' | 'position' | 'anomaly' | 'change';
+  explanation?: string;
+}
+
+// Athlete Archetype / "Type of Guy" Persona
+export interface AthleteArchetype {
+  id: string;
+  title: string;
+  subtitle: string;
+  badge: string;
+  emoji: string;
+  auraGradient: string;
+  borderAccent: string;
+  textAccent: string;
+  bgGlow: string;
+  tierName: string;
+  tierLevel: number;
+  allTimeHours: number;
+  allTimeMinutes: number;
+  allTimeSeconds: number;
+  sessionsCount: number;
+  primaryDominance: string;
+  radarScores: {
+    focusStamina: number; // 0-100
+    shutterSpeed: number; // 0-100
+    ramBuffer: number;    // 0-100
+    spatialMapping: number; // 0-100
+    ironDiscipline: number; // 0-100
+  };
+  traits: {
+    naturalHabitat: string;
+    cognitiveSuperpower: string;
+    redFlag: string;
+    lifeMotto: string;
+    quirkyFact: string;
+  };
+  nextMilestone: {
+    targetLabel: string;
+    targetMinutes: number;
+    minutesRemaining: number;
+    progressPercent: number;
+  };
+  shareText: string;
 }
 
 // Daily Protocol & 12 AM (Midnight) Lockout Tracker

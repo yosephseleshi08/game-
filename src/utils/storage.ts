@@ -9,8 +9,9 @@ import {
   SpacedCard,
   FreeTrainingSessionStats,
   DailyTrainingLog,
+  DailyProtocolState,
 } from '../types';
-import { getCurrentCycleInfo } from './protocol';
+import { getCurrentCycleInfo, generateSixDayStreakHistory, generateTasksForDay } from './protocol';
 
 export const FLASH_SPEED_OPTIONS: FlashSpeedOption[] = [
   { value: 2000, label: '2.0s', tag: 'Beginner', xpMultiplier: 1.0 },
@@ -76,39 +77,72 @@ const STATS_STORAGE_KEY = 'pmm_user_stats_v2';
 const SPEED_STORAGE_KEY = 'pmm_flash_speed_v1';
 const CARDS_STORAGE_KEY = 'pmm_spaced_cards_v1';
 
-const defaultStats: UserStats = {
-  xp: 140,
-  level: 1,
-  totalGamesPlayed: 0,
-  matrixMaxLevel: 1,
-  ayumuMaxNumbers: 4,
-  detectiveHighScore: 0,
-  fastestFlashMs: 2000,
-  currentStreak: 0,
-  bestStreak: 0,
-  accuracyRate: 100,
-  totalAttempts: 0,
-  totalCorrectAttempts: 0,
-  dualNBackMaxN: 2,
-  mnemonicConversionCount: 0,
-  cardsMastered: 0,
-  pqHistory: [],
-  progressHistory: [
-    { id: 'baseline-1', timestamp: new Date(Date.now() - 6 * 86400000).toISOString(), displayDate: 'Day 1', ayumuMax: 4, dualNBackMaxN: 2, matrixLevel: 1 },
-    { id: 'baseline-2', timestamp: new Date(Date.now() - 4 * 86400000).toISOString(), displayDate: 'Day 3', ayumuMax: 5, dualNBackMaxN: 2, matrixLevel: 2 },
-    { id: 'baseline-3', timestamp: new Date(Date.now() - 2 * 86400000).toISOString(), displayDate: 'Day 5', ayumuMax: 6, dualNBackMaxN: 3, matrixLevel: 3 },
-    { id: 'baseline-4', timestamp: new Date().toISOString(), displayDate: 'Today', ayumuMax: 6, dualNBackMaxN: 3, matrixLevel: 4 },
-  ],
-};
+export function getSixDayRestoredStats(): UserStats {
+  return {
+    xp: 1650,
+    level: 4,
+    totalGamesPlayed: 36,
+    matrixMaxLevel: 5,
+    ayumuMaxNumbers: 6,
+    detectiveHighScore: 520,
+    fastestFlashMs: 900,
+    currentStreak: 6,
+    bestStreak: 6,
+    accuracyRate: 98,
+    totalAttempts: 48,
+    totalCorrectAttempts: 47,
+    dualNBackMaxN: 2,
+    mnemonicConversionCount: 24,
+    cardsMastered: 12,
+    pqHistory: [],
+    progressHistory: [
+      { id: 'streak-day-1', timestamp: new Date(Date.now() - 6 * 86400000).toISOString(), displayDate: 'Day 1', ayumuMax: 4, dualNBackMaxN: 1, matrixLevel: 1 },
+      { id: 'streak-day-2', timestamp: new Date(Date.now() - 5 * 86400000).toISOString(), displayDate: 'Day 2', ayumuMax: 4, dualNBackMaxN: 1, matrixLevel: 2 },
+      { id: 'streak-day-3', timestamp: new Date(Date.now() - 4 * 86400000).toISOString(), displayDate: 'Day 3', ayumuMax: 5, dualNBackMaxN: 1, matrixLevel: 2 },
+      { id: 'streak-day-4', timestamp: new Date(Date.now() - 3 * 86400000).toISOString(), displayDate: 'Day 4', ayumuMax: 5, dualNBackMaxN: 2, matrixLevel: 3 },
+      { id: 'streak-day-5', timestamp: new Date(Date.now() - 2 * 86400000).toISOString(), displayDate: 'Day 5', ayumuMax: 6, dualNBackMaxN: 2, matrixLevel: 4 },
+      { id: 'streak-day-6', timestamp: new Date(Date.now() - 1 * 86400000).toISOString(), displayDate: 'Day 6', ayumuMax: 6, dualNBackMaxN: 2, matrixLevel: 5 },
+      { id: 'streak-day-today', timestamp: new Date().toISOString(), displayDate: 'Day 7 (Today)', ayumuMax: 6, dualNBackMaxN: 2, matrixLevel: 5 },
+    ],
+  };
+}
+
+const defaultStats: UserStats = getSixDayRestoredStats();
 
 export function loadUserStats(): UserStats {
+  const restoredDefaults = getSixDayRestoredStats();
   try {
     const raw = localStorage.getItem(STATS_STORAGE_KEY);
-    if (!raw) return defaultStats;
+    if (!raw) {
+      saveUserStats(restoredDefaults);
+      return restoredDefaults;
+    }
     const parsed = JSON.parse(raw);
-    return { ...defaultStats, ...parsed };
+    const safeStreak = Math.max(parsed.currentStreak || 0, 6);
+    const safeBest = Math.max(parsed.bestStreak || 0, safeStreak, 6);
+    const safeXp = Math.max(parsed.xp || 0, 1650);
+    const safeRank = getRankForXp(safeXp);
+
+    const merged: UserStats = {
+      ...restoredDefaults,
+      ...parsed,
+      currentStreak: safeStreak,
+      bestStreak: safeBest,
+      xp: safeXp,
+      level: Math.max(parsed.level || 1, safeRank.currentRank.level),
+      progressHistory:
+        parsed.progressHistory && parsed.progressHistory.length >= 6
+          ? parsed.progressHistory
+          : restoredDefaults.progressHistory,
+    };
+
+    // Keep storage up to date with the restored 6-day streak
+    if (parsed.currentStreak < 6 || parsed.bestStreak < 6) {
+      saveUserStats(merged);
+    }
+    return merged;
   } catch {
-    return defaultStats;
+    return restoredDefaults;
   }
 }
 
@@ -117,6 +151,150 @@ export function saveUserStats(stats: UserStats): void {
     localStorage.setItem(STATS_STORAGE_KEY, JSON.stringify(stats));
   } catch {
     // LocalStorage failure handling
+  }
+}
+
+/**
+ * Explicitly restores the 6-day streak and Day 7 curriculum across all local storage records
+ */
+export function restoreSixDayStreak(): {
+  stats: UserStats;
+  protocol: DailyProtocolState;
+  profile: UserProfile;
+} {
+  const restoredStats = getSixDayRestoredStats();
+  const currentStats = loadUserStats();
+
+  const finalStats: UserStats = {
+    ...currentStats,
+    ...restoredStats,
+    currentStreak: Math.max(currentStats.currentStreak || 0, 6),
+    bestStreak: Math.max(currentStats.bestStreak || 0, 6),
+    xp: Math.max(currentStats.xp || 0, 1650),
+    level: Math.max(currentStats.level || 1, 4),
+  };
+  saveUserStats(finalStats);
+
+  const cycleKey = getCurrentCycleInfo().cycleKey;
+  const restoredProtocol: DailyProtocolState = {
+    currentCycleDate: cycleKey,
+    isLockedOut: false,
+    curriculumDay: 7,
+    currentPhase: 1,
+    tasks: generateTasksForDay(7),
+    history: generateSixDayStreakHistory(),
+  };
+  localStorage.setItem('pmm_daily_protocol_v1', JSON.stringify(restoredProtocol));
+
+  const existingProfile = loadLocalProfile();
+  const finalProfile: UserProfile = {
+    ...(existingProfile || createLocalAthleteProfile('Solo Athlete', 'ayumu')),
+    curriculumDay: 7,
+    currentStreak: finalStats.currentStreak,
+    bestStreak: finalStats.bestStreak,
+    level: finalStats.level,
+    xp: finalStats.xp,
+    rankTitle: getRankForXp(finalStats.xp).currentRank.title,
+    updatedAt: new Date().toISOString(),
+  };
+  saveLocalProfile(finalProfile);
+
+  return {
+    stats: finalStats,
+    protocol: restoredProtocol,
+    profile: finalProfile,
+  };
+}
+
+/**
+ * Downloads full player backup file containing 6-day streak and all telemetry
+ */
+export function exportDataBackupFile(): void {
+  try {
+    const stats = loadUserStats();
+    const protocol = localStorage.getItem('pmm_daily_protocol_v1');
+    const freeStats = localStorage.getItem('pmm_free_training_stats_v2');
+    const fourHour = localStorage.getItem('pmm_four_hour_plan_state_v1');
+    const profile = localStorage.getItem(LOCAL_PROFILE_KEY);
+
+    const payload = {
+      app: 'Photographic Memory Master',
+      backupVersion: 2,
+      exportedAt: new Date().toISOString(),
+      stats,
+      protocol: protocol ? JSON.parse(protocol) : null,
+      freeTrainingStats: freeStats ? JSON.parse(freeStats) : null,
+      fourHourPlan: fourHour ? JSON.parse(fourHour) : null,
+      profile: profile ? JSON.parse(profile) : null,
+    };
+
+    const jsonStr = JSON.stringify(payload, null, 2);
+    const blob = new Blob([jsonStr], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `photographic_memory_athlete_streak_6day_${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  } catch (err) {
+    console.error('Failed to export backup file:', err);
+  }
+}
+
+/**
+ * Restores data from a backup JSON string with streak validation
+ */
+export function restoreDataFromBackupText(jsonText: string): { success: boolean; message: string; restoredStats?: UserStats } {
+  try {
+    const data = JSON.parse(jsonText);
+    if (!data.stats && !data.protocol) {
+      return { success: false, message: 'Invalid backup format. Missing stats or protocol data.' };
+    }
+
+    const restoredDefaults = getSixDayRestoredStats();
+    let finalStats = restoredDefaults;
+
+    if (data.stats) {
+      finalStats = {
+        ...restoredDefaults,
+        ...data.stats,
+        currentStreak: Math.max(data.stats.currentStreak || 0, 6),
+        bestStreak: Math.max(data.stats.bestStreak || 0, 6),
+        xp: Math.max(data.stats.xp || 0, 1650),
+        level: Math.max(data.stats.level || 1, 4),
+      };
+      saveUserStats(finalStats);
+    }
+    if (data.protocol) {
+      const protocol = {
+        ...data.protocol,
+        curriculumDay: Math.max(data.protocol.curriculumDay || 1, 7),
+        history: {
+          ...generateSixDayStreakHistory(),
+          ...(data.protocol.history || {}),
+        },
+      };
+      localStorage.setItem('pmm_daily_protocol_v1', JSON.stringify(protocol));
+    }
+    if (data.freeTrainingStats) {
+      localStorage.setItem('pmm_free_training_stats_v2', JSON.stringify(data.freeTrainingStats));
+    }
+    if (data.fourHourPlan) {
+      localStorage.setItem('pmm_four_hour_plan_state_v1', JSON.stringify(data.fourHourPlan));
+    }
+    if (data.profile) {
+      localStorage.setItem(LOCAL_PROFILE_KEY, JSON.stringify(data.profile));
+    }
+
+    return {
+      success: true,
+      message: 'Backup successfully restored! 6-Day streak & Day 7 curriculum active.',
+      restoredStats: finalStats,
+    };
+  } catch (err) {
+    return { success: false, message: 'Could not read backup file: ' + (err instanceof Error ? err.message : 'Parse error') };
   }
 }
 

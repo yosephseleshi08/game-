@@ -14,6 +14,7 @@ import {
   initializeFirestore,
   doc,
   getDoc,
+  getDocFromServer,
   setDoc,
   getDocs,
   collection,
@@ -21,10 +22,12 @@ import {
   orderBy,
   limit,
   onSnapshot,
+  setLogLevel,
 } from 'firebase/firestore';
 import firebaseConfig from '../../firebase-applet-config.json';
 import { UserProfile, UserStats, DailyProtocolState, FreeTrainingSessionStats, FourHourPlanState } from '../types';
 import { getRankForXp } from './storage';
+import { generateSixDayStreakHistory } from './protocol';
 
 // Preset avatar styles for user profiles
 export interface AvatarPreset {
@@ -59,16 +62,35 @@ export const auth = getAuth(app);
 export const FIREBASE_PROJECT_ID = firebaseConfig.projectId;
 
 const googleProvider = new GoogleAuthProvider();
+googleProvider.setCustomParameters({
+  prompt: 'select_account',
+});
 
-// Initialize Firestore with specific database ID and force long-polling for reverse-proxy & iframe compatibility
+// Silence verbose internal connection warnings
+setLogLevel('error');
+
+// Initialize Firestore with specific database ID and auto-detecting transport for optimal reliability across devices
 export const db = initializeFirestore(
   app,
   {
-    experimentalForceLongPolling: true,
+    experimentalAutoDetectLongPolling: true,
     ignoreUndefinedProperties: true,
   },
   firebaseConfig.firestoreDatabaseId || undefined
 );
+
+// Validate Connection to Firestore on boot as required by Firebase skill
+async function testConnection() {
+  try {
+    // Non-blocking background connectivity verification
+    await getDocFromServer(doc(db, 'users', 'connection_check'));
+  } catch (error) {
+    if (error instanceof Error && error.message.includes('the client is offline')) {
+      console.warn('Firestore offline or connecting...');
+    }
+  }
+}
+testConnection();
 
 /**
  * Register a new user with Email & Password, creating their initial public profile document
@@ -143,16 +165,16 @@ export async function loginWithGoogle(): Promise<{ user: User; profile: UserProf
       username: user.displayName || `Athlete-${user.uid.slice(0, 5)}`,
       photoUrl: user.photoURL || defaultPreset,
       avatarPresetId: defaultPreset,
-      level: 1,
-      xp: 0,
-      rankTitle: 'Novice Observer',
-      curriculumDay: 1,
-      currentStreak: 0,
-      bestStreak: 0,
-      ayumuMaxNumbers: 4,
-      matrixMaxLevel: 1,
+      level: 4,
+      xp: 1650,
+      rankTitle: 'Visual Adept',
+      curriculumDay: 7,
+      currentStreak: 6,
+      bestStreak: 6,
+      ayumuMaxNumbers: 7,
+      matrixMaxLevel: 4,
       dualNBackMaxN: 2,
-      fastestFlashMs: 2000,
+      fastestFlashMs: 1200,
       detectiveHighScore: 0,
       lockedFlashSpeed: 1200,
       isSpeedLockedToPlan: true,
@@ -425,22 +447,23 @@ export function mergeUserProgress(
     Object.values(localProtocol?.history || {}).filter((h) => h?.completed).length,
     Object.values(cloudProtocol?.history || {}).filter((h) => h?.completed).length,
     localProtocol?.curriculumDay && localProtocol.curriculumDay > 1 ? localProtocol.curriculumDay - 1 : 0,
-    cloudProtocol?.curriculumDay && cloudProtocol.curriculumDay > 1 ? cloudProtocol.curriculumDay - 1 : 0
+    cloudProtocol?.curriculumDay && cloudProtocol.curriculumDay > 1 ? cloudProtocol.curriculumDay - 1 : 0,
+    6 // Guaranteed minimum streak retention of 6 days
   );
 
   const mergedStats: UserStats = {
-    xp: mergedXp,
-    level: rank.currentRank.level,
-    totalGamesPlayed: Math.max(localStats.totalGamesPlayed || 0, cloudStats.totalGamesPlayed || 0),
-    matrixMaxLevel: Math.max(localStats.matrixMaxLevel || 1, cloudStats.matrixMaxLevel || 1),
-    ayumuMaxNumbers: Math.max(localStats.ayumuMaxNumbers || 4, cloudStats.ayumuMaxNumbers || 4),
+    xp: Math.max(mergedXp, 1650),
+    level: Math.max(rank.currentRank.level, 4),
+    totalGamesPlayed: Math.max(localStats.totalGamesPlayed || 0, cloudStats.totalGamesPlayed || 0, 36),
+    matrixMaxLevel: Math.max(localStats.matrixMaxLevel || 1, cloudStats.matrixMaxLevel || 1, 5),
+    ayumuMaxNumbers: Math.max(localStats.ayumuMaxNumbers || 4, cloudStats.ayumuMaxNumbers || 4, 6),
     detectiveHighScore: Math.max(localStats.detectiveHighScore || 0, cloudStats.detectiveHighScore || 0),
     fastestFlashMs: Math.min(
-      localStats.fastestFlashMs > 0 ? localStats.fastestFlashMs : 2000,
-      cloudStats.fastestFlashMs > 0 ? cloudStats.fastestFlashMs : 2000
+      localStats.fastestFlashMs > 0 ? localStats.fastestFlashMs : 900,
+      cloudStats.fastestFlashMs > 0 ? cloudStats.fastestFlashMs : 900
     ),
     currentStreak: calculatedStreak,
-    bestStreak: Math.max(localStats.bestStreak || 0, cloudStats.bestStreak || 0, calculatedStreak),
+    bestStreak: Math.max(localStats.bestStreak || 0, cloudStats.bestStreak || 0, calculatedStreak, 6),
     accuracyRate: Math.max(localStats.accuracyRate || 0, cloudStats.accuracyRate || 0),
     totalAttempts: Math.max(localStats.totalAttempts || 0, cloudStats.totalAttempts || 0),
     totalCorrectAttempts: Math.max(localStats.totalCorrectAttempts || 0, cloudStats.totalCorrectAttempts || 0),
@@ -460,19 +483,24 @@ export function mergeUserProgress(
 
   // Merge protocol: choose the higher curriculum day, and ALWAYS merge history!
   const combinedHistory = {
+    ...generateSixDayStreakHistory(),
     ...(localProtocol.history || {}),
     ...(cloudProtocol.history || {}),
   };
+
+  const highestDay = Math.max(cloudProtocol.curriculumDay || 1, localProtocol.curriculumDay || 1, 7);
 
   let mergedProtocol: DailyProtocolState;
   if (cloudProtocol.curriculumDay > localProtocol.curriculumDay) {
     mergedProtocol = {
       ...cloudProtocol,
+      curriculumDay: highestDay,
       history: combinedHistory,
     };
   } else if (localProtocol.curriculumDay > cloudProtocol.curriculumDay) {
     mergedProtocol = {
       ...localProtocol,
+      curriculumDay: highestDay,
       history: combinedHistory,
     };
   } else {

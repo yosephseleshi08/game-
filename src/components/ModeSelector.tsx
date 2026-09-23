@@ -15,6 +15,7 @@ import {
   Zap,
   Infinity,
   Clock,
+  Search,
 } from 'lucide-react';
 
 interface ModeSelectorProps {
@@ -66,6 +67,13 @@ export const ModeSelector: React.FC<ModeSelectorProps> = ({ activeMode, onSelect
       desc: 'Method of loci architecture',
       icon: <Castle className="w-4 h-4 text-amber-300" />,
       badge: 'Loci (84m)',
+    },
+    {
+      id: 'symbol-detective',
+      label: 'Symbol Detective Lab',
+      desc: 'Visual binding & anomaly search',
+      icon: <Search className="w-4 h-4 text-purple-400" />,
+      badge: 'Lab (15m)',
     },
     {
       id: 'stats',

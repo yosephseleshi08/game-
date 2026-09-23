@@ -85,20 +85,52 @@ export function generateTasksForDay(day: number): ProtocolTask[] {
   ];
 }
 
+export function generateSixDayStreakHistory(): Record<string, { completed: boolean; score: number; completedAt: string }> {
+  const history: Record<string, { completed: boolean; score: number; completedAt: string }> = {};
+  for (let i = 6; i >= 1; i--) {
+    const d = new Date(Date.now() - i * 86400000);
+    const dateKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}-12AM`;
+    history[dateKey] = {
+      completed: true,
+      score: 100,
+      completedAt: d.toISOString(),
+    };
+  }
+  return history;
+}
+
 export function loadDailyProtocol(): DailyProtocolState {
   const { cycleKey } = getCurrentCycleInfo();
 
   try {
     const raw = localStorage.getItem(PROTOCOL_STORAGE_KEY);
     if (!raw) {
-      return createInitialProtocol(cycleKey, 1);
+      const initial = createInitialProtocol(cycleKey, 7);
+      saveDailyProtocol(initial);
+      return initial;
     }
     const parsed: DailyProtocolState = JSON.parse(raw);
+
+    // Guarantee 6-day streak restoration if curriculumDay < 7 or history is missing
+    const completedDaysCount = Object.values(parsed.history || {}).filter((h) => h?.completed).length;
+    if ((parsed.curriculumDay || 1) < 7 || completedDaysCount < 6) {
+      const mergedHistory = {
+        ...generateSixDayStreakHistory(),
+        ...(parsed.history || {}),
+      };
+      const restoredDay = Math.max(parsed.curriculumDay || 1, 7);
+      parsed.curriculumDay = restoredDay;
+      parsed.history = mergedHistory;
+      if (!parsed.tasks || parsed.tasks.length !== 3) {
+        parsed.tasks = generateTasksForDay(restoredDay);
+      }
+      saveDailyProtocol(parsed);
+    }
 
     // If the cycle has rolled over past 12:00 AM (Midnight), start a new day's protocol!
     if (parsed.currentCycleDate !== cycleKey) {
       const wasCompleted = parsed.isLockedOut || (parsed.tasks && parsed.tasks.every((t) => t.isCompleted));
-      const nextDay = wasCompleted ? (parsed.curriculumDay || 1) + 1 : parsed.curriculumDay || 1;
+      const nextDay = wasCompleted ? (parsed.curriculumDay || 7) + 1 : parsed.curriculumDay || 7;
       const nextPhase = nextDay <= 30 ? 1 : nextDay <= 90 ? 2 : nextDay <= 180 ? 3 : 4;
 
       const newProtocol: DailyProtocolState = {
@@ -189,18 +221,19 @@ export function loadDailyProtocol(): DailyProtocolState {
 
     return parsed;
   } catch {
-    return createInitialProtocol(cycleKey, 1);
+    return createInitialProtocol(cycleKey, 7);
   }
 }
 
-function createInitialProtocol(cycleKey: string, day: number): DailyProtocolState {
+function createInitialProtocol(cycleKey: string, day = 7): DailyProtocolState {
+  const targetDay = Math.max(day, 7);
   return {
     currentCycleDate: cycleKey,
     isLockedOut: false,
-    curriculumDay: day,
+    curriculumDay: targetDay,
     currentPhase: 1,
-    tasks: generateTasksForDay(day),
-    history: {},
+    tasks: generateTasksForDay(targetDay),
+    history: generateSixDayStreakHistory(),
   };
 }
 

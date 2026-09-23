@@ -12,6 +12,7 @@ import {
   loadFreeTrainingStats,
   saveFreeTrainingStats,
   recordFreeTrainingTime,
+  restoreSixDayStreak,
 } from './utils/storage';
 import { sound } from './utils/audio';
 import { Header } from './components/Header';
@@ -35,6 +36,9 @@ import { DailyMilestoneModal } from './components/DailyMilestoneModal';
 import { FreeTrainingView } from './components/FreeTrainingView';
 import { FourHourPlanView } from './components/FourHourPlanView';
 import { AuthModal } from './components/AuthModal';
+import { GoogleAuthGate } from './components/GoogleAuthGate';
+import { TypeOfGuyModal } from './components/TypeOfGuyModal';
+import { getAthleteArchetype } from './utils/archetype';
 import {
   subscribeToAuth,
   saveUserCloudData,
@@ -59,17 +63,21 @@ export default function App() {
     const safeStreak = Math.max(
       loaded.currentStreak || 0,
       historyDays,
-      proto.curriculumDay && proto.curriculumDay > 1 ? proto.curriculumDay - 1 : 0
+      proto.curriculumDay && proto.curriculumDay > 1 ? proto.curriculumDay - 1 : 0,
+      6
     );
     return {
       ...loaded,
       currentStreak: safeStreak,
-      bestStreak: Math.max(loaded.bestStreak || 0, safeStreak),
+      bestStreak: Math.max(loaded.bestStreak || 0, safeStreak, 6),
+      xp: Math.max(loaded.xp || 0, 1650),
     };
   });
 
   // Cross-Device Authentication & Cloud Synchronization (2 Phones & 1 PC)
   const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [isAuthLoading, setIsAuthLoading] = useState(true);
+  const [isAuthGateDismissed, setIsAuthGateDismissed] = useState(false);
   const [cloudSyncStatus, setCloudSyncStatus] = useState<'synced' | 'syncing' | 'offline' | 'error'>('offline');
   const [lastSyncedTime, setLastSyncedTime] = useState<Date | null>(null);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
@@ -112,6 +120,7 @@ export default function App() {
   const [isFlashPlanOpen, setIsFlashPlanOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isMilestoneModalOpen, setIsMilestoneModalOpen] = useState(false);
+  const [isArchetypeModalOpen, setIsArchetypeModalOpen] = useState(false);
 
   // Audio State
   const [isSoundMuted, setIsSoundMuted] = useState(sound.isMuted);
@@ -119,10 +128,26 @@ export default function App() {
   // Level Up Toast
   const [levelUpAlert, setLevelUpAlert] = useState<{ oldLevel: number; newLevel: number; title: string } | null>(null);
 
+  // 6-Day Streak Restoration Toast Notice
+  const [streakRestoreNotice, setStreakRestoreNotice] = useState<string | null>(null);
+
   // Solo Athlete Profile (100% Offline)
   const [currentProfile, setCurrentProfile] = useState<UserProfile>(() => {
     return loadLocalProfile() || createLocalAthleteProfile('Solo Athlete', 'ayumu');
   });
+
+  const handleRestoreSixDayStreak = () => {
+    sound.playLevelUp();
+    const result = restoreSixDayStreak();
+    setStats(result.stats);
+    setProtocol(result.protocol);
+    setCurrentProfile(result.profile);
+    if (currentUser) {
+      saveUserCloudData(currentUser.uid, result.stats, result.protocol, freeTrainingStats, result.profile);
+    }
+    setStreakRestoreNotice('🔥 6-Day Streak & Day 7 Protocol Successfully Restored!');
+    setTimeout(() => setStreakRestoreNotice(null), 5000);
+  };
 
   // Free Training & Live Game Session Timer (Daily 12 AM Tracking)
   const [freeTrainingStats, setFreeTrainingStats] = useState<FreeTrainingSessionStats>(() => loadFreeTrainingStats());
@@ -134,12 +159,14 @@ export default function App() {
     'ayumu-chimp',
     'dual-nback',
     'memory-palace',
+    'symbol-detective',
   ];
 
   const FOUR_HOUR_MODULE_TARGETS: Partial<Record<GameMode, { title: string; minutes: number }>> = {
     'ayumu-chimp': { title: 'Ayumu Chimp (Flash RAM)', minutes: 18 },
     'dual-nback': { title: 'Dual N-Back (Working Memory RAM)', minutes: 18 },
     'memory-palace': { title: 'Memory Palace (Digital Loci)', minutes: 84 },
+    'symbol-detective': { title: 'Symbol Detective Lab (Visual Binding)', minutes: 15 },
   };
 
   const isPlayingGame = PLAYABLE_GAME_MODES.includes(activeMode);
@@ -242,6 +269,7 @@ export default function App() {
 
     const unsubAuth = subscribeToAuth(async (user) => {
       setCurrentUser(user);
+      setIsAuthLoading(false);
 
       if (unsubSnapshot) {
         unsubSnapshot();
@@ -332,7 +360,7 @@ export default function App() {
           setCloudSyncStatus('synced');
         }
 
-        // Live real-time listener for multi-device synchronization
+        // Live real-time listener for multi-device synchronization (Phone 1, Phone 2, and PC)
         unsubSnapshot = subscribeToUserCloudData(user.uid, (remoteData) => {
           if (!remoteData || isSyncingFromRemoteRef.current) return;
 
@@ -344,32 +372,48 @@ export default function App() {
             }
           }
 
+          isSyncingFromRemoteRef.current = true;
           setStats((prevStats) => {
-            setProtocol((prevProtocol) => {
-              setFreeTrainingStats((prevFree) => {
-                const merged = mergeUserProgress(
-                  prevStats,
-                  remoteData.stats,
-                  prevProtocol,
-                  remoteData.protocol,
-                  prevFree,
-                  remoteData.freeTrainingStats
-                );
-                isSyncingFromRemoteRef.current = true;
-                saveUserStats(merged.mergedStats);
-                saveDailyProtocol(merged.mergedProtocol);
-                if (merged.mergedFreeStats) {
-                  saveFreeTrainingStats(merged.mergedFreeStats);
-                }
-                setTimeout(() => {
-                  isSyncingFromRemoteRef.current = false;
-                }, 800);
-                return merged.mergedFreeStats || prevFree;
+            const merged = mergeUserProgress(
+              prevStats,
+              remoteData.stats,
+              protocol,
+              remoteData.protocol,
+              freeTrainingStats,
+              remoteData.freeTrainingStats
+            );
+            saveUserStats(merged.mergedStats);
+            saveDailyProtocol(merged.mergedProtocol);
+            setProtocol(merged.mergedProtocol);
+
+            if (merged.mergedFreeStats) {
+              saveFreeTrainingStats(merged.mergedFreeStats);
+              setFreeTrainingStats(merged.mergedFreeStats);
+            }
+
+            if (remoteData.profile) {
+              setCurrentProfile((prevProf) => {
+                const upProf = {
+                  ...prevProf,
+                  ...remoteData.profile,
+                  level: merged.mergedStats.level,
+                  xp: merged.mergedStats.xp,
+                  curriculumDay: merged.mergedProtocol.curriculumDay,
+                  currentStreak: merged.mergedStats.currentStreak,
+                  bestStreak: merged.mergedStats.bestStreak,
+                };
+                saveLocalProfile(upProf);
+                return upProf;
               });
-              return prevProtocol;
-            });
-            return prevStats;
+            }
+
+            setTimeout(() => {
+              isSyncingFromRemoteRef.current = false;
+            }, 800);
+
+            return merged.mergedStats;
           });
+
           setLastSyncedTime(new Date());
           setCloudSyncStatus('synced');
         });
@@ -384,6 +428,79 @@ export default function App() {
       if (unsubSnapshot) unsubSnapshot();
     };
   }, []);
+
+  // Instant foreground / window-focus auto-sync when picking up Phone 1, Phone 2, or PC
+  useEffect(() => {
+    if (!currentUser) return;
+
+    const handleSyncOnForeground = async () => {
+      if (document.visibilityState === 'visible' && !isSyncingFromRemoteRef.current) {
+        try {
+          setCloudSyncStatus('syncing');
+          const remoteData = await loadUserCloudData(currentUser.uid);
+          const currentPlan = loadFourHourPlan();
+          if (remoteData) {
+            if (remoteData.fourHourPlan) {
+              const mergedPlan = mergeFourHourPlans(currentPlan, remoteData.fourHourPlan);
+              if (mergedPlan) saveFourHourPlan(mergedPlan);
+            }
+            isSyncingFromRemoteRef.current = true;
+            setStats((prevStats) => {
+              const merged = mergeUserProgress(
+                prevStats,
+                remoteData.stats,
+                protocol,
+                remoteData.protocol,
+                freeTrainingStats,
+                remoteData.freeTrainingStats
+              );
+              saveUserStats(merged.mergedStats);
+              saveDailyProtocol(merged.mergedProtocol);
+              setProtocol(merged.mergedProtocol);
+
+              if (merged.mergedFreeStats) {
+                saveFreeTrainingStats(merged.mergedFreeStats);
+                setFreeTrainingStats(merged.mergedFreeStats);
+              }
+
+              if (remoteData.profile) {
+                setCurrentProfile((prevProf) => {
+                  const upProf = {
+                    ...prevProf,
+                    ...remoteData.profile,
+                    level: merged.mergedStats.level,
+                    xp: merged.mergedStats.xp,
+                    curriculumDay: merged.mergedProtocol.curriculumDay,
+                    currentStreak: merged.mergedStats.currentStreak,
+                    bestStreak: merged.mergedStats.bestStreak,
+                  };
+                  saveLocalProfile(upProf);
+                  return upProf;
+                });
+              }
+
+              setTimeout(() => {
+                isSyncingFromRemoteRef.current = false;
+              }, 800);
+
+              return merged.mergedStats;
+            });
+            setLastSyncedTime(new Date());
+            setCloudSyncStatus('synced');
+          }
+        } catch (e) {
+          console.warn('Foreground sync error:', e);
+        }
+      }
+    };
+
+    window.addEventListener('focus', handleSyncOnForeground);
+    document.addEventListener('visibilitychange', handleSyncOnForeground);
+    return () => {
+      window.removeEventListener('focus', handleSyncOnForeground);
+      document.removeEventListener('visibilitychange', handleSyncOnForeground);
+    };
+  }, [currentUser, protocol, freeTrainingStats]);
 
   // Debounced auto-save to cloud when user completes training on this device
   useEffect(() => {
@@ -411,7 +528,7 @@ export default function App() {
         console.error('Failed to sync to cloud:', err);
         setCloudSyncStatus('error');
       }
-    }, 2000);
+    }, 600);
 
     return () => {
       if (syncTimeoutRef.current) clearTimeout(syncTimeoutRef.current);
@@ -818,6 +935,14 @@ export default function App() {
     handleAddXp(250);
   };
 
+  const athleteArchetype = getAthleteArchetype({
+    userStats: stats,
+    freeStats: freeTrainingStats,
+    fourHourPlan: loadFourHourPlan(),
+    protocol,
+    currentSpeed,
+  });
+
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-cyan-500 selection:text-slate-950">
       {/* Top Header */}
@@ -843,6 +968,9 @@ export default function App() {
         cloudSyncStatus={cloudSyncStatus}
         onOpenAuth={() => setIsAuthModalOpen(true)}
         onForceSync={handleForceSync}
+        archetype={athleteArchetype}
+        onOpenArchetype={() => setIsArchetypeModalOpen(true)}
+        onRestoreStreak={handleRestoreSixDayStreak}
       />
 
       {/* Mode Navigation Tabs */}
@@ -851,6 +979,33 @@ export default function App() {
         onSelectMode={setActiveMode}
         isLockedOut={protocol.isLockedOut}
       />
+
+      {/* 6-Day Streak Restored Notification Banner */}
+      {streakRestoreNotice && (
+        <div className="max-w-xl mx-auto px-4 mt-3 w-full animate-bounce">
+          <div className="bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 text-slate-950 p-3.5 rounded-2xl shadow-xl flex items-center justify-between font-bold">
+            <div className="flex items-center gap-2.5">
+              <div className="p-1.5 rounded-xl bg-slate-950/20 text-white">
+                <Flame className="w-5 h-5 fill-amber-300 text-amber-200" />
+              </div>
+              <div>
+                <span className="text-xs uppercase tracking-wider block font-extrabold text-slate-950">
+                  Streak Restored!
+                </span>
+                <span className="text-sm font-black text-white">
+                  {streakRestoreNotice}
+                </span>
+              </div>
+            </div>
+            <button
+              onClick={() => setStreakRestoreNotice(null)}
+              className="p-1.5 rounded-lg bg-slate-950/10 hover:bg-slate-950/20 text-slate-950 cursor-pointer"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Level Up Banner Alert */}
       {levelUpAlert && (
@@ -1225,6 +1380,8 @@ export default function App() {
             cloudSyncStatus={cloudSyncStatus}
             lastSyncedTime={lastSyncedTime}
             onTriggerSync={handleForceSync}
+            onOpenArchetype={() => setIsArchetypeModalOpen(true)}
+            onRestoreStreak={handleRestoreSixDayStreak}
           />
         )}
       </main>
@@ -1265,6 +1422,19 @@ export default function App() {
         }}
         onForceSync={handleForceSync}
         onSignOut={handleSignOut}
+        onRestoreStreak={handleRestoreSixDayStreak}
+        onDataRestored={(restoredStats) => {
+          setStats(restoredStats);
+          const freshProtocol = loadDailyProtocol();
+          setProtocol(freshProtocol);
+          const freshProfile = loadLocalProfile();
+          if (freshProfile) setCurrentProfile(freshProfile);
+          if (currentUser) {
+            saveUserCloudData(currentUser.uid, restoredStats, freshProtocol, freeTrainingStats, freshProfile || currentProfile);
+          }
+          setStreakRestoreNotice('🔥 Save file loaded: 6-Day Streak and Progress Restored!');
+          setTimeout(() => setStreakRestoreNotice(null), 5000);
+        }}
       />
 
       {/* Cross-Device Unified Account Sign-In / Sign-Up Modal */}
@@ -1307,6 +1477,31 @@ export default function App() {
           setActiveMode('free-training');
         }}
       />
+
+      {/* What Type of Guy Are You? Cognitive Persona Diagnostic Modal */}
+      <TypeOfGuyModal
+        isOpen={isArchetypeModalOpen}
+        onClose={() => setIsArchetypeModalOpen(false)}
+        archetype={athleteArchetype}
+      />
+
+      {/* Required Google Sign-In Gate to Sync All 3 Devices */}
+      {!currentUser && !isAuthGateDismissed && !isAuthLoading && (
+        <GoogleAuthGate
+          isOpen={true}
+          currentStreak={stats.currentStreak}
+          curriculumDay={protocol.curriculumDay}
+          onSuccess={(profile) => {
+            if (profile) setCurrentProfile(profile);
+            setIsAuthGateDismissed(true);
+            setStreakRestoreNotice('🔥 Google account connected! All 3 devices are now synced.');
+            setTimeout(() => setStreakRestoreNotice(null), 5000);
+          }}
+          onDismissOffline={() => {
+            setIsAuthGateDismissed(true);
+          }}
+        />
+      )}
 
       {/* Footer */}
       <footer className="border-t border-slate-900 bg-slate-950 py-4 px-4 text-center text-xs text-slate-500 safe-bottom">

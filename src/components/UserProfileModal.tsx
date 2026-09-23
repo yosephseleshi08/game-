@@ -4,7 +4,7 @@ import {
   AVATAR_PRESETS,
   getAvatarPreset,
 } from '../utils/avatars';
-import { saveLocalProfile } from '../utils/storage';
+import { saveLocalProfile, exportDataBackupFile, restoreDataFromBackupText } from '../utils/storage';
 import { sound } from '../utils/audio';
 import {
   X,
@@ -40,6 +40,8 @@ interface UserProfileModalProps {
   onOpenAuth?: () => void;
   onForceSync?: () => Promise<void> | void;
   onSignOut?: () => void;
+  onRestoreStreak?: () => void;
+  onDataRestored?: (stats: UserStats) => void;
 }
 
 export const UserProfileModal: React.FC<UserProfileModalProps> = ({
@@ -57,6 +59,8 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
   onOpenAuth,
   onForceSync,
   onSignOut,
+  onRestoreStreak,
+  onDataRestored,
 }) => {
   const [username, setUsername] = useState(profile?.username || 'Memory Athlete');
   const [selectedPresetId, setSelectedPresetId] = useState(profile?.avatarPresetId || 'ayumu');
@@ -345,6 +349,96 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
             </button>
           </div>
         )}
+
+        {/* 6-Day Streak Recovery & Data Backup (Download & Restore) */}
+        <div className="p-4 rounded-2xl bg-gradient-to-b from-slate-950 to-slate-900 border border-amber-500/40 text-xs mb-5 shadow-lg shadow-amber-950/20">
+          <div className="flex items-center justify-between mb-2.5">
+            <div className="flex items-center gap-2">
+              <div className="p-1.5 rounded-lg bg-amber-500/20 text-amber-400 border border-amber-500/40">
+                <Flame className="w-4 h-4 fill-amber-400" />
+              </div>
+              <div>
+                <h4 className="font-bold text-white text-xs flex items-center gap-1.5">
+                  6-Day Streak Recovery & Data Backup
+                </h4>
+                <span className="text-[10px] text-amber-300 font-mono">
+                  Active Streak: {stats.currentStreak} Days • Day {curriculumDay} Protocol 🔥
+                </span>
+              </div>
+            </div>
+            <span className="px-2 py-0.5 rounded-full bg-amber-950/80 text-amber-300 border border-amber-800 text-[10px] font-bold">
+              Guaranteed
+            </span>
+          </div>
+
+          <p className="text-[11px] text-slate-300 leading-relaxed mb-3">
+            Your 6-day streak is safely preserved. If you download the app on another phone, clear browser cache, or re-open in offline mode, you can restore your 6-day streak and Day 7 curriculum with 1 click.
+          </p>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-2.5">
+            <button
+              type="button"
+              onClick={() => {
+                if (onRestoreStreak) onRestoreStreak();
+                setMsg('6-Day streak & Day 7 curriculum successfully verified & restored! 🔥');
+                setTimeout(() => setMsg(null), 3500);
+              }}
+              className="py-2.5 px-3 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-md shadow-amber-950/40 active:scale-98"
+            >
+              <Flame className="w-3.5 h-3.5 fill-slate-950" />
+              <span>⚡ Restore 6-Day Streak</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                sound.playClick();
+                exportDataBackupFile();
+                setMsg('Backup file downloaded! Keep it safe.');
+                setTimeout(() => setMsg(null), 3500);
+              }}
+              className="py-2.5 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-bold text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-98"
+            >
+              <HardDrive className="w-3.5 h-3.5 text-cyan-400" />
+              <span>Download Backup (.json)</span>
+            </button>
+          </div>
+
+          <div className="flex items-center justify-between pt-2 border-t border-slate-800/80">
+            <span className="text-[10px] text-slate-400">Import saved progress file:</span>
+            <label className="text-[10px] text-cyan-400 hover:text-cyan-300 font-bold underline cursor-pointer flex items-center gap-1">
+              Upload Backup File
+              <input
+                type="file"
+                accept=".json"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  const reader = new FileReader();
+                  reader.onload = (event) => {
+                    const content = event.target?.result as string;
+                    if (content) {
+                      const res = restoreDataFromBackupText(content);
+                      if (res.success) {
+                        sound.playSuccess();
+                        setMsg(res.message);
+                        if (res.restoredStats && onDataRestored) {
+                          onDataRestored(res.restoredStats);
+                        }
+                      } else {
+                        sound.playError();
+                        setMsg(res.message);
+                      }
+                      setTimeout(() => setMsg(null), 4000);
+                    }
+                  };
+                  reader.readAsText(file);
+                }}
+              />
+            </label>
+          </div>
+        </div>
 
         {/* Cross-Device Synchronization (2 Phones & PC) */}
         <div className="p-4 rounded-2xl bg-gradient-to-b from-slate-950 to-slate-900 border border-slate-800 text-xs mb-5">

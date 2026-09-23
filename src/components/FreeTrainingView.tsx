@@ -32,6 +32,7 @@ import {
   Calendar,
   History,
   Check,
+  Search,
 } from 'lucide-react';
 
 interface FreeTrainingViewProps {
@@ -812,6 +813,40 @@ export const FreeTrainingView: React.FC<FreeTrainingViewProps> = ({
             </button>
           </div>
         </div>
+      </div>
+
+      {/* Visual Binding & Anomaly Research Lab Gateway */}
+      <div className="bg-gradient-to-r from-purple-950/70 via-slate-900 to-indigo-950/70 border border-purple-500/40 rounded-2xl p-5 mb-8 shadow-xl flex flex-col md:flex-row items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <div className="p-3 rounded-xl bg-purple-500/20 text-purple-300 border border-purple-500/30 shrink-0">
+            <Search className="w-6 h-6 text-purple-300" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] uppercase font-bold text-purple-300 bg-purple-950/80 px-2 py-0.5 rounded border border-purple-800/60">
+                Cognitive Lab (15 Mins)
+              </span>
+              <span className="text-[10px] text-slate-400 font-mono">Treisman Visual Feature Integration</span>
+            </div>
+            <h4 className="text-base font-bold text-white mt-1">
+              Symbol Detective Lab (4 Scientific Protocols)
+            </h4>
+            <p className="text-xs text-slate-400 mt-0.5 max-w-xl">
+              Deliberately test Feature Binding, Anomaly Pop-Out, Change Blindness (ISI Gap), and Parallel Subitizing to prevent visual hallucinations and sharpen retinal shutter retention.
+            </p>
+          </div>
+        </div>
+
+        <button
+          onClick={() => {
+            sound.playClick();
+            onNavigateMode('symbol-detective');
+          }}
+          className="px-5 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs flex items-center gap-2 shrink-0 cursor-pointer shadow-md transition-all active:scale-98"
+        >
+          Enter Symbol Detective Lab
+          <ArrowRight className="w-4 h-4" />
+        </button>
       </div>
 
       {/* Real-World Physical Practice Gateway (2 Hours) */}

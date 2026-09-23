@@ -1,5 +1,5 @@
 import React from 'react';
-import { UserStats, FlashSpeed, GameMode, UserProfile } from '../types';
+import { UserStats, FlashSpeed, GameMode, UserProfile, AthleteArchetype } from '../types';
 import { getRankForXp } from '../utils/storage';
 import { getAvatarPreset } from '../utils/avatars';
 import { sound } from '../utils/audio';
@@ -17,6 +17,7 @@ import {
   Cloud,
   RefreshCw,
   Smartphone,
+  Compass,
 } from 'lucide-react';
 import { AmbientSoundscapePlayer } from './AmbientSoundscapePlayer';
 import { PWAInstallButton } from './PWAInstallPrompt';
@@ -43,6 +44,9 @@ interface HeaderProps {
   cloudSyncStatus?: 'synced' | 'syncing' | 'offline' | 'error';
   onOpenAuth?: () => void;
   onForceSync?: () => void;
+  archetype?: AthleteArchetype;
+  onOpenArchetype?: () => void;
+  onRestoreStreak?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -67,6 +71,9 @@ export const Header: React.FC<HeaderProps> = ({
   cloudSyncStatus = 'offline',
   onOpenAuth,
   onForceSync,
+  archetype,
+  onOpenArchetype,
+  onRestoreStreak,
 }) => {
   const { currentRank, nextRank, progressPercent } = getRankForXp(stats.xp);
   const avatarPreset = getAvatarPreset(currentProfile?.avatarPresetId);
@@ -157,12 +164,19 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
 
           {/* Streak Badge */}
-          <div className="flex flex-col items-center justify-center pl-2.5 border-l border-slate-700/70">
+          <div
+            onClick={() => {
+              sound.playClick();
+              if (onRestoreStreak) onRestoreStreak();
+            }}
+            className="flex flex-col items-center justify-center pl-2.5 border-l border-slate-700/70 cursor-pointer hover:opacity-85 transition-opacity"
+            title="6-Day Streak active! Tap to view/restore streak"
+          >
             <div className="flex items-center text-amber-400 font-bold text-xs">
               <Flame className="w-3.5 h-3.5 fill-amber-400 text-amber-500 animate-bounce" />
               <span>{stats.currentStreak}</span>
             </div>
-            <span className="text-[9px] text-slate-400 uppercase tracking-wider">Streak</span>
+            <span className="text-[9px] text-slate-400 uppercase tracking-wider hover:text-amber-300">Streak</span>
           </div>
         </div>
 
@@ -189,6 +203,23 @@ export const Header: React.FC<HeaderProps> = ({
             <span className="hidden sm:inline">4h Plan</span>
             <span className="sm:hidden">4h</span>
           </button>
+
+          {/* Type of Guy Archetype Badge Trigger */}
+          {archetype && (
+            <button
+              id="header-type-of-guy-btn"
+              onClick={() => {
+                sound.playClick();
+                if (onOpenArchetype) onOpenArchetype();
+              }}
+              className={`flex items-center gap-1 px-2 sm:px-2.5 py-1.5 rounded-lg border text-xs font-bold transition-all cursor-pointer shadow-sm bg-slate-800/90 ${archetype.borderAccent} ${archetype.textAccent} hover:bg-slate-700 active:scale-95`}
+              title={`Type of Guy: ${archetype.title} (${archetype.allTimeMinutes}m total training) - Click for diagnostic`}
+            >
+              <span>{archetype.emoji}</span>
+              <span className="hidden lg:inline">{archetype.title.split(' ')[1] || 'Archetype'}</span>
+              <span className="hidden xs:inline lg:hidden">{archetype.badge.split(' ')[0]}</span>
+            </button>
+          )}
 
           {/* 365 Flash Time Plan & Speed Lock Trigger */}
           <button
