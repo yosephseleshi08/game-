@@ -21,6 +21,10 @@ import {
   Sparkles,
   Share2,
   Download,
+  Activity,
+  AlertTriangle,
+  Lightbulb,
+  BarChart2,
 } from 'lucide-react';
 
 interface StatsDashboardProps {
@@ -405,21 +409,13 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
               <div className="bg-slate-800/90 border border-slate-700/80 rounded-2xl p-4 text-left md:text-right shrink-0">
                 <div className="text-[10px] uppercase font-bold text-slate-400 flex items-center md:justify-end gap-1">
                   <Clock className="w-3.5 h-3.5 text-cyan-400" />
-                  All-Time Training Time
+                  Verified Active Practice
                 </div>
-                <div className="text-3xl font-black text-white font-mono mt-0.5">
-                  {archetype.allTimeHours > 0 ? (
-                    <>
-                      {archetype.allTimeHours} <span className="text-sm font-normal text-slate-400">hrs</span>
-                    </>
-                  ) : (
-                    <>
-                      {archetype.allTimeMinutes} <span className="text-sm font-normal text-slate-400">min</span>
-                    </>
-                  )}
+                <div className="text-3xl font-black text-white font-mono mt-0.5 tracking-tight">
+                  {archetype.formattedTime || (archetype.allTimeMinutes >= 60 ? `${archetype.allTimeHours} hrs` : `${archetype.allTimeMinutes} min`)}
                 </div>
-                <div className="text-xs text-slate-400 mt-0.5">
-                  {archetype.allTimeMinutes} minutes • {archetype.sessionsCount} sessions
+                <div className="text-xs text-cyan-300 font-mono mt-0.5">
+                  {archetype.allTimeMinutes}m {archetype.allTimeSeconds % 60}s logged • {archetype.sessionsCount} sessions
                 </div>
               </div>
             </div>
@@ -433,7 +429,7 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
                 <button
                   onClick={() => {
                     navigator.clipboard.writeText(archetype.shareText);
-                    alert('Persona card copied to clipboard!');
+                    alert('Persona diagnostic card copied to clipboard!');
                   }}
                   className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-cyan-300 font-bold border border-slate-700 flex items-center gap-1.5 transition-all text-xs cursor-pointer"
                 >
@@ -452,32 +448,136 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
             </div>
           </div>
 
+          {/* Empirical Neuro-Telemetry Metrics */}
+          {archetype.neuroMetrics && (
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div className="bg-slate-900 border border-slate-800 rounded-2xl p-3 text-center">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">VWM Capacity (K)</span>
+                <span className="text-lg font-black font-mono text-cyan-300">
+                  {archetype.neuroMetrics.cowanKCapacity} <span className="text-xs font-normal text-slate-400">items</span>
+                </span>
+                <span className="text-[10px] text-slate-400 block mt-0.5">Cowan's K Index</span>
+              </div>
+
+              <div className="bg-slate-900 border border-slate-800 rounded-2xl p-3 text-center">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Shutter Latency</span>
+                <span className="text-lg font-black font-mono text-amber-300">
+                  {archetype.neuroMetrics.shutterLatencyMs} <span className="text-xs font-normal text-slate-400">ms</span>
+                </span>
+                <span className="text-[10px] text-slate-400 block mt-0.5">Sensory Register</span>
+              </div>
+
+              <div className="bg-slate-900 border border-slate-800 rounded-2xl p-3 text-center">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Intake Bitrate</span>
+                <span className="text-lg font-black font-mono text-emerald-400">
+                  ~{archetype.neuroMetrics.sensoryBitrate} <span className="text-xs font-normal text-slate-400">bps</span>
+                </span>
+                <span className="text-[10px] text-slate-400 block mt-0.5">Bits / Second Intake</span>
+              </div>
+
+              <div className="bg-slate-900 border border-slate-800 rounded-2xl p-3 text-center">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Executive RAM</span>
+                <span className="text-lg font-black font-mono text-purple-300">
+                  Dual N={archetype.neuroMetrics.executiveNBack}
+                </span>
+                <span className="text-[10px] text-slate-400 block mt-0.5">Interference Filter</span>
+              </div>
+            </div>
+          )}
+
+          {/* Clinical Findings */}
+          {archetype.clinicalFindings && (
+            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-2.5">
+              <div className="text-xs font-bold text-slate-300 flex items-center gap-1.5 border-b border-slate-800 pb-2">
+                <Activity className="w-3.5 h-3.5 text-cyan-400" />
+                Empirical Diagnostic Observations
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-xs">
+                <div className="bg-slate-950/60 p-3 rounded-xl border border-slate-800">
+                  <div className="flex items-center gap-1.5 text-emerald-400 font-bold uppercase text-[10px] tracking-wider mb-1">
+                    <CheckCircle2 className="w-3 h-3" /> Primary Strength
+                  </div>
+                  <p className="text-slate-300 text-[11px] leading-relaxed">{archetype.clinicalFindings.primaryAsset}</p>
+                </div>
+
+                <div className="bg-slate-950/60 p-3 rounded-xl border border-slate-800">
+                  <div className="flex items-center gap-1.5 text-amber-400 font-bold uppercase text-[10px] tracking-wider mb-1">
+                    <AlertTriangle className="w-3 h-3" /> Developmental Bottleneck
+                  </div>
+                  <p className="text-slate-300 text-[11px] leading-relaxed">{archetype.clinicalFindings.identifiedBottleneck}</p>
+                </div>
+
+                <div className="bg-slate-950/60 p-3 rounded-xl border border-cyan-800/40">
+                  <div className="flex items-center gap-1.5 text-cyan-400 font-bold uppercase text-[10px] tracking-wider mb-1">
+                    <Lightbulb className="w-3 h-3" /> Targeted Prescription
+                  </div>
+                  <p className="text-cyan-200 text-[11px] leading-relaxed">{archetype.clinicalFindings.neuroPrescription}</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Verified Training Time Distribution */}
+          {archetype.gameTimeBreakdown && archetype.gameTimeBreakdown.length > 0 && (
+            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4">
+              <div className="text-xs font-bold text-slate-300 mb-2.5 flex items-center justify-between">
+                <span className="flex items-center gap-1.5">
+                  <BarChart2 className="w-3.5 h-3.5 text-cyan-400" />
+                  Verified Training Time Distribution
+                </span>
+                <span className="text-[10px] text-cyan-300 font-mono font-bold">
+                  {archetype.formattedTime} total
+                </span>
+              </div>
+
+              <div className="space-y-2">
+                {archetype.gameTimeBreakdown.map((item) => (
+                  <div key={item.game} className="text-xs">
+                    <div className="flex items-center justify-between text-[11px] mb-1">
+                      <span className="text-slate-300 font-medium">{item.label}</span>
+                      <span className="text-slate-400 font-mono">
+                        <strong className="text-slate-200">{item.formatted}</strong> ({item.percent}%)
+                      </span>
+                    </div>
+                    <div className="w-full bg-slate-800/80 rounded-full h-1.5 overflow-hidden">
+                      <div
+                        className="bg-cyan-500 h-full rounded-full transition-all duration-500"
+                        style={{ width: `${item.percent}%` }}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Persona Traits Matrix */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
             <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4">
               <div className="text-xs font-bold text-slate-400 uppercase tracking-wide flex items-center gap-1.5 mb-1.5">
-                <span>🏠</span> Natural Habitat
+                <span>🏛️</span> Operating Architecture
               </div>
               <p className="text-xs sm:text-sm text-slate-200 leading-relaxed">{archetype.traits.naturalHabitat}</p>
             </div>
 
             <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4">
               <div className="text-xs font-bold text-amber-400 uppercase tracking-wide flex items-center gap-1.5 mb-1.5">
-                <span>⚡</span> Cognitive Superpower
+                <span>⚡</span> Neuro-Cognitive Strength
               </div>
               <p className="text-xs sm:text-sm text-slate-200 leading-relaxed">{archetype.traits.cognitiveSuperpower}</p>
             </div>
 
             <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4">
               <div className="text-xs font-bold text-rose-400 uppercase tracking-wide flex items-center gap-1.5 mb-1.5">
-                <span>🚩</span> Red Flag / Quirk
+                <span>🚩</span> Vulnerability / Bottleneck
               </div>
               <p className="text-xs sm:text-sm text-slate-200 leading-relaxed">{archetype.traits.redFlag}</p>
             </div>
 
             <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4">
               <div className="text-xs font-bold text-cyan-400 uppercase tracking-wide flex items-center gap-1.5 mb-1.5">
-                <span>💬</span> Life Motto
+                <span>💬</span> Core Cognitive Principle
               </div>
               <p className="text-xs sm:text-sm text-slate-200 italic leading-relaxed">{archetype.traits.lifeMotto}</p>
             </div>

@@ -314,6 +314,27 @@ export interface AthleteArchetype {
     minutesRemaining: number;
     progressPercent: number;
   };
+  formattedTime?: string;
+  gameTimeBreakdown?: {
+    game: string;
+    label: string;
+    seconds: number;
+    formatted: string;
+    percent: number;
+  }[];
+  neuroMetrics?: {
+    cowanKCapacity: number;
+    sensoryBitrate: number;
+    shutterLatencyMs: number;
+    executiveNBack: number;
+    featureAccuracy: number;
+    spatialMatrixLevel: number;
+  };
+  clinicalFindings?: {
+    primaryAsset: string;
+    identifiedBottleneck: string;
+    neuroPrescription: string;
+  };
   shareText: string;
 }
 
