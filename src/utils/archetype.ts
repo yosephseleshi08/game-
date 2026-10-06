@@ -189,9 +189,9 @@ export function calculateAllTimeStats(
     }
   }
 
-  // Ensure totalSessions is realistic
+  // Ensure totalSessions reflects genuine practice
   if (totalSessions <= 0) {
-    totalSessions = Math.max(1, Math.ceil((userStats?.totalGamesPlayed || 0) / 3));
+    totalSessions = userStats?.totalGamesPlayed && userStats.totalGamesPlayed > 0 ? Math.ceil(userStats.totalGamesPlayed / 3) : 0;
   }
 
   const totalMinutes = Math.floor(totalSeconds / 60);

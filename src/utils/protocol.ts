@@ -88,7 +88,7 @@ export function loadDailyProtocol(): DailyProtocolState {
   const { cycleKey } = getCurrentCycleInfo();
 
   try {
-    if (localStorage.getItem('yosi_pure_3_games_clean_slate_v10') !== 'true') {
+    if (localStorage.getItem('yosi_pure_3_games_clean_slate_v12') !== 'true') {
       const initial = createInitialProtocol(cycleKey, 1);
       saveDailyProtocol(initial);
       return initial;
@@ -101,6 +101,13 @@ export function loadDailyProtocol(): DailyProtocolState {
       return initial;
     }
     const parsed: DailyProtocolState = JSON.parse(raw);
+
+    // If legacy day 7 or legacy history is detected, clean to fresh Day 1
+    if (parsed.curriculumDay === 7 || Object.keys(parsed.history || {}).length >= 10) {
+      const initial = createInitialProtocol(cycleKey, 1);
+      saveDailyProtocol(initial);
+      return initial;
+    }
 
     // Ensure the tasks match Yoseph's 3 designated disciplines
     const hasCorrectTasks =

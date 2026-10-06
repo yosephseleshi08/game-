@@ -30,8 +30,8 @@ export const GoogleAuthGate: React.FC<GoogleAuthGateProps> = ({
   isOpen,
   onSuccess,
   onDismissOffline,
-  curriculumDay = 7,
-  currentStreak = 6,
+  curriculumDay = 1,
+  currentStreak = 0,
 }) => {
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);

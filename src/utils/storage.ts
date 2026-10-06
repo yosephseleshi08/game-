@@ -10,8 +10,10 @@ import {
   FreeTrainingSessionStats,
   DailyTrainingLog,
   DailyProtocolState,
+  FourHourPlanState,
 } from '../types';
 import { getCurrentCycleInfo, generateSixDayStreakHistory, generateTasksForDay } from './protocol';
+import { resetFourHourPlanToZero } from './fourHourPlan';
 
 export const FLASH_SPEED_OPTIONS: FlashSpeedOption[] = [
   { value: 2000, label: '2.0s', tag: 'Beginner', xpMultiplier: 1.0 },
@@ -77,7 +79,7 @@ const STATS_STORAGE_KEY = 'pmm_user_stats_v2';
 const SPEED_STORAGE_KEY = 'pmm_flash_speed_v1';
 const CARDS_STORAGE_KEY = 'pmm_spaced_cards_v1';
 
-export const YOSI_PURE_THREE_GAMES_CLEAN_KEY = 'yosi_pure_3_games_clean_slate_v10';
+export const YOSI_PURE_THREE_GAMES_CLEAN_KEY = 'yosi_pure_3_games_clean_slate_v12';
 
 export function getFreshInitialStats(): UserStats {
   return {
@@ -115,11 +117,12 @@ export function cleanEverySingleThing(): {
   stats: UserStats;
   protocol: DailyProtocolState;
   profile: UserProfile;
+  freeTrainingStats: FreeTrainingSessionStats;
+  fourHourPlan: FourHourPlanState;
 } {
   try {
-    const keysToRemove: string[] = [];
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
+    const keys = Object.keys(localStorage);
+    for (const key of keys) {
       if (
         key &&
         (key.startsWith('pmm_') ||
@@ -128,12 +131,13 @@ export function cleanEverySingleThing(): {
           key.startsWith('four_hour_') ||
           key.includes('streak') ||
           key.includes('protocol') ||
-          key.includes('stats'))
+          key.includes('stats') ||
+          key.includes('training') ||
+          key.includes('plan'))
       ) {
-        keysToRemove.push(key);
+        localStorage.removeItem(key);
       }
     }
-    keysToRemove.forEach((k) => localStorage.removeItem(k));
   } catch {
     // LocalStorage fallback
   }
@@ -175,12 +179,15 @@ export function cleanEverySingleThing(): {
   };
   saveLocalProfile(freshProfile);
 
-  resetFreeTrainingStatsToZero(1);
+  const freshFree = resetFreeTrainingStatsToZero(1);
+  const freshFourHour = resetFourHourPlanToZero();
 
   return {
     stats: freshStats,
     protocol: freshProtocol,
     profile: freshProfile,
+    freeTrainingStats: freshFree,
+    fourHourPlan: freshFourHour,
   };
 }
 
@@ -207,6 +214,13 @@ export function loadUserStats(): UserStats {
       return freshDefaults;
     }
     const parsed = JSON.parse(raw);
+
+    // If legacy 19-day streak or old data is detected, clean it to pristine Day 1
+    if (parsed.currentStreak === 19 || parsed.bestStreak === 19 || (parsed.xp && parsed.xp >= 30000)) {
+      const clean = cleanEverySingleThing();
+      return clean.stats;
+    }
+
     const safeXp = parsed.xp || 0;
     const safeRank = getRankForXp(safeXp);
 

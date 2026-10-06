@@ -153,6 +153,21 @@ export function saveFourHourPlan(state: FourHourPlanState): void {
   }
 }
 
+export function resetFourHourPlanToZero(): FourHourPlanState {
+  const todayStr = getTodayDateString();
+  const cleanPlan: FourHourPlanState = {
+    currentDate: todayStr,
+    tasks: createFreshDailyTasks(),
+    currentStreak: 0,
+    bestStreak: 0,
+    totalSessionsCompleted: 0,
+    history: {},
+    nsdrElapsedSeconds: 0,
+  };
+  saveFourHourPlan(cleanPlan);
+  return cleanPlan;
+}
+
 /**
  * Automatically synchronizes the 4-Hour Plan tasks with actual training time
  * and daily protocol completion. Prevents cheating by strictly deriving completion

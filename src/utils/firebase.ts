@@ -158,23 +158,23 @@ export async function loginWithGoogle(): Promise<{ user: User; profile: UserProf
   // Retrieve existing profile or bootstrap a new one
   let profile = await getUserProfile(user.uid);
   if (!profile) {
-    const defaultPreset = 'ayumu';
+    const defaultPreset = 'yosi-prime';
     profile = {
       id: user.uid,
       email: user.email || '',
       username: user.displayName || `Athlete-${user.uid.slice(0, 5)}`,
       photoUrl: user.photoURL || defaultPreset,
       avatarPresetId: defaultPreset,
-      level: 4,
-      xp: 1650,
-      rankTitle: 'Visual Adept',
-      curriculumDay: 7,
-      currentStreak: 6,
-      bestStreak: 6,
-      ayumuMaxNumbers: 7,
-      matrixMaxLevel: 4,
-      dualNBackMaxN: 2,
-      fastestFlashMs: 1200,
+      level: 1,
+      xp: 0,
+      rankTitle: 'Novice Observer',
+      curriculumDay: 1,
+      currentStreak: 0,
+      bestStreak: 0,
+      ayumuMaxNumbers: 3,
+      matrixMaxLevel: 1,
+      dualNBackMaxN: 1,
+      fastestFlashMs: 2000,
       detectiveHighScore: 0,
       lockedFlashSpeed: 1200,
       isSpeedLockedToPlan: true,
@@ -266,6 +266,201 @@ export interface UserCloudSyncPayload {
   fourHourPlan?: FourHourPlanState;
   profile?: UserProfile;
   lastSyncedAt: string;
+  isCleanSlate?: boolean;
+}
+
+/**
+ * Hard reset all user data in Firestore (private telemetry and public profile)
+ * Overwrites documents with pristine Day 1, 0 XP, 0 streak values.
+ */
+export async function resetUserCloudData(userId: string): Promise<void> {
+  try {
+    const nowIso = new Date().toISOString();
+    const cleanStats: UserStats = {
+      xp: 0,
+      level: 1,
+      totalGamesPlayed: 0,
+      matrixMaxLevel: 1,
+      ayumuMaxNumbers: 3,
+      detectiveHighScore: 0,
+      fastestFlashMs: 2000,
+      currentStreak: 0,
+      bestStreak: 0,
+      accuracyRate: 0,
+      totalAttempts: 0,
+      totalCorrectAttempts: 0,
+      dualNBackMaxN: 1,
+      mnemonicConversionCount: 0,
+      cardsMastered: 0,
+      pqHistory: [],
+      progressHistory: [],
+    };
+
+    const cycleKey = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}-${String(new Date().getDate()).padStart(2, '0')}-12AM`;
+
+    const cleanProtocol: DailyProtocolState = {
+      currentCycleDate: cycleKey,
+      isLockedOut: false,
+      curriculumDay: 1,
+      currentPhase: 1,
+      tasks: [
+        {
+          id: 'mnemonic-pegs',
+          title: 'Mnemonic Major Pegs (20 Min)',
+          discipline: 'Number-to-Image Data Keys',
+          targetDescription: 'Master 20 minutes of number-to-image phonetic peg conversions (0-9 Foundation; 20m goal)',
+          targetCount: 20,
+          currentCount: 0,
+          maxAllowedLevel: '0-9 Foundation',
+          isCompleted: false,
+          gameMode: 'mnemonic-pegs',
+        },
+        {
+          id: 'dual-nback',
+          title: 'Dual N-Back Buffer (20 Min)',
+          discipline: 'Working Memory Capacity & Speaking Focus',
+          targetDescription: 'Train 20 minutes of dual auditory + spatial working memory RAM buffer at N=1 (20m goal)',
+          targetCount: 20,
+          currentCount: 0,
+          maxAllowedLevel: 1,
+          isCompleted: false,
+          gameMode: 'dual-nback',
+        },
+        {
+          id: 'symbol-detective',
+          title: 'Symbol Detective Lab (20 Min)',
+          discipline: 'Abstract Symbol Processing & Script Speed',
+          targetDescription: 'Train 20 minutes of high-speed glyph discrimination and visual feature-binding (20m goal)',
+          targetCount: 20,
+          currentCount: 0,
+          maxAllowedLevel: 'Adaptive Speed',
+          isCompleted: false,
+          gameMode: 'symbol-detective',
+        },
+      ],
+      history: {},
+    };
+
+    const cleanFreeTraining: FreeTrainingSessionStats = {
+      totalMinutesPracticed: 0,
+      totalSecondsPracticed: 0,
+      totalRepsCompleted: 0,
+      doomScrollMinutesSaved: 0,
+      sessionsCount: 0,
+      lastSessionDate: nowIso,
+      currentDayCycle: cycleKey,
+      todayCurriculumDay: 1,
+      todaySeconds: 0,
+      todayReps: 0,
+      todayGamesBreakdown: {},
+      dailyHistory: {},
+    };
+
+    const todayDateStr = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}-${String(new Date().getDate()).padStart(2, '0')}`;
+    const cleanFourHour: FourHourPlanState = {
+      currentDate: todayDateStr,
+      tasks: [
+        {
+          id: 'mnemonic-pegs-hour',
+          title: 'Mnemonic Major Pegs (20 Min)',
+          category: 'morning',
+          targetMinutes: 20,
+          gameMode: 'mnemonic-pegs',
+          description: 'Number-to-image data keys',
+          neuroImpact: 'Phonetic-to-visual associative binding and left-hemisphere symbolic transcription keys.',
+          isCompleted: false,
+          elapsedSeconds: 0,
+        },
+        {
+          id: 'dual-nback-hour',
+          title: 'Dual N-Back Buffer (20 Min)',
+          category: 'midday',
+          targetMinutes: 20,
+          gameMode: 'dual-nback',
+          description: 'Working memory capacity and speaking focus',
+          neuroImpact: 'Dorsolateral Prefrontal Cortex (DLPFC) fluid executive buffer and speech articulation focus.',
+          isCompleted: false,
+          elapsedSeconds: 0,
+        },
+        {
+          id: 'symbol-detective-hour',
+          title: 'Symbol Detective Lab (20 Min)',
+          category: 'evening',
+          targetMinutes: 20,
+          gameMode: 'symbol-detective',
+          description: 'Abstract symbol processing and script speed',
+          neuroImpact: 'Occipito-temporal visual word form area (VWFA) and high-speed glyph discrimination.',
+          isCompleted: false,
+          elapsedSeconds: 0,
+        },
+      ],
+      currentStreak: 0,
+      bestStreak: 0,
+      totalSessionsCompleted: 0,
+      history: {},
+      nsdrElapsedSeconds: 0,
+    };
+
+    const cleanProfile: UserProfile = {
+      id: userId,
+      email: auth.currentUser?.email || '',
+      username: auth.currentUser?.displayName || 'Yoseph (Yosi)',
+      photoUrl: 'yosi-prime',
+      avatarPresetId: 'yosi-prime',
+      level: 1,
+      xp: 0,
+      rankTitle: 'Novice Observer',
+      curriculumDay: 1,
+      currentStreak: 0,
+      bestStreak: 0,
+      ayumuMaxNumbers: 3,
+      matrixMaxLevel: 1,
+      dualNBackMaxN: 1,
+      fastestFlashMs: 2000,
+      detectiveHighScore: 0,
+      lockedFlashSpeed: 1200,
+      isSpeedLockedToPlan: true,
+      updatedAt: nowIso,
+      createdAt: nowIso,
+    };
+
+    const privateDocRef = doc(db, 'users', userId, 'private', 'data');
+    await setDoc(privateDocRef, {
+      userId,
+      statsJson: JSON.stringify(cleanStats),
+      protocolJson: JSON.stringify(cleanProtocol),
+      freeTrainingJson: JSON.stringify(cleanFreeTraining),
+      fourHourPlanJson: JSON.stringify(cleanFourHour),
+      profileJson: JSON.stringify(cleanProfile),
+      updatedAt: nowIso,
+      isCleanSlate: true,
+      cleanSlateVersion: 12,
+    });
+
+    const publicUserRef = doc(db, 'users', userId);
+    await setDoc(publicUserRef, {
+      id: userId,
+      username: cleanProfile.username,
+      photoUrl: 'yosi-prime',
+      avatarPresetId: 'yosi-prime',
+      level: 1,
+      xp: 0,
+      rankTitle: 'Novice Observer',
+      curriculumDay: 1,
+      currentStreak: 0,
+      bestStreak: 0,
+      ayumuMaxNumbers: 3,
+      matrixMaxLevel: 1,
+      dualNBackMaxN: 1,
+      fastestFlashMs: 2000,
+      detectiveHighScore: 0,
+      updatedAt: nowIso,
+      isCleanSlate: true,
+      cleanSlateVersion: 12,
+    });
+  } catch (err) {
+    console.error('Error resetting user cloud data:', err);
+  }
 }
 
 /**
@@ -294,6 +489,8 @@ export async function saveUserCloudData(
         fourHourPlanJson: fourHourPlan ? JSON.stringify(fourHourPlan) : null,
         profileJson: profile ? JSON.stringify(profile) : null,
         updatedAt: nowIso,
+        isCleanSlate: true,
+        cleanSlateVersion: 12,
       },
       { merge: true }
     );
@@ -305,8 +502,8 @@ export async function saveUserCloudData(
       {
         id: userId,
         username: profile?.username || `Athlete-${userId.slice(0, 5)}`,
-        photoUrl: profile?.photoUrl || profile?.avatarPresetId || 'ayumu',
-        avatarPresetId: profile?.avatarPresetId || 'ayumu',
+        photoUrl: profile?.photoUrl || profile?.avatarPresetId || 'yosi-prime',
+        avatarPresetId: profile?.avatarPresetId || 'yosi-prime',
         level: stats.level,
         xp: stats.xp,
         rankTitle: getRankForXp(stats.xp).currentRank.title,
@@ -319,6 +516,8 @@ export async function saveUserCloudData(
         fastestFlashMs: stats.fastestFlashMs,
         detectiveHighScore: stats.detectiveHighScore,
         updatedAt: nowIso,
+        isCleanSlate: true,
+        cleanSlateVersion: 12,
       },
       { merge: true }
     );
@@ -363,6 +562,21 @@ export async function loadUserCloudData(
 
     if (!stats || !protocol) return null;
 
+    // Detect legacy un-reset state (19-day streak, 33095 XP, old Day 7)
+    const isLegacy =
+      data.cleanSlateVersion !== 12 &&
+      (stats.currentStreak === 19 ||
+        stats.bestStreak === 19 ||
+        (stats.xp && stats.xp >= 30000) ||
+        protocol.curriculumDay === 7 ||
+        Object.keys(protocol.history || {}).length >= 10);
+
+    if (isLegacy) {
+      console.log('[AI Studio] Cleansing legacy 19-day/33095XP cloud state to Day 1...');
+      await resetUserCloudData(userId);
+      return null;
+    }
+
     return {
       stats,
       protocol,
@@ -370,6 +584,7 @@ export async function loadUserCloudData(
       fourHourPlan,
       profile,
       lastSyncedAt: data.updatedAt || new Date().toISOString(),
+      isCleanSlate: data.isCleanSlate,
     };
   } catch (err) {
     console.error('Error loading private cloud data:', err);
@@ -438,73 +653,92 @@ export function mergeUserProgress(
   mergedProtocol: DailyProtocolState;
   mergedFreeStats?: FreeTrainingSessionStats;
 } {
-  const mergedXp = Math.max(localStats.xp || 0, cloudStats.xp || 0);
+  const isCloudLegacy =
+    cloudStats.currentStreak === 19 ||
+    cloudStats.bestStreak === 19 ||
+    (cloudStats.xp && cloudStats.xp >= 30000) ||
+    cloudProtocol.curriculumDay === 7 ||
+    Object.keys(cloudProtocol.history || {}).length >= 10;
+
+  const isLocalLegacy =
+    localStats.currentStreak === 19 ||
+    localStats.bestStreak === 19 ||
+    (localStats.xp && localStats.xp >= 30000) ||
+    localProtocol.curriculumDay === 7 ||
+    Object.keys(localProtocol.history || {}).length >= 10;
+
+  const sCloud = isCloudLegacy ? localStats : cloudStats;
+  const pCloud = isCloudLegacy ? localProtocol : cloudProtocol;
+  const sLocal = isLocalLegacy ? sCloud : localStats;
+  const pLocal = isLocalLegacy ? pCloud : localProtocol;
+
+  const mergedXp = Math.max(sLocal.xp || 0, sCloud.xp || 0);
   const rank = getRankForXp(mergedXp);
 
   const calculatedStreak = Math.max(
-    localStats.currentStreak || 0,
-    cloudStats.currentStreak || 0,
-    Object.values(localProtocol?.history || {}).filter((h) => h?.completed).length,
-    Object.values(cloudProtocol?.history || {}).filter((h) => h?.completed).length,
-    localProtocol?.curriculumDay && localProtocol.curriculumDay > 1 ? localProtocol.curriculumDay - 1 : 0,
-    cloudProtocol?.curriculumDay && cloudProtocol.curriculumDay > 1 ? cloudProtocol.curriculumDay - 1 : 0
+    sLocal.currentStreak || 0,
+    sCloud.currentStreak || 0,
+    Object.values(pLocal?.history || {}).filter((h) => h?.completed).length,
+    Object.values(pCloud?.history || {}).filter((h) => h?.completed).length,
+    pLocal?.curriculumDay && pLocal.curriculumDay > 1 ? pLocal.curriculumDay - 1 : 0,
+    pCloud?.curriculumDay && pCloud.curriculumDay > 1 ? pCloud.curriculumDay - 1 : 0
   );
 
   const mergedStats: UserStats = {
     xp: mergedXp,
-    level: Math.max(rank.currentRank.level, localStats.level || 1, cloudStats.level || 1),
-    totalGamesPlayed: Math.max(localStats.totalGamesPlayed || 0, cloudStats.totalGamesPlayed || 0),
-    matrixMaxLevel: Math.max(localStats.matrixMaxLevel || 1, cloudStats.matrixMaxLevel || 1),
-    ayumuMaxNumbers: Math.max(localStats.ayumuMaxNumbers || 3, cloudStats.ayumuMaxNumbers || 3),
-    detectiveHighScore: Math.max(localStats.detectiveHighScore || 0, cloudStats.detectiveHighScore || 0),
+    level: Math.max(rank.currentRank.level, sLocal.level || 1, sCloud.level || 1),
+    totalGamesPlayed: Math.max(sLocal.totalGamesPlayed || 0, sCloud.totalGamesPlayed || 0),
+    matrixMaxLevel: Math.max(sLocal.matrixMaxLevel || 1, sCloud.matrixMaxLevel || 1),
+    ayumuMaxNumbers: Math.max(sLocal.ayumuMaxNumbers || 3, sCloud.ayumuMaxNumbers || 3),
+    detectiveHighScore: Math.max(sLocal.detectiveHighScore || 0, sCloud.detectiveHighScore || 0),
     fastestFlashMs: Math.min(
-      localStats.fastestFlashMs > 0 ? localStats.fastestFlashMs : 2000,
-      cloudStats.fastestFlashMs > 0 ? cloudStats.fastestFlashMs : 2000
+      sLocal.fastestFlashMs > 0 ? sLocal.fastestFlashMs : 2000,
+      sCloud.fastestFlashMs > 0 ? sCloud.fastestFlashMs : 2000
     ),
     currentStreak: calculatedStreak,
-    bestStreak: Math.max(localStats.bestStreak || 0, cloudStats.bestStreak || 0, calculatedStreak),
-    accuracyRate: Math.max(localStats.accuracyRate || 0, cloudStats.accuracyRate || 0),
-    totalAttempts: Math.max(localStats.totalAttempts || 0, cloudStats.totalAttempts || 0),
-    totalCorrectAttempts: Math.max(localStats.totalCorrectAttempts || 0, cloudStats.totalCorrectAttempts || 0),
-    dualNBackMaxN: Math.max(localStats.dualNBackMaxN || 1, cloudStats.dualNBackMaxN || 1),
+    bestStreak: Math.max(sLocal.bestStreak || 0, sCloud.bestStreak || 0, calculatedStreak),
+    accuracyRate: Math.max(sLocal.accuracyRate || 0, sCloud.accuracyRate || 0),
+    totalAttempts: Math.max(sLocal.totalAttempts || 0, sCloud.totalAttempts || 0),
+    totalCorrectAttempts: Math.max(sLocal.totalCorrectAttempts || 0, sCloud.totalCorrectAttempts || 0),
+    dualNBackMaxN: Math.max(sLocal.dualNBackMaxN || 1, sCloud.dualNBackMaxN || 1),
     mnemonicConversionCount: Math.max(
-      localStats.mnemonicConversionCount || 0,
-      cloudStats.mnemonicConversionCount || 0
+      sLocal.mnemonicConversionCount || 0,
+      sCloud.mnemonicConversionCount || 0
     ),
-    cardsMastered: Math.max(localStats.cardsMastered || 0, cloudStats.cardsMastered || 0),
-    pqHistory: (cloudStats.pqHistory?.length || 0) >= (localStats.pqHistory?.length || 0)
-      ? cloudStats.pqHistory
-      : localStats.pqHistory,
-    progressHistory: (cloudStats.progressHistory?.length || 0) >= (localStats.progressHistory?.length || 0)
-      ? cloudStats.progressHistory
-      : localStats.progressHistory,
+    cardsMastered: Math.max(sLocal.cardsMastered || 0, sCloud.cardsMastered || 0),
+    pqHistory: (sCloud.pqHistory?.length || 0) >= (sLocal.pqHistory?.length || 0)
+      ? sCloud.pqHistory
+      : sLocal.pqHistory,
+    progressHistory: (sCloud.progressHistory?.length || 0) >= (sLocal.progressHistory?.length || 0)
+      ? sCloud.progressHistory
+      : sLocal.progressHistory,
   };
 
   // Merge protocol: choose the higher curriculum day, and ALWAYS merge history!
   const combinedHistory = {
-    ...(localProtocol.history || {}),
-    ...(cloudProtocol.history || {}),
+    ...(pLocal.history || {}),
+    ...(pCloud.history || {}),
   };
 
-  const highestDay = Math.max(cloudProtocol.curriculumDay || 1, localProtocol.curriculumDay || 1);
+  const highestDay = Math.max(pCloud.curriculumDay || 1, pLocal.curriculumDay || 1);
 
   let mergedProtocol: DailyProtocolState;
-  if (cloudProtocol.curriculumDay > localProtocol.curriculumDay) {
+  if (pCloud.curriculumDay > pLocal.curriculumDay) {
     mergedProtocol = {
-      ...cloudProtocol,
+      ...pCloud,
       curriculumDay: highestDay,
       history: combinedHistory,
     };
-  } else if (localProtocol.curriculumDay > cloudProtocol.curriculumDay) {
+  } else if (pLocal.curriculumDay > pCloud.curriculumDay) {
     mergedProtocol = {
-      ...localProtocol,
+      ...pLocal,
       curriculumDay: highestDay,
       history: combinedHistory,
     };
   } else {
     // Same day: merge task completions
-    const mergedTasks = localProtocol.tasks.map((localTask) => {
-      const cloudTask = cloudProtocol.tasks.find((ct) => ct.id === localTask.id);
+    const mergedTasks = pLocal.tasks.map((localTask) => {
+      const cloudTask = pCloud.tasks.find((ct) => ct.id === localTask.id);
       if (!cloudTask) return localTask;
       return {
         ...localTask,
@@ -514,10 +748,10 @@ export function mergeUserProgress(
     });
 
     mergedProtocol = {
-      ...cloudProtocol,
-      curriculumDay: localProtocol.curriculumDay,
+      ...pCloud,
+      curriculumDay: pLocal.curriculumDay,
       tasks: mergedTasks,
-      isLockedOut: localProtocol.isLockedOut || cloudProtocol.isLockedOut,
+      isLockedOut: pLocal.isLockedOut || pCloud.isLockedOut,
       history: combinedHistory,
     };
   }

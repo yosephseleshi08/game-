@@ -41,8 +41,9 @@ import {
   mergeUserProgress,
   mergeFourHourPlans,
   logoutUser,
+  resetUserCloudData,
 } from './utils/firebase';
-import { loadFourHourPlan, saveFourHourPlan } from './utils/fourHourPlan';
+import { loadFourHourPlan, saveFourHourPlan, resetFourHourPlanToZero } from './utils/fourHourPlan';
 import type { User } from 'firebase/auth';
 import { loadDailyProtocol, saveDailyProtocol } from './utils/protocol';
 import { getPlanSpeedForDay } from './utils/flashPlan';
@@ -114,19 +115,47 @@ export default function App() {
     return loadLocalProfile() || createLocalAthleteProfile('Yoseph (Yosi)', 'yosi-prime');
   });
 
-  const handleResetAllProgress = () => {
+  const handleResetAllProgress = async () => {
     sound.playClick();
+    isSyncingFromRemoteRef.current = true;
     const result = cleanEverySingleThing();
     setStats(result.stats);
     setProtocol(result.protocol);
     setCurrentProfile(result.profile);
-    setFreeTrainingStats(loadFreeTrainingStats(1));
+    setFreeTrainingStats(result.freeTrainingStats);
+    setCurrentGameSeconds(0);
+    unflushedSecondsRef.current = 0;
+
     if (currentUser) {
-      saveUserCloudData(currentUser.uid, result.stats, result.protocol, loadFreeTrainingStats(1), result.profile);
+      setCloudSyncStatus('syncing');
+      try {
+        await resetUserCloudData(currentUser.uid);
+        setLastSyncedTime(new Date());
+        setCloudSyncStatus('synced');
+      } catch (err) {
+        console.error('Failed to reset user cloud data:', err);
+      }
     }
     setStreakRestoreNotice('All progress cleaned & reset to 0! Starting fresh on Day 1 for Yoseph.');
+    setTimeout(() => {
+      isSyncingFromRemoteRef.current = false;
+    }, 2500);
     setTimeout(() => setStreakRestoreNotice(null), 5000);
   };
+
+  // Immediate startup purge of legacy 19 streak / 7-day state
+  useEffect(() => {
+    if (
+      stats.currentStreak === 19 ||
+      stats.bestStreak === 19 ||
+      stats.xp >= 30000 ||
+      protocol.curriculumDay === 7 ||
+      Object.keys(protocol.history || {}).length >= 10
+    ) {
+      console.log('[AI Studio] Purging legacy progress on startup...');
+      handleResetAllProgress();
+    }
+  }, []);
 
   // Free Training & Live Game Session Timer (Daily 12 AM Tracking)
   const [freeTrainingStats, setFreeTrainingStats] = useState<FreeTrainingSessionStats>(() => loadFreeTrainingStats());
@@ -266,6 +295,26 @@ export default function App() {
         const localFourHour = loadFourHourPlan();
 
         if (cloudData) {
+          const isLegacy =
+            cloudData.stats.currentStreak === 19 ||
+            cloudData.stats.bestStreak === 19 ||
+            cloudData.stats.xp >= 30000 ||
+            cloudData.protocol.curriculumDay === 7 ||
+            Object.keys(cloudData.protocol.history || {}).length >= 10;
+
+          if (isLegacy) {
+            console.log('[AI Studio] Cleansing legacy cloud data in Auth init...');
+            await resetUserCloudData(user.uid);
+            const fresh = cleanEverySingleThing();
+            setStats(fresh.stats);
+            setProtocol(fresh.protocol);
+            setCurrentProfile(fresh.profile);
+            setFreeTrainingStats(fresh.freeTrainingStats);
+            setCloudSyncStatus('synced');
+            setLastSyncedTime(new Date());
+            return;
+          }
+
           // Merge local device state with cloud state (takes highest XP, level, curriculum day, streak)
           const merged = mergeUserProgress(
             stats,
@@ -968,7 +1017,7 @@ export default function App() {
               </div>
               <div>
                 <span className="text-xs uppercase tracking-wider block font-extrabold text-slate-950">
-                  Streak Restored!
+                  Clean Slate Active!
                 </span>
                 <span className="text-sm font-black text-white">
                   {streakRestoreNotice}
