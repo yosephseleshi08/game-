@@ -259,7 +259,7 @@ export const FreeTrainingView: React.FC<FreeTrainingViewProps> = ({
                 </span>
               </div>
               <p className="text-xs text-slate-300 mt-1">
-                Your deliberate practice stats recorded during Day 1 of the Photographic Memory curriculum.
+                Yoseph's deliberate practice stats recorded during Day 1 of the Yosi Game curriculum.
               </p>
             </div>
           </div>

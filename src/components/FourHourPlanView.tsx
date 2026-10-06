@@ -292,150 +292,150 @@ export const FourHourPlanView: React.FC<FourHourPlanViewProps> = ({
     .filter((t) => t.isCompleted)
     .reduce((s, t) => s + t.targetMinutes, 0);
 
-  // Full Year 12-Month Cognitive Transformation & Neuro-Analysis Guide
+  // Full Year 12-Month Cognitive Transformation & Neuro-Analysis Guide for Yoseph (30h/Month)
   const ROADMAP_MONTHS = [
     {
       month: 1,
       quarter: 'Q1: Neural Baseline',
       tierBadge: 'Top 15% Discipline',
       title: 'Month 1: Saccadic Calibration & Distraction Purge',
-      hours: 'Hours 1–120',
-      tagline: 'Neuro-Metabolic Shock & Baseline Conditioning',
-      ramTarget: '30% RAM: Dual N-Back N=2 baseline, Ayumu 5 digits @ 500ms',
-      palaceTarget: '70% Palace: Major System 00–49, 40 home loci indexed',
-      physicalTarget: 'Physical: 60h walking home/office rooms, placing 40 tangible anchors',
+      hours: 'Hours 1–30',
+      tagline: 'The Noise-Resistant Strategist',
+      ramTarget: 'Dual N-Back (20m): N=1 solid / N=2 intro. Sustained auditory & spatial tracking.',
+      pegsTarget: 'Mnemonic Pegs (20m): Major System 0–9 single digits & 00–29 pegs automated.',
+      symbolTarget: 'Symbol Detective (20m): High-speed glyph discrimination & visual feature binding.',
       observation:
         'Involuntary eye darting drops by 70%. Saccadic eye movements stabilize, and peripheral visual clutter is filtered out at the retinal ganglion cell level.',
       studying:
-        'Mental friction to deep work drops from 20 minutes to under 2 minutes. Subvocalization starts weakening during fast reading; intake comfortably rises to 450 WPM.',
+        'Mental friction to deep work drops from 15 minutes to under 2 minutes. Subvocalization starts weakening during fast reading; intake comfortably rises.',
       communication:
         'Noticeably heightened active listening; train of thought stays consistent through long exchanges without conversational drift or missing critical details.',
-      vibe: 'Distraction-free, steady baseline focus, building biological stamina.',
+      vibe: 'Distraction-free, steady baseline focus. Daytime brain fog vanishes, and digital dopamine urges plummet.',
       neuroMechanism:
         'Locus Coeruleus norepinephrine calibration and rapid downregulation of Default Mode Network (DMN) mind-wandering circuits.',
       milestoneQuote:
-        'The brain ceases fighting the discipline. The daily four-hour cognitive routine becomes as natural as breathing.',
+        'Yoseph ceases fighting the discipline. The daily 1-hour cognitive routine becomes as natural as breathing.',
     },
     {
       month: 2,
       quarter: 'Q1: Neural Baseline',
       tierBadge: 'Top 5% Memory Athlete',
-      title: 'Month 2: Subitizing Breakthrough & Parallel Intake',
-      hours: 'Hours 121–240',
-      tagline: 'Visual Grouping & Iconic Flash Acceleration',
-      ramTarget: '30% RAM: N=2 Flawless / N=3 Intro, Ayumu 6 digits @ 400ms',
-      palaceTarget: '70% Palace: Full 00–99 Major System, 80 loci across 2 palaces',
-      physicalTarget: 'Physical: 120h walking neighborhood streets & local markets',
+      title: 'Month 2: Working Memory Doubling & Visual Speed',
+      hours: 'Hours 31–60',
+      tagline: 'The Perceptive Observer',
+      ramTarget: 'Dual N-Back (20m): N=2 mastered at 90%+ accuracy. Auditory & spatial streams update seamlessly.',
+      pegsTarget: 'Mnemonic Pegs (20m): Major System 00–59 automated into vivid tangible objects.',
+      symbolTarget: 'Symbol Detective (20m): Sub-second glyph discrimination; spotting micro-deviations.',
       observation:
-        'Objects register in parallel visual clusters rather than serial counting. Subitizing threshold expands from 4 to 8 elements in under 200 milliseconds.',
+        'Objects and symbols register in parallel visual clusters rather than serial counting. Spot formatting flaws, misplaced items, and visual anomalies instantly.',
       studying:
-        'Technical reading speed doubles. Paragraphs and diagrams are ingested as unified spatial ideas rather than linear strings of disjointed sentences.',
+        'Technical reading speed doubles. Paragraphs and abstract code syntax are ingested as unified spatial ideas rather than disjointed strings.',
       communication:
-        'Zero conversational interruptions. Mental surplus enables tracking micro-expressions and body language while listening intently.',
-      vibe: 'Unshakable calm; everyday sensory environments feel noticeably slower, clearer, and manageable.',
+        'Filler words ("um", "uh", "like") drop by over 60%. Your working memory buffer comfortably holds multi-part sentences before speaking.',
+      vibe: 'Unshakable calm; everyday sensory environments feel noticeably slower, clearer, and easily manageable.',
       neuroMechanism:
-        'Visual cortex V1-V4 parallel pathway acceleration and enhanced Iconic Buffer persistence in occipital memory stores.',
+        'Visual Word Form Area (VWFA) synaptic strengthening and bilateral Dorsolateral Prefrontal Cortex (DLPFC) multi-threading efficiency.',
       milestoneQuote:
-        'You stop processing the world in slow serial steps. Information begins entering your mind in parallel flashes.',
+        'Numbers are no longer abstract burdens. They are vivid keys that unlock instant understanding in Yoseph\'s mind.',
     },
     {
       month: 3,
       quarter: 'Q1: Neural Baseline',
-      tierBadge: '🎯 TOP 0.1% (1 in 1,000 Milestone)',
-      title: 'Month 3: TOP 0.1% (1 in 1,000) Unlocked in 90 Days!',
-      hours: 'Hours 241–360',
-      tagline: 'Working Memory Quadrupling & 1-in-1,000 Milestone',
-      ramTarget: '30% RAM: Solid N=3 (85%+), Ayumu 7 digits @ 300ms chimpanzee flash',
-      palaceTarget: '70% Palace: 150+ Loci across 4 distinct physical palaces, sub-second encoding',
-      physicalTarget: 'Physical: 180h real-world mapping; municipal libraries, parks & campus routes',
+      tierBadge: 'Top 2% High-Density Focus',
+      title: 'Month 3: Sub-Second Peg Encoding & Dual N-Back N=3 Threshold',
+      hours: 'Hours 61–90',
+      tagline: 'The Rapid Precision Encoder',
+      ramTarget: 'Dual N-Back (20m): N=2 flawless / N=3 unlocked. Working RAM holds 6+ transient items.',
+      pegsTarget: 'Mnemonic Pegs (20m): Full 00–99 Major System mastered! Sub-second 2-digit number encoding.',
+      symbolTarget: 'Symbol Detective (20m): Micro-anomaly scanning across dense abstract symbol arrays.',
       observation:
         'Dense visual matrices (codebases, financial sheets, architecture plans) index automatically without eye strain or mental fatigue.',
       studying:
         'Multi-variable logic, complex equations, or nested legal structures remain active in mental RAM without needing scratch paper or re-reading.',
       communication:
-        'Exact verbal recall. You deliver 45-minute technical lectures or pitches without notes by walking internal 3D memory palaces.',
-      vibe: 'Top 0.1% mental athlete; cognitive overload anxiety is permanently replaced with methodical confidence.',
+        'Exact verbal recall. You speak with crisp cadence and structured points. Multitasking between listening and analyzing is fluid.',
+      vibe: 'Methodical, confident, and mentally agile. Cognitive overload anxiety is permanently replaced with calm precision.',
       neuroMechanism:
         'Dorsolateral Prefrontal Cortex (DLPFC) dopamine D1 receptor density increase and working memory buffer myelination.',
       milestoneQuote:
-        'Your mental RAM has effectively quadrupled. Ideas that once crowded your mind now sit in spacious, organized clarity.',
+        'The 00–99 phonetic matrix is now permanently wired into Yoseph\'s cortex. Information turns into permanent mental currency.',
     },
     {
       month: 4,
       quarter: 'Q2: Architectural Mastery',
-      tierBadge: 'Top 0.08% Global Tier',
-      title: 'Month 4: Total Recall Architecture & Structural Encoding',
-      hours: 'Hours 361–480',
-      tagline: 'Memory Palace Villa & Phonetic Peg Mastery',
-      ramTarget: '30% RAM: N=3 / N=4 Transition, Ayumu 8 digits @ 250ms',
-      palaceTarget: '70% Palace: 220+ Loci, sub-second 2-digit number encoding',
-      physicalTarget: 'Physical: 240h physical exploration; multi-floor complexes and museums',
+      tierBadge: 'Top 1% Cognitive Operator',
+      title: 'Month 4: Multi-Threaded Thinking & Script Fluency',
+      hours: 'Hours 91–120',
+      tagline: 'The Multi-Threaded Architect',
+      ramTarget: 'Dual N-Back (20m): N=3 consolidated (80%+). Zero interference between visual and auditory streams.',
+      pegsTarget: 'Mnemonic Pegs (20m): Compound 4-digit number chunking (combining two pegs into action scenes).',
+      symbolTarget: 'Symbol Detective (20m): Ultra-fast glyph anomaly isolation; abstract notation feels intuitive.',
       observation:
         'Hyper-acute situational awareness: immediate visual indexing of physical spaces, entrance/exit routes, lighting shifts, and spatial geometries.',
       studying:
-        'Ability to assimilate dense technical literature and architectural diagrams into dedicated spatial wings permanently.',
+        'Ability to assimilate dense technical literature and complex logic trees into dedicated mental wings permanently.',
       communication:
-        'Heightened social intelligence; changes in vocal cadence, micro-inflections, and subtle emotional tension become instantly readable.',
-      vibe: 'The Living Archive; structured, reliable, and encyclopedic in immediate recall.',
+        'Magnetic conversational presence. You track multi-threaded arguments, anticipating questions and resolving objections before they are spoken.',
+      vibe: 'A quiet intellectual titan. You emanate steady authority because your mind operates two steps ahead of the current moment.',
       neuroMechanism:
         'Hippocampal CA3-CA1 Long-Term Potentiation (LTP) and bilateral spatial parahippocampal grid cell network expansion.',
       milestoneQuote:
-        'Memory is no longer a fickle accident. You have constructed a permanent architectural library inside your mind.',
+        'Ideas no longer collide or crowd out one another. Yoseph\'s mental RAM is spacious, organized, and crystal-clear.',
     },
     {
       month: 5,
       quarter: 'Q2: Architectural Mastery',
-      tierBadge: 'Top 0.04% Global Tier',
-      title: 'Month 5: Visual Chunking & Intuitive Synthesis',
-      hours: 'Hours 481–600',
-      tagline: 'Dynamic Mental 3D Modeling & Problem Solving',
-      ramTarget: '30% RAM: Consistent N=4, Ayumu 8 digits @ 220ms',
-      palaceTarget: '70% Palace: 300+ Loci, foreign language keyword association',
-      physicalTarget: 'Physical: 300h physical exploration; botanical gardens, subway lines, highways',
+      tierBadge: 'Top 0.5% Memory Specialist',
+      title: 'Month 5: Cognitive Endurance & Structural Synthesis',
+      hours: 'Hours 121–150',
+      tagline: 'The High-Order Synthesizer',
+      ramTarget: 'Dual N-Back (20m): N=3 high-precision (88%+), introducing N=4 stress trials.',
+      pegsTarget: 'Mnemonic Pegs (20m): Sub-second 00–99 pegging across random digit streams; zero phonetic decay.',
+      symbolTarget: 'Symbol Detective (20m): Complex multi-symbol discrimination; high-speed error detection under fatigue.',
       observation:
         'Complex architectural systems, financial charts, and code bases reveal underlying anomalies and structural flaws in seconds.',
       studying:
         'Cross-disciplinary synthesis; foreign languages, mathematics, and systems collapse into vivid spatial anchors with rapid retention.',
       communication:
-        'Zero filler words (no "um", "like", or stuttering). Speech is crisp, authoritative, perfectly timed, and compelling.',
-      vibe: 'The High-Order Strategist; naturally anticipating second- and third-order consequences.',
+        'Zero vocal hesitation. Precision vocabulary selection occurs spontaneously; tone is calm, persuasive, and authoritative.',
+      vibe: 'Resilient mental endurance. After an intensive workday, your cognitive faculties remain sharp, refreshed, and clear.',
       neuroMechanism:
         'Frontoparietal Control Network (FPCN) hyper-coupling with the superior temporal sulcus for instantaneous structural synthesis.',
       milestoneQuote:
-        'Complex problems no longer intimidate you. Your visual cortex breaks them down into geometric components instantly.',
+        'Cognitive fatigue becomes a foreign concept. Yoseph processes complex data with the ease of natural breathing.',
     },
     {
       month: 6,
       quarter: 'Q2: Architectural Mastery',
-      tierBadge: 'Top 0.02% Outlier (1 in 5,000)',
-      title: 'Month 6: The Transformed Baseline (Cognitive Outlier)',
-      hours: 'Hours 601–720',
-      tagline: 'Permanent Myelination & Superhuman Baseline',
-      ramTarget: '30% RAM: High-accuracy N=4, Ayumu 9 digits in 210ms chimpanzee flash',
-      palaceTarget: '70% Palace: 380+ Loci across 10 permanent physical environments',
-      physicalTarget: 'Physical: 360h physical practice; full outdoor trail and transit systems',
+      tierBadge: '🎯 TOP 0.1% GLOBAL (1 in 1,000 Milestone)',
+      title: 'Month 6: Permanent Myelination & The 1-in-1,000 Milestone',
+      hours: 'Hours 151–180',
+      tagline: 'The Cognitive Outlier (1 in 1,000)',
+      ramTarget: 'Dual N-Back (20m): N=3 flawless / N=4 mastery. Working memory capacity in the top 0.1% of humanity.',
+      pegsTarget: 'Mnemonic Pegs (20m): Instantaneous 00–99 conversion at under 500ms; multi-digit strings encoded on the fly.',
+      symbolTarget: 'Symbol Detective (20m): Photographic-speed glyph classification; lightning-fast visual search.',
       observation:
         'World-class photographic intake, instantaneous anomaly detection, and crystal-clear panoramic gaze across wide visual fields.',
       studying:
         'Learning curves for novel, intricate domains compress from months down to weeks; rapid assimilation of dense technical literature.',
       communication:
         'Magnetic presence, airtight dialectic structure, and extraordinary working memory retention during high-stakes negotiations.',
-      vibe: 'Top 0.02% mental athlete; unflappable clarity, laser focus, and intellectual dominance.',
+      vibe: 'Top 0.1% mental athlete; unflappable clarity, laser focus, and intellectual dominance.',
       neuroMechanism:
         'Oligodendrocyte-driven myelination of the Superior Longitudinal Fasciculus, locking in high-speed neural transmission permanently.',
       milestoneQuote:
-        'You have crossed the half-year Rubicon. The biological adaptations are now structurally permanent in your white matter.',
+        '180 hours of deliberate practice complete. Yoseph has entered the Top 0.1% of human cognitive capacity.',
     },
     {
       month: 7,
       quarter: 'Q3: Deep Automaticity',
-      tierBadge: 'Top 0.015% Global Tier',
+      tierBadge: 'Top 0.05% Elite Tier',
       title: 'Month 7: Neuro-Synaptic Consolidation & Hyper-Fluidity',
-      hours: 'Hours 721–840',
-      tagline: 'Automaticity of Working Memory & Zero-Latency Retrieval',
-      ramTarget: '30% RAM: N=4 / N=5 Transition, Ayumu 9 digits @ 200ms',
-      palaceTarget: '70% Palace: 450+ Loci, rapid 3-digit phonetic chunking',
-      physicalTarget: 'Physical: 420h real-world mapping; commercial business districts & universities',
+      hours: 'Hours 181–210',
+      tagline: 'The Automatic Processor',
+      ramTarget: 'Dual N-Back (20m): N=4 consistent. Auditory letter and spatial square streams process like reflexes.',
+      pegsTarget: 'Mnemonic Pegs (20m): 3-digit composite associations (Person-Action-Object integration via Major pegs).',
+      symbolTarget: 'Symbol Detective (20m): Micro-temporal anomaly detection; noticing visual inconsistencies before conscious realization.',
       observation:
         'Subconscious visual scanning runs non-stop in the background; you spot physical misplaced items, typographical errors, or visual anomalies with zero conscious effort.',
       studying:
@@ -446,40 +446,40 @@ export const FourHourPlanView: React.FC<FourHourPlanViewProps> = ({
       neuroMechanism:
         'Striatal basal ganglia automaticity recruitment, freeing cortical bandwidth for abstract meta-reasoning and creative leap-making.',
       milestoneQuote:
-        'What once required intense willpower now happens automatically. Your mental engine operates with zero perceived friction.',
+        'What once required intense willpower now happens automatically. Yoseph\'s mental engine operates with zero perceived friction.',
     },
     {
       month: 8,
       quarter: 'Q3: Deep Automaticity',
-      tierBadge: '⚡ TOP 0.01% (1 in 10,000 Breakthrough)',
-      title: 'Month 8: Cognitive Immunity & TOP 0.01% Breakthrough',
-      hours: 'Hours 841–960',
-      tagline: 'Prefrontal Cortex Hegemony & Emotional Invariance',
-      ramTarget: '30% RAM: N=5 Breakthrough, Ayumu 9 digits in 180ms flash',
-      palaceTarget: '70% Palace: 520+ Loci network, multi-tier nested palace wings',
-      physicalTarget: 'Physical: 480h physical navigation; architecture & landmark anchoring',
+      tierBadge: 'Top 0.03% Polymath Tier',
+      title: 'Month 8: Cognitive Immunity & Prefrontal Hegemony',
+      hours: 'Hours 211–240',
+      tagline: 'The Emotionally Immovable Thinker',
+      ramTarget: 'Dual N-Back (20m): N=4 mastery (85%+ accuracy). Immune to proactive interference or distraction.',
+      pegsTarget: 'Mnemonic Pegs (20m): Phonetic pegging velocity < 400ms per item. High-density numerical memorization.',
+      symbolTarget: 'Symbol Detective (20m): Abstract script transcription; rapid visual decoding of non-standard notation.',
       observation:
         'Absolute gaze lock and visual impulse control. Distractions, sudden movement, and notifications trigger zero involuntary orienting reflexes.',
       studying:
-        '4 continuous hours of rigorous deep work feels as natural as 20 minutes. Dopamine craving for cheap digital stimulation is completely eradicated.',
+        'Complex technical curricula are conquered in 2–3 weeks. Memory of diagrams and formulas remains pristine.',
       communication:
         'Master negotiator demeanor; dissects opposing arguments in real time while maintaining warm, empathetic, and disarming rapport.',
       vibe: 'Absolute stoic clarity; chaos and noise in the external environment only amplify your internal mental stillness.',
       neuroMechanism:
         'Anterior Cingulate Cortex (ACC) error-monitoring perfection and hyper-connectivity to the amygdala for autonomic self-regulation.',
       milestoneQuote:
-        'Noise in the world cannot penetrate your focus. You have attained total sovereignty over your attentional beam.',
+        'External noise cannot pierce Yoseph\'s concentration. Focus is no longer an effort; it is an impenetrable fortress.',
     },
     {
       month: 9,
       quarter: 'Q3: Deep Automaticity',
-      tierBadge: '⚡ TOP 0.01% (1 in 10,000 Consolidated)',
-      title: 'Month 9: Polymathic Grid Architecture & Living Encyclopedias',
-      hours: 'Hours 961–1,080',
-      tagline: 'Multi-Tiered Memory Palaces & Domain Cross-Pollination',
-      ramTarget: '30% RAM: N=5 High Accuracy (85%+), Ayumu 9 digits in 170ms',
-      palaceTarget: '70% Palace: 600+ Loci, 3-digit PAO system fully active',
-      physicalTarget: 'Physical: 540h physical practice; city-wide landmark grids anchored',
+      tierBadge: 'Top 0.02% Dialectic Master',
+      title: 'Month 9: Cross-Domain RAM & Polymathic Synthesis',
+      hours: 'Hours 241–270',
+      tagline: 'The Polymathic Mind',
+      ramTarget: 'Dual N-Back (20m): N=4 flawless / N=5 entry. Exceptional working memory bandwidth.',
+      pegsTarget: 'Mnemonic Pegs (20m): Flawless numerical data bank: phone numbers, coordinates, dates, formulas recalled on demand.',
+      symbolTarget: 'Symbol Detective (20m): Instantaneous glyph structure translation and high-velocity pattern decoding.',
       observation:
         'Photographic blueprint retention: complex schematics, organizational hierarchies, and technical maps are permanently mapped in 1–2 sweeps.',
       studying:
@@ -490,18 +490,18 @@ export const FourHourPlanView: React.FC<FourHourPlanViewProps> = ({
       neuroMechanism:
         'Neocortical distributed semantic network crystallization and trans-modal synaptic consolidation across both cerebral hemispheres.',
       milestoneQuote:
-        'Different fields of human knowledge cease to be separate. In your mind, they all connect as facets of one geometric reality.',
+        'Different fields of human knowledge cease to be separate. In Yoseph\'s mind, they all connect as facets of one geometric reality.',
     },
     {
       month: 10,
       quarter: 'Q4: Sovereign Outlier',
-      tierBadge: 'Top 0.008% Global Tier',
+      tierBadge: 'Top 0.015% High-Velocity Specialist',
       title: 'Month 10: Iconic Flash Mastery & Micro-Temporal Precision',
-      hours: 'Hours 1,081–1,200',
-      tagline: 'Millisecond Visual Slicing & Cognitive Overclocking',
-      ramTarget: '30% RAM: N=5 / N=6 Transition, Ayumu 9 digits in 160ms',
-      palaceTarget: '70% Palace: 680+ Loci, instantaneous spatial bookmarking',
-      physicalTarget: 'Physical: 600h physical exploration; multi-city landmark travel palacing',
+      hours: 'Hours 271–300',
+      tagline: 'The Sub-Second Analytical Master',
+      ramTarget: 'Dual N-Back (20m): N=5 transition. Handling 10+ active multi-modal tokens simultaneously.',
+      pegsTarget: 'Mnemonic Pegs (20m): Sub-300ms number-to-image encoding; numbers feel as natural as spoken words.',
+      symbolTarget: 'Symbol Detective (20m): Microsecond glyph discrimination; spotting microscopic errors or patterns.',
       observation:
         'Subjective time dilation during fast visual events; micro-expressions, facial flickers, and rapid environmental shifts are parsed in slow motion.',
       studying:
@@ -512,18 +512,18 @@ export const FourHourPlanView: React.FC<FourHourPlanViewProps> = ({
       neuroMechanism:
         'Gamma-band (40Hz) neural phase synchronization between the occipital visual cortex and prefrontal executive centers.',
       milestoneQuote:
-        'Time appears to slow down in high-pressure moments. While others panic, you have all the time in the world to calculate and act.',
+        'Time appears to slow down in high-pressure moments. While others panic, Yoseph has all the time in the world to calculate and act.',
     },
     {
       month: 11,
       quarter: 'Q4: Sovereign Outlier',
-      tierBadge: 'Top 0.006% Global Tier',
-      title: 'Month 11: Permanent Cortical Remodeling & Cognitive Mastery',
-      hours: 'Hours 1,201–1,320',
-      tagline: 'Hyper-Thickened Prefrontal Myelin & Structural Plasticity',
-      ramTarget: '30% RAM: Consistent N=6, Ayumu 9 digits in 150ms',
-      palaceTarget: '70% Palace: 750+ Loci, entire technical dictionaries memorized',
-      physicalTarget: 'Physical: 660h physical practice; complete personal life index mapped',
+      tierBadge: '⚡ TOP 0.01% (1 in 10,000 Mind)',
+      title: 'Month 11: Top 0.01% Breakthrough (The 1 in 10,000 Mind)',
+      hours: 'Hours 301–330',
+      tagline: 'The Sovereign Intellectual Outlier',
+      ramTarget: 'Dual N-Back (20m): N=5 stabilized. Working memory capacity among the top 1 in 10,000 humans.',
+      pegsTarget: 'Mnemonic Pegs (20m): Complete numerical sovereignty; limitless capacity for numerical data without decay.',
+      symbolTarget: 'Symbol Detective (20m): Script and symbol parsing at lightning velocity; immediate comprehension of formal systems.',
       observation:
         'Panoramic multi-sensory synthesis: visual, auditory, and spatial inputs form a seamless, high-definition real-time model of your surroundings.',
       studying:
@@ -534,18 +534,18 @@ export const FourHourPlanView: React.FC<FourHourPlanViewProps> = ({
       neuroMechanism:
         'Long-term gray matter density increase across the bilateral DLPFC, anterior insula, and hippocampus confirmed by longitudinal imaging.',
       milestoneQuote:
-        'You are functioning on a biological tier that less than 0.01% of humans ever experience. Brain fog is a distant, forgotten memory.',
+        'Yoseph is functioning on a biological tier that less than 0.01% of humans ever experience. Brain fog is a distant, forgotten memory.',
     },
     {
       month: 12,
       quarter: 'Q4: Sovereign Outlier',
       tierBadge: '👑 TOP 0.005% GLOBAL (1 in 20,000 Grandmaster)',
-      title: 'Month 12: The Sovereign Mind (1,440 Hours of Neuro-Transformation)',
-      hours: 'Hours 1,321–1,440+',
-      tagline: '1,440 Hours of Deliberate Neuro-Evolution Complete',
-      ramTarget: '30% RAM: N=6 Peak RAM, photographic millisecond capture',
-      palaceTarget: '70% Palace: 800+ Master Loci Network, lifetime archival structure',
-      physicalTarget: 'Physical: 720h real-world physical navigation; entire urban maps anchored',
+      title: 'Month 12: The Sovereign Mind (360 Hours of Neuro-Transformation)',
+      hours: 'Hours 331–360',
+      tagline: 'The Sovereign Mind (Top 0.005% Grandmaster)',
+      ramTarget: 'Dual N-Back (20m): N=5 / N=6 Peak RAM, multi-threaded executive buffer.',
+      pegsTarget: 'Mnemonic Pegs (20m): Instantaneous 00–99 phonetic peg table operating as an automated internal co-processor.',
+      symbolTarget: 'Symbol Detective (20m): Master-level symbol & script discrimination; instant anomaly identification.',
       observation:
         'True photographic intake and permanent spatial architecture. Visual indexing is effortless, instinctive, and indestructible.',
       studying:
@@ -556,7 +556,7 @@ export const FourHourPlanView: React.FC<FourHourPlanViewProps> = ({
       neuroMechanism:
         'Full-year myelination and structural reorganization—a permanently upgraded human biological operating system that endures for life.',
       milestoneQuote:
-        '1,440 hours of deliberate cognitive training completed. You are not the same person who started this journey. You have forged a sovereign mind.',
+        '360 hours of deliberate cognitive training completed. Yoseph is not the same person who started this journey. You have forged a sovereign mind.',
     },
   ];
 
@@ -850,11 +850,11 @@ export const FourHourPlanView: React.FC<FourHourPlanViewProps> = ({
                     </span>
                   </div>
 
-                  {/* 30/70 Plan & Physical Real-Life Strip */}
+                  {/* Yosi's 3-Pillar 1-Hour Regimen Strip (3 × 20m) */}
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4 text-xs font-mono relative z-10">
                     <div className="bg-slate-900/90 border border-sky-500/30 p-2.5 rounded-xl">
                       <span className="text-[10px] text-sky-400 block uppercase font-sans font-bold flex items-center gap-1">
-                        <Brain className="w-3 h-3" /> 30% Working RAM
+                        <Brain className="w-3 h-3" /> Dual N-Back Buffer (20m)
                       </span>
                       <span className="text-sky-200 text-[11px] font-medium leading-tight block mt-0.5">
                         {activeData.ramTarget}
@@ -863,19 +863,19 @@ export const FourHourPlanView: React.FC<FourHourPlanViewProps> = ({
 
                     <div className="bg-slate-900/90 border border-amber-500/30 p-2.5 rounded-xl">
                       <span className="text-[10px] text-amber-400 block uppercase font-sans font-bold flex items-center gap-1">
-                        <Compass className="w-3 h-3" /> 70% Palace Storage
+                        <Zap className="w-3 h-3" /> Mnemonic Pegs (20m)
                       </span>
                       <span className="text-amber-200 text-[11px] font-medium leading-tight block mt-0.5">
-                        {activeData.palaceTarget}
+                        {activeData.pegsTarget}
                       </span>
                     </div>
 
-                    <div className="bg-slate-900/90 border border-emerald-500/30 p-2.5 rounded-xl">
-                      <span className="text-[10px] text-emerald-400 block uppercase font-sans font-bold flex items-center gap-1">
-                        <MapPin className="w-3 h-3" /> 2h Physical Real-Life
+                    <div className="bg-slate-900/90 border border-pink-500/30 p-2.5 rounded-xl">
+                      <span className="text-[10px] text-pink-400 block uppercase font-sans font-bold flex items-center gap-1">
+                        <Sparkles className="w-3 h-3" /> Symbol Detective (20m)
                       </span>
-                      <span className="text-emerald-200 text-[11px] font-medium leading-tight block mt-0.5">
-                        {activeData.physicalTarget}
+                      <span className="text-pink-200 text-[11px] font-medium leading-tight block mt-0.5">
+                        {activeData.symbolTarget}
                       </span>
                     </div>
                   </div>

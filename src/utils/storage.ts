@@ -226,7 +226,7 @@ export function exportDataBackupFile(): void {
     const profile = localStorage.getItem(LOCAL_PROFILE_KEY);
 
     const payload = {
-      app: 'Photographic Memory Master',
+      app: 'Yosi Game',
       backupVersion: 2,
       exportedAt: new Date().toISOString(),
       stats,

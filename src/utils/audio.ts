@@ -1,4 +1,4 @@
-// Web Audio API Procedural Sound Synthesizer for Photographic Memory Master
+// Web Audio API Procedural Sound Synthesizer for Yosi Game (Created for Yoseph)
 
 class SoundManager {
   private ctx: AudioContext | null = null;

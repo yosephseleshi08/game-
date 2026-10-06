@@ -1491,7 +1491,7 @@ export default function App() {
       {/* Footer */}
       <footer className="border-t border-slate-900 bg-slate-950 py-4 px-4 text-center text-xs text-slate-500 safe-bottom">
         <p>
-          Photographic Memory Master • 365-Day Retinal Snapshot & Iconic Flash Laboratory
+          Yosi Game • Created Exclusively for Yoseph • 1-Hour Daily Cognitive Mastery Engine
         </p>
       </footer>
     </div>

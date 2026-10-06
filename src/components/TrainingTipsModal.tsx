@@ -83,8 +83,8 @@ export const TrainingTipsModal: React.FC<TrainingTipsModalProps> = ({ isOpen, on
               <BookOpen className="w-4 h-4" />
             </div>
             <div>
-              <h2 className="text-base font-bold text-white">Photographic Memory Master Techniques</h2>
-              <p className="text-xs text-slate-400">Scientific methods for developing eidetic retention</p>
+              <h2 className="text-base font-bold text-white">Yosi Game Master Techniques</h2>
+              <p className="text-xs text-slate-400">Scientific methods for Yoseph's 1-Hour Daily Cognitive Mastery</p>
             </div>
           </div>
           <button
