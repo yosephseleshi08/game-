@@ -23,6 +23,7 @@ import {
   Smartphone,
   LogOut,
   Laptop,
+  RotateCcw,
 } from 'lucide-react';
 
 interface UserProfileModalProps {
@@ -177,13 +178,13 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
           <div>
             <div className="flex items-center gap-2">
               <h2 className="text-xl font-black text-white">
-                {profile?.username || 'Solo Memory Athlete'}
+                {profile?.username || 'Yoseph (Yosi)'}
               </h2>
               <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-cyan-950 text-cyan-300 border border-cyan-800">
                 Lvl {stats.level}
               </span>
             </div>
-            <p className="text-xs text-slate-400 mt-0.5">Solo Athlete • Local Offline Profile</p>
+            <p className="text-xs text-slate-400 mt-0.5">Yosi Game • Created Exclusively for Yoseph</p>
             <span className="text-[11px] text-amber-400 font-semibold flex items-center gap-1 mt-0.5">
               <Award className="w-3 h-3" /> {profile?.rankTitle || 'Memory Master in Training'}
             </span>
@@ -350,43 +351,45 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
           </div>
         )}
 
-        {/* 6-Day Streak Recovery & Data Backup (Download & Restore) */}
-        <div className="p-4 rounded-2xl bg-gradient-to-b from-slate-950 to-slate-900 border border-amber-500/40 text-xs mb-5 shadow-lg shadow-amber-950/20">
+        {/* Data Management & Fresh Start Reset */}
+        <div className="p-4 rounded-2xl bg-gradient-to-b from-slate-950 to-slate-900 border border-cyan-500/40 text-xs mb-5 shadow-lg shadow-cyan-950/20">
           <div className="flex items-center justify-between mb-2.5">
             <div className="flex items-center gap-2">
-              <div className="p-1.5 rounded-lg bg-amber-500/20 text-amber-400 border border-amber-500/40">
-                <Flame className="w-4 h-4 fill-amber-400" />
+              <div className="p-1.5 rounded-lg bg-cyan-500/20 text-cyan-400 border border-cyan-500/40">
+                <RotateCcw className="w-4 h-4 text-cyan-400" />
               </div>
               <div>
                 <h4 className="font-bold text-white text-xs flex items-center gap-1.5">
-                  6-Day Streak Recovery & Data Backup
+                  Fresh Start & Data Backup
                 </h4>
-                <span className="text-[10px] text-amber-300 font-mono">
-                  Active Streak: {stats.currentStreak} Days • Day {curriculumDay} Protocol 🔥
+                <span className="text-[10px] text-cyan-300 font-mono">
+                  Active Streak: {stats.currentStreak} Days • Day {curriculumDay} Protocol
                 </span>
               </div>
             </div>
-            <span className="px-2 py-0.5 rounded-full bg-amber-950/80 text-amber-300 border border-amber-800 text-[10px] font-bold">
-              Guaranteed
+            <span className="px-2 py-0.5 rounded-full bg-cyan-950/80 text-cyan-300 border border-cyan-800 text-[10px] font-bold">
+              Yosi Game
             </span>
           </div>
 
           <p className="text-[11px] text-slate-300 leading-relaxed mb-3">
-            Your 6-day streak is safely preserved. If you download the app on another phone, clear browser cache, or re-open in offline mode, you can restore your 6-day streak and Day 7 curriculum with 1 click.
+            Start completely fresh from Day 1 (0 XP) whenever you wish, or download a full offline JSON backup to preserve your data.
           </p>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-2.5">
             <button
               type="button"
               onClick={() => {
-                if (onRestoreStreak) onRestoreStreak();
-                setMsg('6-Day streak & Day 7 curriculum successfully verified & restored! 🔥');
-                setTimeout(() => setMsg(null), 3500);
+                if (confirm('Start completely fresh from Day 1 and 0 XP?')) {
+                  if (onRestoreStreak) onRestoreStreak();
+                  setMsg('All progress reset to clean slate! Starting fresh at Day 1 / 0 XP.');
+                  setTimeout(() => setMsg(null), 3500);
+                }
               }}
-              className="py-2.5 px-3 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-md shadow-amber-950/40 active:scale-98"
+              className="py-2.5 px-3 rounded-xl bg-gradient-to-r from-rose-500 to-amber-600 hover:from-rose-400 hover:to-amber-500 text-white font-black text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-md shadow-rose-950/40 active:scale-98"
             >
-              <Flame className="w-3.5 h-3.5 fill-slate-950" />
-              <span>⚡ Restore 6-Day Streak</span>
+              <RotateCcw className="w-3.5 h-3.5" />
+              <span>⚡ Start Fresh (0 XP)</span>
             </button>
 
             <button

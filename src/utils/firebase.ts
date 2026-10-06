@@ -447,27 +447,26 @@ export function mergeUserProgress(
     Object.values(localProtocol?.history || {}).filter((h) => h?.completed).length,
     Object.values(cloudProtocol?.history || {}).filter((h) => h?.completed).length,
     localProtocol?.curriculumDay && localProtocol.curriculumDay > 1 ? localProtocol.curriculumDay - 1 : 0,
-    cloudProtocol?.curriculumDay && cloudProtocol.curriculumDay > 1 ? cloudProtocol.curriculumDay - 1 : 0,
-    6 // Guaranteed minimum streak retention of 6 days
+    cloudProtocol?.curriculumDay && cloudProtocol.curriculumDay > 1 ? cloudProtocol.curriculumDay - 1 : 0
   );
 
   const mergedStats: UserStats = {
-    xp: Math.max(mergedXp, 1650),
-    level: Math.max(rank.currentRank.level, 4),
-    totalGamesPlayed: Math.max(localStats.totalGamesPlayed || 0, cloudStats.totalGamesPlayed || 0, 36),
-    matrixMaxLevel: Math.max(localStats.matrixMaxLevel || 1, cloudStats.matrixMaxLevel || 1, 5),
-    ayumuMaxNumbers: Math.max(localStats.ayumuMaxNumbers || 4, cloudStats.ayumuMaxNumbers || 4, 6),
+    xp: mergedXp,
+    level: Math.max(rank.currentRank.level, localStats.level || 1, cloudStats.level || 1),
+    totalGamesPlayed: Math.max(localStats.totalGamesPlayed || 0, cloudStats.totalGamesPlayed || 0),
+    matrixMaxLevel: Math.max(localStats.matrixMaxLevel || 1, cloudStats.matrixMaxLevel || 1),
+    ayumuMaxNumbers: Math.max(localStats.ayumuMaxNumbers || 3, cloudStats.ayumuMaxNumbers || 3),
     detectiveHighScore: Math.max(localStats.detectiveHighScore || 0, cloudStats.detectiveHighScore || 0),
     fastestFlashMs: Math.min(
-      localStats.fastestFlashMs > 0 ? localStats.fastestFlashMs : 900,
-      cloudStats.fastestFlashMs > 0 ? cloudStats.fastestFlashMs : 900
+      localStats.fastestFlashMs > 0 ? localStats.fastestFlashMs : 2000,
+      cloudStats.fastestFlashMs > 0 ? cloudStats.fastestFlashMs : 2000
     ),
     currentStreak: calculatedStreak,
-    bestStreak: Math.max(localStats.bestStreak || 0, cloudStats.bestStreak || 0, calculatedStreak, 6),
+    bestStreak: Math.max(localStats.bestStreak || 0, cloudStats.bestStreak || 0, calculatedStreak),
     accuracyRate: Math.max(localStats.accuracyRate || 0, cloudStats.accuracyRate || 0),
     totalAttempts: Math.max(localStats.totalAttempts || 0, cloudStats.totalAttempts || 0),
     totalCorrectAttempts: Math.max(localStats.totalCorrectAttempts || 0, cloudStats.totalCorrectAttempts || 0),
-    dualNBackMaxN: Math.max(localStats.dualNBackMaxN || 2, cloudStats.dualNBackMaxN || 2),
+    dualNBackMaxN: Math.max(localStats.dualNBackMaxN || 1, cloudStats.dualNBackMaxN || 1),
     mnemonicConversionCount: Math.max(
       localStats.mnemonicConversionCount || 0,
       cloudStats.mnemonicConversionCount || 0
@@ -483,12 +482,11 @@ export function mergeUserProgress(
 
   // Merge protocol: choose the higher curriculum day, and ALWAYS merge history!
   const combinedHistory = {
-    ...generateSixDayStreakHistory(),
     ...(localProtocol.history || {}),
     ...(cloudProtocol.history || {}),
   };
 
-  const highestDay = Math.max(cloudProtocol.curriculumDay || 1, localProtocol.curriculumDay || 1, 7);
+  const highestDay = Math.max(cloudProtocol.curriculumDay || 1, localProtocol.curriculumDay || 1);
 
   let mergedProtocol: DailyProtocolState;
   if (cloudProtocol.curriculumDay > localProtocol.curriculumDay) {

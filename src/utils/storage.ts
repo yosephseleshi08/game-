@@ -77,72 +77,74 @@ const STATS_STORAGE_KEY = 'pmm_user_stats_v2';
 const SPEED_STORAGE_KEY = 'pmm_flash_speed_v1';
 const CARDS_STORAGE_KEY = 'pmm_spaced_cards_v1';
 
-export function getSixDayRestoredStats(): UserStats {
+const YOSI_FRESH_START_KEY = 'yosi_game_fresh_v2';
+
+export function getFreshInitialStats(): UserStats {
   return {
-    xp: 1650,
-    level: 4,
-    totalGamesPlayed: 36,
-    matrixMaxLevel: 5,
-    ayumuMaxNumbers: 6,
-    detectiveHighScore: 520,
-    fastestFlashMs: 900,
-    currentStreak: 6,
-    bestStreak: 6,
-    accuracyRate: 98,
-    totalAttempts: 48,
-    totalCorrectAttempts: 47,
-    dualNBackMaxN: 2,
-    mnemonicConversionCount: 24,
-    cardsMastered: 12,
+    xp: 0,
+    level: 1,
+    totalGamesPlayed: 0,
+    matrixMaxLevel: 1,
+    ayumuMaxNumbers: 3,
+    detectiveHighScore: 0,
+    fastestFlashMs: 2000,
+    currentStreak: 0,
+    bestStreak: 0,
+    accuracyRate: 0,
+    totalAttempts: 0,
+    totalCorrectAttempts: 0,
+    dualNBackMaxN: 1,
+    mnemonicConversionCount: 0,
+    cardsMastered: 0,
     pqHistory: [],
-    progressHistory: [
-      { id: 'streak-day-1', timestamp: new Date(Date.now() - 6 * 86400000).toISOString(), displayDate: 'Day 1', ayumuMax: 4, dualNBackMaxN: 1, matrixLevel: 1 },
-      { id: 'streak-day-2', timestamp: new Date(Date.now() - 5 * 86400000).toISOString(), displayDate: 'Day 2', ayumuMax: 4, dualNBackMaxN: 1, matrixLevel: 2 },
-      { id: 'streak-day-3', timestamp: new Date(Date.now() - 4 * 86400000).toISOString(), displayDate: 'Day 3', ayumuMax: 5, dualNBackMaxN: 1, matrixLevel: 2 },
-      { id: 'streak-day-4', timestamp: new Date(Date.now() - 3 * 86400000).toISOString(), displayDate: 'Day 4', ayumuMax: 5, dualNBackMaxN: 2, matrixLevel: 3 },
-      { id: 'streak-day-5', timestamp: new Date(Date.now() - 2 * 86400000).toISOString(), displayDate: 'Day 5', ayumuMax: 6, dualNBackMaxN: 2, matrixLevel: 4 },
-      { id: 'streak-day-6', timestamp: new Date(Date.now() - 1 * 86400000).toISOString(), displayDate: 'Day 6', ayumuMax: 6, dualNBackMaxN: 2, matrixLevel: 5 },
-      { id: 'streak-day-today', timestamp: new Date().toISOString(), displayDate: 'Day 7 (Today)', ayumuMax: 6, dualNBackMaxN: 2, matrixLevel: 5 },
-    ],
+    progressHistory: [],
   };
 }
 
-const defaultStats: UserStats = getSixDayRestoredStats();
+export function getSixDayRestoredStats(): UserStats {
+  return getFreshInitialStats();
+}
+
+const defaultStats: UserStats = getFreshInitialStats();
 
 export function loadUserStats(): UserStats {
-  const restoredDefaults = getSixDayRestoredStats();
+  const freshDefaults = getFreshInitialStats();
   try {
+    // If not yet migrated to Yosi's clean start, clear previous streak data
+    if (localStorage.getItem(YOSI_FRESH_START_KEY) !== 'true') {
+      localStorage.removeItem(STATS_STORAGE_KEY);
+      localStorage.removeItem('pmm_daily_protocol_v1');
+      localStorage.removeItem('pmm_four_hour_plan_state');
+      localStorage.removeItem('pmm_four_hour_plan_state_v1');
+      localStorage.removeItem('pmm_free_training_stats_v1');
+      localStorage.removeItem('pmm_free_training_stats_v2');
+      localStorage.removeItem(LOCAL_PROFILE_KEY);
+      localStorage.setItem(YOSI_FRESH_START_KEY, 'true');
+      saveUserStats(freshDefaults);
+      return freshDefaults;
+    }
+
     const raw = localStorage.getItem(STATS_STORAGE_KEY);
     if (!raw) {
-      saveUserStats(restoredDefaults);
-      return restoredDefaults;
+      saveUserStats(freshDefaults);
+      return freshDefaults;
     }
     const parsed = JSON.parse(raw);
-    const safeStreak = Math.max(parsed.currentStreak || 0, 6);
-    const safeBest = Math.max(parsed.bestStreak || 0, safeStreak, 6);
-    const safeXp = Math.max(parsed.xp || 0, 1650);
+    const safeXp = parsed.xp || 0;
     const safeRank = getRankForXp(safeXp);
 
     const merged: UserStats = {
-      ...restoredDefaults,
+      ...freshDefaults,
       ...parsed,
-      currentStreak: safeStreak,
-      bestStreak: safeBest,
+      currentStreak: parsed.currentStreak || 0,
+      bestStreak: parsed.bestStreak || 0,
       xp: safeXp,
       level: Math.max(parsed.level || 1, safeRank.currentRank.level),
-      progressHistory:
-        parsed.progressHistory && parsed.progressHistory.length >= 6
-          ? parsed.progressHistory
-          : restoredDefaults.progressHistory,
+      progressHistory: parsed.progressHistory || [],
     };
-
-    // Keep storage up to date with the restored 6-day streak
-    if (parsed.currentStreak < 6 || parsed.bestStreak < 6) {
-      saveUserStats(merged);
-    }
     return merged;
   } catch {
-    return restoredDefaults;
+    return freshDefaults;
   }
 }
 
@@ -155,55 +157,61 @@ export function saveUserStats(stats: UserStats): void {
 }
 
 /**
- * Explicitly restores the 6-day streak and Day 7 curriculum across all local storage records
+ * Resets all progress to a clean Day 1 / 0 XP start for Yoseph
  */
+export function resetAllProgressForYosi(): {
+  stats: UserStats;
+  protocol: DailyProtocolState;
+  profile: UserProfile;
+} {
+  const freshStats = getFreshInitialStats();
+  saveUserStats(freshStats);
+
+  const cycleKey = getCurrentCycleInfo().cycleKey;
+  const freshProtocol: DailyProtocolState = {
+    currentCycleDate: cycleKey,
+    isLockedOut: false,
+    curriculumDay: 1,
+    currentPhase: 1,
+    tasks: generateTasksForDay(1),
+    history: {},
+  };
+  localStorage.setItem('pmm_daily_protocol_v1', JSON.stringify(freshProtocol));
+
+  const freshProfile: UserProfile = {
+    id: `yosi-${Date.now()}`,
+    email: 'yoseph@yosigame.app',
+    username: 'Yoseph (Yosi)',
+    photoUrl: 'yosi-prime',
+    avatarPresetId: 'yosi-prime',
+    curriculumDay: 1,
+    currentStreak: 0,
+    bestStreak: 0,
+    level: 1,
+    xp: 0,
+    rankTitle: 'Novice Observer',
+    updatedAt: new Date().toISOString(),
+    ayumuMaxNumbers: 3,
+    matrixMaxLevel: 1,
+    dualNBackMaxN: 1,
+    fastestFlashMs: 2000,
+    detectiveHighScore: 0,
+  };
+  saveLocalProfile(freshProfile);
+
+  return {
+    stats: freshStats,
+    protocol: freshProtocol,
+    profile: freshProfile,
+  };
+}
+
 export function restoreSixDayStreak(): {
   stats: UserStats;
   protocol: DailyProtocolState;
   profile: UserProfile;
 } {
-  const restoredStats = getSixDayRestoredStats();
-  const currentStats = loadUserStats();
-
-  const finalStats: UserStats = {
-    ...currentStats,
-    ...restoredStats,
-    currentStreak: Math.max(currentStats.currentStreak || 0, 6),
-    bestStreak: Math.max(currentStats.bestStreak || 0, 6),
-    xp: Math.max(currentStats.xp || 0, 1650),
-    level: Math.max(currentStats.level || 1, 4),
-  };
-  saveUserStats(finalStats);
-
-  const cycleKey = getCurrentCycleInfo().cycleKey;
-  const restoredProtocol: DailyProtocolState = {
-    currentCycleDate: cycleKey,
-    isLockedOut: false,
-    curriculumDay: 7,
-    currentPhase: 1,
-    tasks: generateTasksForDay(7),
-    history: generateSixDayStreakHistory(),
-  };
-  localStorage.setItem('pmm_daily_protocol_v1', JSON.stringify(restoredProtocol));
-
-  const existingProfile = loadLocalProfile();
-  const finalProfile: UserProfile = {
-    ...(existingProfile || createLocalAthleteProfile('Solo Athlete', 'ayumu')),
-    curriculumDay: 7,
-    currentStreak: finalStats.currentStreak,
-    bestStreak: finalStats.bestStreak,
-    level: finalStats.level,
-    xp: finalStats.xp,
-    rankTitle: getRankForXp(finalStats.xp).currentRank.title,
-    updatedAt: new Date().toISOString(),
-  };
-  saveLocalProfile(finalProfile);
-
-  return {
-    stats: finalStats,
-    protocol: restoredProtocol,
-    profile: finalProfile,
-  };
+  return resetAllProgressForYosi();
 }
 
 /**
@@ -317,26 +325,26 @@ export function saveLocalProfile(profile: UserProfile): void {
   }
 }
 
-export function createLocalAthleteProfile(username?: string, avatarPresetId = 'ayumu'): UserProfile {
+export function createLocalAthleteProfile(username?: string, avatarPresetId = 'yosi-prime'): UserProfile {
   const currentStats = loadUserStats();
   const profile: UserProfile = {
     id: `local-${Date.now()}`,
-    email: 'local@device.offline',
-    username: username && username.trim() ? username.trim() : 'Local Athlete',
+    email: 'yoseph@yosigame.app',
+    username: username && username.trim() ? username.trim() : 'Yoseph (Yosi)',
     photoUrl: avatarPresetId,
     avatarPresetId: avatarPresetId,
     level: currentStats.level || 1,
-    xp: currentStats.xp || 140,
-    rankTitle: getRankForXp(currentStats.xp || 140).currentRank.title,
+    xp: currentStats.xp || 0,
+    rankTitle: getRankForXp(currentStats.xp || 0).currentRank.title,
     curriculumDay: 1,
     currentStreak: currentStats.currentStreak || 0,
     bestStreak: currentStats.bestStreak || 0,
-    ayumuMaxNumbers: currentStats.ayumuMaxNumbers || 4,
+    ayumuMaxNumbers: currentStats.ayumuMaxNumbers || 3,
     matrixMaxLevel: currentStats.matrixMaxLevel || 1,
-    dualNBackMaxN: currentStats.dualNBackMaxN || 2,
+    dualNBackMaxN: currentStats.dualNBackMaxN || 1,
     fastestFlashMs: currentStats.fastestFlashMs || 2000,
     detectiveHighScore: currentStats.detectiveHighScore || 0,
-    lockedFlashSpeed: 1200,
+    lockedFlashSpeed: 2000,
     isSpeedLockedToPlan: true,
     updatedAt: new Date().toISOString(),
     createdAt: new Date().toISOString(),

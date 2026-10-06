@@ -346,7 +346,8 @@ export interface ProtocolTask {
     | 'dual-nback'
     | 'mnemonic-pegs'
     | 'memory-palace'
-    | 'spaced-repetition';
+    | 'spaced-repetition'
+    | 'symbol-detective';
   title: string;
   discipline: string;
   targetDescription: string;

@@ -56,23 +56,7 @@ import { Award, Sparkles, X, Clock, Play, Pause, RotateCcw, Flame, Smartphone, C
 
 export default function App() {
   const [protocol, setProtocol] = useState(() => loadDailyProtocol());
-  const [stats, setStats] = useState<UserStats>(() => {
-    const loaded = loadUserStats();
-    const proto = loadDailyProtocol();
-    const historyDays = Object.values(proto.history || {}).filter((h: any) => h?.completed).length;
-    const safeStreak = Math.max(
-      loaded.currentStreak || 0,
-      historyDays,
-      proto.curriculumDay && proto.curriculumDay > 1 ? proto.curriculumDay - 1 : 0,
-      6
-    );
-    return {
-      ...loaded,
-      currentStreak: safeStreak,
-      bestStreak: Math.max(loaded.bestStreak || 0, safeStreak, 6),
-      xp: Math.max(loaded.xp || 0, 1650),
-    };
-  });
+  const [stats, setStats] = useState<UserStats>(() => loadUserStats());
 
   // Cross-Device Authentication & Cloud Synchronization (2 Phones & 1 PC)
   const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -128,16 +112,16 @@ export default function App() {
   // Level Up Toast
   const [levelUpAlert, setLevelUpAlert] = useState<{ oldLevel: number; newLevel: number; title: string } | null>(null);
 
-  // 6-Day Streak Restoration Toast Notice
+  // Reset Notification
   const [streakRestoreNotice, setStreakRestoreNotice] = useState<string | null>(null);
 
   // Solo Athlete Profile (100% Offline)
   const [currentProfile, setCurrentProfile] = useState<UserProfile>(() => {
-    return loadLocalProfile() || createLocalAthleteProfile('Solo Athlete', 'ayumu');
+    return loadLocalProfile() || createLocalAthleteProfile('Yoseph (Yosi)', 'yosi-prime');
   });
 
-  const handleRestoreSixDayStreak = () => {
-    sound.playLevelUp();
+  const handleResetAllProgress = () => {
+    sound.playClick();
     const result = restoreSixDayStreak();
     setStats(result.stats);
     setProtocol(result.protocol);
@@ -145,7 +129,7 @@ export default function App() {
     if (currentUser) {
       saveUserCloudData(currentUser.uid, result.stats, result.protocol, freeTrainingStats, result.profile);
     }
-    setStreakRestoreNotice('🔥 6-Day Streak & Day 7 Protocol Successfully Restored!');
+    setStreakRestoreNotice('All progress reset to clean slate! Starting fresh at Day 1, Yoseph.');
     setTimeout(() => setStreakRestoreNotice(null), 5000);
   };
 
@@ -156,27 +140,28 @@ export default function App() {
   const unflushedSecondsRef = useRef(0);
 
   const PLAYABLE_GAME_MODES: GameMode[] = [
-    'ayumu-chimp',
+    'mnemonic-pegs',
     'dual-nback',
-    'memory-palace',
     'symbol-detective',
+    'ayumu-chimp',
+    'memory-palace',
   ];
 
-  const FOUR_HOUR_MODULE_TARGETS: Partial<Record<GameMode, { title: string; minutes: number }>> = {
-    'ayumu-chimp': { title: 'Ayumu Chimp (Flash RAM)', minutes: 18 },
-    'dual-nback': { title: 'Dual N-Back (Working Memory RAM)', minutes: 18 },
-    'memory-palace': { title: 'Memory Palace (Digital Loci)', minutes: 84 },
-    'symbol-detective': { title: 'Symbol Detective Lab (Visual Binding)', minutes: 15 },
+  // Yoseph's 1-Hour Protocol Targets (3 disciplines x 20 minutes = 60 minutes)
+  const ONE_HOUR_MODULE_TARGETS: Partial<Record<GameMode, { title: string; minutes: number }>> = {
+    'mnemonic-pegs': { title: 'Mnemonic Major Pegs (Number-to-Image)', minutes: 20 },
+    'dual-nback': { title: 'Dual N-Back Buffer (Working Memory RAM)', minutes: 20 },
+    'symbol-detective': { title: 'Symbol Detective Lab (Script Speed)', minutes: 20 },
   };
 
   const isPlayingGame = PLAYABLE_GAME_MODES.includes(activeMode);
 
-  const activeFourHourTarget = FOUR_HOUR_MODULE_TARGETS[activeMode];
-  const activeModeSeconds = activeFourHourTarget ? (freeTrainingStats.todayGamesBreakdown?.[activeMode] || 0) : 0;
-  const targetSeconds = activeFourHourTarget ? activeFourHourTarget.minutes * 60 : 0;
-  const fourHourRemainingSecs = Math.max(0, targetSeconds - activeModeSeconds);
-  const isFourHourGoalMet = activeFourHourTarget && (
-    fourHourRemainingSecs === 0 ||
+  const activeModuleTarget = ONE_HOUR_MODULE_TARGETS[activeMode];
+  const activeModeSeconds = activeModuleTarget ? (freeTrainingStats.todayGamesBreakdown?.[activeMode] || 0) : 0;
+  const targetSeconds = activeModuleTarget ? activeModuleTarget.minutes * 60 : 0;
+  const moduleRemainingSecs = Math.max(0, targetSeconds - activeModeSeconds);
+  const isModuleGoalMet = activeModuleTarget && (
+    moduleRemainingSecs === 0 ||
     protocol.tasks.find((t) => t.id === activeMode)?.isCompleted ||
     protocol.isLockedOut
   );
@@ -970,7 +955,7 @@ export default function App() {
         onForceSync={handleForceSync}
         archetype={athleteArchetype}
         onOpenArchetype={() => setIsArchetypeModalOpen(true)}
-        onRestoreStreak={handleRestoreSixDayStreak}
+        onRestoreStreak={handleResetAllProgress}
       />
 
       {/* Mode Navigation Tabs */}
@@ -1121,21 +1106,21 @@ export default function App() {
                     <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-cyan-950 text-cyan-300 border border-cyan-800">
                       📅 Today: {formatTimerClock(freeTrainingStats.todaySeconds)}
                     </span>
-                    {activeFourHourTarget && (
+                    {activeModuleTarget && (
                       <span
                         className={`text-[10px] font-mono px-2 py-0.5 rounded-full border flex items-center gap-1 ${
-                          isFourHourGoalMet
+                          isModuleGoalMet
                             ? 'bg-emerald-950/80 text-emerald-300 border-emerald-800'
                             : 'bg-amber-950/80 text-amber-300 border-amber-800 animate-pulse'
                         }`}
-                        title="4-Hour Cognitive Plan Live Countdown: Auto-verifies when completed"
+                        title="Yosi's 1-Hour Protocol: 20-minute module goal auto-verifies when completed"
                       >
                         <Clock className="w-3 h-3" />
-                        4h Plan: {isFourHourGoalMet ? (
+                        1h Routine (20m): {isModuleGoalMet ? (
                           <span className="text-emerald-300 font-bold">✓ Mastered</span>
                         ) : (
                           <span>
-                            {Math.floor(fourHourRemainingSecs / 60)}m {fourHourRemainingSecs % 60}s left
+                            {Math.floor(moduleRemainingSecs / 60)}m {moduleRemainingSecs % 60}s left
                           </span>
                         )}
                       </span>
@@ -1381,7 +1366,7 @@ export default function App() {
             lastSyncedTime={lastSyncedTime}
             onTriggerSync={handleForceSync}
             onOpenArchetype={() => setIsArchetypeModalOpen(true)}
-            onRestoreStreak={handleRestoreSixDayStreak}
+            onRestoreStreak={handleResetAllProgress}
           />
         )}
       </main>
@@ -1422,7 +1407,7 @@ export default function App() {
         }}
         onForceSync={handleForceSync}
         onSignOut={handleSignOut}
-        onRestoreStreak={handleRestoreSixDayStreak}
+        onRestoreStreak={handleResetAllProgress}
         onDataRestored={(restoredStats) => {
           setStats(restoredStats);
           const freshProtocol = loadDailyProtocol();

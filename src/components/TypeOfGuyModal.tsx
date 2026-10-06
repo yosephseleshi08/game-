@@ -76,7 +76,10 @@ export const TypeOfGuyModal: React.FC<TypeOfGuyModalProps> = ({
               <div className="flex items-center gap-2">
                 <span className="text-[10px] font-black uppercase tracking-widest text-cyan-400 bg-cyan-950/90 px-2 py-0.5 rounded-full border border-cyan-800/60 flex items-center gap-1">
                   <Activity className="w-3 h-3 text-cyan-400" />
-                  Cognitive Persona Diagnostic
+                  Yosi's Cognitive Persona Diagnostic
+                </span>
+                <span className="text-[10px] uppercase font-bold text-amber-300">
+                  For Yoseph
                 </span>
                 <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border bg-slate-800/80 ${archetype.borderAccent} ${archetype.textAccent}`}>
                   {archetype.tierName} (Tier {archetype.tierLevel})

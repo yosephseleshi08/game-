@@ -25,6 +25,7 @@ import {
   AlertTriangle,
   Lightbulb,
   BarChart2,
+  RotateCcw,
 } from 'lucide-react';
 
 interface StatsDashboardProps {
@@ -75,14 +76,14 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
       {/* Title */}
       <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 mb-6 shadow-xl flex flex-wrap items-center justify-between gap-4">
         <div>
-          <span className="text-xs font-bold uppercase tracking-wider text-indigo-400 bg-indigo-950/80 px-2.5 py-0.5 rounded-full border border-indigo-800/60">
-            Player Telemetry & Analytics
+          <span className="text-xs font-bold uppercase tracking-wider text-cyan-400 bg-cyan-950/80 px-2.5 py-0.5 rounded-full border border-cyan-800/60">
+            Yoseph's Personal Telemetry
           </span>
           <h2 className="text-xl font-extrabold text-white mt-1">
-            Cognitive Visual Index
+            Yosi's Cognitive Index & Telemetry
           </h2>
           <p className="text-xs text-slate-400">
-            Real-time telemetry tracking your visual cortex speed, span, and retention metrics.
+            Personal cognitive analytics tracking Yoseph's 1-Hour Protocol speed, working memory, and data keys.
           </p>
         </div>
 
@@ -110,21 +111,21 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
         </div>
       </div>
 
-      {/* 6-Day Streak Safeguard & Backup Strip */}
-      <div className="bg-gradient-to-r from-amber-950/50 via-slate-900 to-slate-900 border border-amber-500/40 rounded-2xl p-3.5 mb-6 shadow-lg flex flex-wrap items-center justify-between gap-3">
+      {/* Fresh Start & Backup Strip */}
+      <div className="bg-gradient-to-r from-cyan-950/50 via-slate-900 to-slate-900 border border-cyan-500/40 rounded-2xl p-3.5 mb-6 shadow-lg flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400 shrink-0">
-            <Flame className="w-5 h-5 fill-amber-400" />
+          <div className="w-9 h-9 rounded-xl bg-cyan-500/20 border border-cyan-500/40 flex items-center justify-center text-cyan-400 shrink-0">
+            <Flame className="w-5 h-5 fill-cyan-400" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <span className="text-white font-bold text-xs">6-Day Streak Safeguard</span>
-              <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-900/60 text-amber-300 font-mono font-bold border border-amber-700/60">
-                {stats.currentStreak} Days Active
+              <span className="text-white font-bold text-xs">Yosi Game Telemetry & Backup</span>
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-cyan-900/60 text-cyan-300 font-mono font-bold border border-cyan-700/60">
+                {stats.currentStreak} Days Streak
               </span>
             </div>
             <p className="text-[11px] text-slate-400">
-              Your 6-day streak and Day 7 curriculum are locked and safe. Tap restore or download a JSON backup anytime.
+              Clean state active. You can reset to Day 1 (0 XP) or export your offline backup anytime.
             </p>
           </div>
         </div>
@@ -132,12 +133,14 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
         <div className="flex items-center gap-2">
           <button
             onClick={() => {
-              if (onRestoreStreak) onRestoreStreak();
+              if (confirm('Reset all progress to clean Day 1 / 0 XP start?')) {
+                if (onRestoreStreak) onRestoreStreak();
+              }
             }}
-            className="px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs transition-all flex items-center gap-1.5 cursor-pointer shadow-md shadow-amber-950/40 active:scale-95"
+            className="px-3 py-1.5 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/40 font-bold text-xs transition-all flex items-center gap-1.5 cursor-pointer active:scale-95"
           >
-            <Flame className="w-3.5 h-3.5 fill-slate-950" />
-            <span>Restore 6-Day Streak</span>
+            <RotateCcw className="w-3.5 h-3.5" />
+            <span>Reset (0 XP)</span>
           </button>
           <button
             onClick={() => {

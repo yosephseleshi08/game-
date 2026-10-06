@@ -34,69 +34,54 @@ export function getCurrentCycleInfo(now = new Date()) {
 }
 
 /**
- * Generates the prescribed 3-pillar daily tasks for a given curriculum day.
- * Focused strictly on:
- * 1. Ayumu Sequence (Flash RAM & Subitizing)
- * 2. Dual N-Back (Working Memory RAM)
- * 3. Memory Palace (Method of Loci Architecture)
+ * Generates Yoseph's prescribed 3-discipline daily tasks (1 Hour total = 3 × 20 mins):
+ * 1. Mnemonic Major Pegs: 20 Minutes (Number-to-image data keys)
+ * 2. Dual N-Back Buffer: 20 Minutes (Working memory capacity and speaking focus)
+ * 3. Symbol Detective Lab: 20 Minutes (Abstract symbol processing and script speed)
  */
 export function generateTasksForDay(day: number): ProtocolTask[] {
-  const ayumuConfig = getMaxAyumuDigitsForDay(day);
+  const pegConfig = getPegTargetForDay(day);
   const nBackConfig = getMaxDualNBackForDay(day);
-  const palaceConfig = getPalaceConfigForDay(day);
 
   return [
     {
-      id: 'ayumu-chimp',
-      title: 'Ayumu Iconic Sequence Benchmark',
-      discipline: 'Iconic Memory Span & Sub-second Flash',
-      targetDescription: `Master 2 sequence levels at ${ayumuConfig.maxDigits} digits (Day ${day} cap; 100% perfect strike)`,
-      targetCount: 2,
+      id: 'mnemonic-pegs',
+      title: 'Mnemonic Major Pegs (20 Min)',
+      discipline: 'Number-to-Image Data Keys',
+      targetDescription: `Master 20 minutes of number-to-image phonetic peg conversions (${pegConfig.label}; 20m goal)`,
+      targetCount: 20,
       currentCount: 0,
-      maxAllowedLevel: ayumuConfig.maxDigits,
+      maxAllowedLevel: pegConfig.label,
       isCompleted: false,
-      gameMode: 'ayumu-chimp',
+      gameMode: 'mnemonic-pegs',
     },
     {
       id: 'dual-nback',
-      title: 'Dual N-Back Working Memory Buffer',
-      discipline: 'Fluid Focus & Prefrontal Cortex (Gf)',
-      targetDescription:
-        day < 4
-          ? `Complete 2 perfect rounds (16 trials each) at N=1 with 100% accuracy (N=2 strictly locked until Day 4)`
-          : `Complete 2 perfect rounds (16 trials each) at N=${nBackConfig.targetN} with 100% accuracy (0 errors)`,
-      targetCount: 2,
+      title: 'Dual N-Back Buffer (20 Min)',
+      discipline: 'Working Memory Capacity & Speaking Focus',
+      targetDescription: `Train 20 minutes of dual auditory + spatial working memory RAM buffer at N=${nBackConfig.targetN} (20m goal)`,
+      targetCount: 20,
       currentCount: 0,
       maxAllowedLevel: nBackConfig.maxN,
       isCompleted: false,
       gameMode: 'dual-nback',
     },
     {
-      id: 'memory-palace',
-      title: 'Memory Palace Villa & Loci Walkthrough',
-      discipline: 'Method of Loci Spatial Architecture',
-      targetDescription: `Complete 2 walkthrough levels with 100% perfect recall (${palaceConfig.lociCount} stations each)`,
-      targetCount: 2,
+      id: 'symbol-detective',
+      title: 'Symbol Detective Lab (20 Min)',
+      discipline: 'Abstract Symbol Processing & Script Speed',
+      targetDescription: 'Train 20 minutes of high-speed glyph discrimination and visual feature-binding (20m goal)',
+      targetCount: 20,
       currentCount: 0,
-      maxAllowedLevel: palaceConfig.label,
+      maxAllowedLevel: 'Adaptive Speed',
       isCompleted: false,
-      gameMode: 'memory-palace',
+      gameMode: 'symbol-detective',
     },
   ];
 }
 
 export function generateSixDayStreakHistory(): Record<string, { completed: boolean; score: number; completedAt: string }> {
-  const history: Record<string, { completed: boolean; score: number; completedAt: string }> = {};
-  for (let i = 6; i >= 1; i--) {
-    const d = new Date(Date.now() - i * 86400000);
-    const dateKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}-12AM`;
-    history[dateKey] = {
-      completed: true,
-      score: 100,
-      completedAt: d.toISOString(),
-    };
-  }
-  return history;
+  return {};
 }
 
 export function loadDailyProtocol(): DailyProtocolState {
@@ -105,32 +90,29 @@ export function loadDailyProtocol(): DailyProtocolState {
   try {
     const raw = localStorage.getItem(PROTOCOL_STORAGE_KEY);
     if (!raw) {
-      const initial = createInitialProtocol(cycleKey, 7);
+      const initial = createInitialProtocol(cycleKey, 1);
       saveDailyProtocol(initial);
       return initial;
     }
     const parsed: DailyProtocolState = JSON.parse(raw);
 
-    // Guarantee 6-day streak restoration if curriculumDay < 7 or history is missing
-    const completedDaysCount = Object.values(parsed.history || {}).filter((h) => h?.completed).length;
-    if ((parsed.curriculumDay || 1) < 7 || completedDaysCount < 6) {
-      const mergedHistory = {
-        ...generateSixDayStreakHistory(),
-        ...(parsed.history || {}),
-      };
-      const restoredDay = Math.max(parsed.curriculumDay || 1, 7);
-      parsed.curriculumDay = restoredDay;
-      parsed.history = mergedHistory;
-      if (!parsed.tasks || parsed.tasks.length !== 3) {
-        parsed.tasks = generateTasksForDay(restoredDay);
-      }
+    // Ensure the tasks match Yoseph's 3 designated disciplines
+    const hasCorrectTasks =
+      parsed.tasks &&
+      parsed.tasks.length === 3 &&
+      parsed.tasks.some((t) => t.id === 'mnemonic-pegs') &&
+      parsed.tasks.some((t) => t.id === 'dual-nback') &&
+      parsed.tasks.some((t) => t.id === 'symbol-detective');
+
+    if (!hasCorrectTasks) {
+      parsed.tasks = generateTasksForDay(parsed.curriculumDay || 1);
       saveDailyProtocol(parsed);
     }
 
     // If the cycle has rolled over past 12:00 AM (Midnight), start a new day's protocol!
     if (parsed.currentCycleDate !== cycleKey) {
       const wasCompleted = parsed.isLockedOut || (parsed.tasks && parsed.tasks.every((t) => t.isCompleted));
-      const nextDay = wasCompleted ? (parsed.curriculumDay || 7) + 1 : parsed.curriculumDay || 7;
+      const nextDay = wasCompleted ? (parsed.curriculumDay || 1) + 1 : parsed.curriculumDay || 1;
       const nextPhase = nextDay <= 30 ? 1 : nextDay <= 90 ? 2 : nextDay <= 180 ? 3 : 4;
 
       const newProtocol: DailyProtocolState = {

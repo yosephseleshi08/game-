@@ -599,11 +599,14 @@ export const FourHourPlanView: React.FC<FourHourPlanViewProps> = ({
             <div className="flex flex-wrap items-center gap-2 mb-2">
               <span className="text-[10px] uppercase font-black tracking-wider px-2.5 py-0.5 rounded-full bg-cyan-950 text-cyan-300 border border-cyan-800 flex items-center gap-1">
                 <Clock className="w-3 h-3 text-cyan-400" />
-                4 Hours / Day Regimen
+                1 Hour / Day Regimen
               </span>
               <span className="text-[10px] uppercase font-black tracking-wider px-2.5 py-0.5 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-800 flex items-center gap-1">
                 <ShieldCheck className="w-3 h-3 text-emerald-400" />
-                Zero-Cheat Auto-Verification
+                Live Training Verification
+              </span>
+              <span className="text-[10px] uppercase font-black tracking-wider px-2.5 py-0.5 rounded-full bg-indigo-950 text-indigo-300 border border-indigo-800">
+                Exclusively for Yoseph
               </span>
               <div className="flex items-center gap-1 text-amber-400 font-bold text-xs bg-amber-950/70 border border-amber-800/80 px-2 py-0.5 rounded-full">
                 <Flame className="w-3.5 h-3.5 fill-amber-400 text-amber-500 animate-pulse" />
@@ -612,11 +615,11 @@ export const FourHourPlanView: React.FC<FourHourPlanViewProps> = ({
             </div>
 
             <h1 className="text-xl sm:text-2xl lg:text-3xl font-black tracking-tight text-white flex items-center gap-2">
-              4-Hour Master Cognitive Plan
-              <span className="text-cyan-400 text-base sm:text-lg font-bold">Live Tracker</span>
+              Yosi's 1-Hour Daily Protocol
+              <span className="text-cyan-400 text-base sm:text-lg font-bold">60 Min Live Tracker</span>
             </h1>
             <p className="text-xs sm:text-sm text-slate-300 mt-1 max-w-2xl leading-relaxed">
-              <strong>Anti-Cheat Active:</strong> Checklist marks are derived strictly from your actual gameplay. Timers count down automatically as you train, and tasks auto-verify upon hitting your time quota or completing your daily training protocol.
+              <strong>Personalized Cognitive Conditioning:</strong> Exactly 1 hour divided into 3 focused 20-minute disciplines. Timers automatically log your training time in each module.
             </p>
           </div>
 
@@ -656,16 +659,16 @@ export const FourHourPlanView: React.FC<FourHourPlanViewProps> = ({
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
             <div className="flex items-baseline gap-2">
               <span className="text-2xl sm:text-3xl font-black text-cyan-300 font-mono">
-                {hoursCompleted}h {minutesRemainder > 0 ? `${minutesRemainder}m` : '00m'}
+                {stats.completedMinutes}m
               </span>
               <span className="text-xs text-slate-400">
-                / 4h 00m Target Cognitive Conditioning Today
+                / 60m Target Daily Protocol (1 Hour)
               </span>
             </div>
 
             <div className="flex items-center gap-3">
               <span className="text-xs font-bold text-slate-300 font-mono bg-slate-800 px-2.5 py-1 rounded-lg border border-slate-700">
-                {stats.completedTasksCount} of {stats.totalTrainingTasksCount} Sessions Mastered ({stats.percentage}%)
+                {stats.completedTasksCount} of {planState.tasks.length} Disciplines Met ({Math.min(100, Math.round((stats.completedMinutes / 60) * 100))}%)
               </span>
             </div>
           </div>
@@ -674,59 +677,22 @@ export const FourHourPlanView: React.FC<FourHourPlanViewProps> = ({
           <div className="w-full bg-slate-800/80 rounded-full h-3 overflow-hidden relative shadow-inner">
             <div
               className="bg-gradient-to-r from-cyan-500 via-indigo-500 to-emerald-400 h-full rounded-full transition-all duration-700 shadow-lg"
-              style={{ width: `${stats.percentage}%` }}
+              style={{ width: `${Math.min(100, Math.round((stats.completedMinutes / 60) * 100))}%` }}
             />
           </div>
 
-          {/* Block Breakdown Badges */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-4 pt-4 border-t border-slate-800/80 text-xs">
-            <div className="flex items-center justify-between p-2 rounded-xl bg-slate-900/80 border border-slate-800">
-              <div className="flex items-center gap-2">
-                <Sun className="w-4 h-4 text-amber-400" />
-                <span className="text-slate-300 font-medium">Morning Block</span>
-              </div>
-              <span className="font-mono font-bold text-amber-300">
-                {morningMinutes} / 120m
-              </span>
-            </div>
-
-            <div className="flex items-center justify-between p-2 rounded-xl bg-slate-900/80 border border-slate-800">
-              <div className="flex items-center gap-2">
-                <Moon className="w-4 h-4 text-indigo-400" />
-                <span className="text-slate-300 font-medium">Evening Block</span>
-              </div>
-              <span className="font-mono font-bold text-indigo-300">
-                {eveningMinutes} / 120m
-              </span>
-            </div>
-
-            <div className="flex items-center justify-between p-2 rounded-xl bg-slate-900/80 border border-slate-800">
-              <div className="flex items-center gap-2">
-                <BedDouble className="w-4 h-4 text-emerald-400" />
-                <span className="text-slate-300 font-medium">Sleep Protocol</span>
-              </div>
-              <span
-                className={`font-mono font-bold ${
-                  nightTasks[0]?.isCompleted ? 'text-emerald-400' : 'text-slate-400'
-                }`}
-              >
-                {nightTasks[0]?.isCompleted ? '7h Logged ✓' : 'Pending 7h'}
-              </span>
-            </div>
-          </div>
-
           {/* Celebration Banner if All Done */}
-          {stats.allTrainingCompleted && (
+          {stats.completedMinutes >= 60 && (
             <div className="mt-4 p-3.5 rounded-xl bg-gradient-to-r from-emerald-950/90 via-teal-950/80 to-slate-950 border border-emerald-500/50 flex items-center gap-3 animate-fade-in shadow-lg">
               <div className="w-8 h-8 rounded-full bg-emerald-500/20 text-emerald-300 flex items-center justify-center shrink-0">
                 <Award className="w-5 h-5 text-emerald-400" />
               </div>
               <div>
                 <p className="text-xs font-black text-emerald-200">
-                  🎉 ALL 4 HOURS OF COGNITIVE CONDITIONING MASTERED TODAY!
+                  🎉 YOSI'S 1-HOUR PROTOCOL (60 MINUTES) MASTERED TODAY!
                 </p>
                 <p className="text-[11px] text-emerald-400/90">
-                  Your neural pathways have received maximum deliberate stimulus. Make sure to get your 7 hours of restorative sleep tonight to consolidate this growth.
+                  You have completed today's 3 disciplines: Mnemonic Major Pegs, Dual N-Back Buffer, and Symbol Detective Lab. Fantastic discipline, Yoseph!
                 </p>
               </div>
             </div>
@@ -734,103 +700,29 @@ export const FourHourPlanView: React.FC<FourHourPlanViewProps> = ({
         </div>
       </div>
 
-      {/* BLOCK 1: MORNING HIGH-SPEED INTAKE (2 HOURS) */}
+      {/* YOSI'S 3 DESIGNATED DISCIPLINES (60 MINUTES TOTAL) */}
       <div className="mb-8">
-        <div className="flex items-center justify-between gap-3 mb-3">
+        <div className="flex items-center justify-between gap-3 mb-4">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center border border-amber-500/30">
-              <Sun className="w-4 h-4" />
+            <div className="w-9 h-9 rounded-xl bg-cyan-500/20 text-cyan-400 flex items-center justify-center border border-cyan-500/30">
+              <Brain className="w-5 h-5" />
             </div>
             <div>
               <h2 className="text-base sm:text-lg font-bold text-white flex items-center gap-2">
-                Morning Block: High-Speed Intake & Executive Focus
-                <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-amber-950/80 border border-amber-800/80 text-amber-300">
-                  2 Hours (120 Mins)
+                Yosi's Daily 1-Hour Core Curriculum
+                <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-cyan-950/80 border border-cyan-800/80 text-cyan-300">
+                  3 Disciplines × 20 Min (60 Min Total)
                 </span>
               </h2>
               <p className="text-xs text-slate-400">
-                Peak cortisol window. Timers count down automatically while you train inside each game.
+                Exclusively curated for Yoseph. Train in each module below—timers auto-track live seconds and check off at 20 minutes!
               </p>
             </div>
           </div>
         </div>
 
-        <div className="space-y-3">
-          {morningTasks.map((task) => renderTaskCard(task))}
-        </div>
-      </div>
-
-      {/* MIDDAY RECOVERY ANCHOR (20 MINS) */}
-      <div className="mb-8">
-        <div className="flex items-center gap-2.5 mb-3">
-          <div className="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center border border-emerald-500/30">
-            <Coffee className="w-4 h-4" />
-          </div>
-          <div>
-            <h2 className="text-base sm:text-lg font-bold text-white flex items-center gap-2">
-              Midday Recovery Anchor
-              <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-emerald-950/80 border border-emerald-800/80 text-emerald-300">
-                20 Mins
-              </span>
-            </h2>
-            <p className="text-xs text-slate-400">
-              Non-Sleep Deep Rest (NSDR) or power nap to reset striatal dopamine and clear brain adenosine.
-            </p>
-          </div>
-        </div>
-
-        <div className="space-y-3">
-          {middayTasks.map((task) => renderTaskCard(task))}
-        </div>
-      </div>
-
-      {/* BLOCK 2: EVENING SPATIAL STRUCTURE & MENTAL STORAGE (2 HOURS) */}
-      <div className="mb-8">
-        <div className="flex items-center justify-between gap-3 mb-3">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-indigo-500/20 text-indigo-400 flex items-center justify-center border border-indigo-500/30">
-              <Moon className="w-4 h-4" />
-            </div>
-            <div>
-              <h2 className="text-base sm:text-lg font-bold text-white flex items-center gap-2">
-                Evening Block: Spatial Structure & Mental Storage
-                <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-indigo-950/80 border border-indigo-800/80 text-indigo-300">
-                  2 Hours (120 Mins)
-                </span>
-              </h2>
-              <p className="text-xs text-slate-400">
-                Pre-sleep consolidation window. Spatial grid retention, phonetic peg conversion, and memory palace architecture.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="space-y-3">
-          {eveningTasks.map((task) => renderTaskCard(task))}
-        </div>
-      </div>
-
-      {/* NIGHTLY SLEEP BENCHMARK (7 HOURS) */}
-      <div className="mb-8">
-        <div className="flex items-center gap-2.5 mb-3">
-          <div className="w-8 h-8 rounded-xl bg-purple-500/20 text-purple-400 flex items-center justify-center border border-purple-500/30">
-            <BedDouble className="w-4 h-4" />
-          </div>
-          <div>
-            <h2 className="text-base sm:text-lg font-bold text-white flex items-center gap-2">
-              Nightly Sleep Protocol
-              <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-purple-950/80 border border-purple-800/80 text-purple-300">
-                7 Hours Clinical Target
-              </span>
-            </h2>
-            <p className="text-xs text-slate-400">
-              4 to 5 full 90-minute sleep cycles. Enables glymphatic waste clearance and permanent hippocampal-to-neocortical memory consolidation.
-            </p>
-          </div>
-        </div>
-
-        <div className="space-y-3">
-          {nightTasks.map((task) => renderTaskCard(task))}
+        <div className="space-y-3.5">
+          {planState.tasks.map((task) => renderTaskCard(task))}
         </div>
       </div>
 

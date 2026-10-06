@@ -3,84 +3,33 @@ import { FourHourPlanState, FourHourTask, DailyProtocolState } from '../types';
 export const FOUR_HOUR_PLAN_STORAGE_KEY = 'pmm_four_hour_plan_state';
 
 export const DEFAULT_FOUR_HOUR_TASKS: Omit<FourHourTask, 'isCompleted' | 'completedAt' | 'elapsedSeconds'>[] = [
-  // 1. Digital In-App Training Block (2 Hours = 120 Mins | Strict 30% / 70% Balance)
-  // Part A: 30% Processor & Working Memory RAM (36 Minutes)
+  // Yoseph's 1-Hour Daily Protocol (Strictly 60 Minutes = 3 × 20 Minutes)
   {
-    id: 'ayumu-digital',
-    title: 'Ayumu Chimp Test (Flash Intake & Subitizing)',
+    id: 'mnemonic-pegs-hour',
+    title: 'Mnemonic Major Pegs (20 Min)',
     category: 'morning',
-    targetMinutes: 18,
-    gameMode: 'ayumu-chimp',
-    description: 'Sub-second visual flash capture & parallel number subitizing without subvocalization',
-    neuroImpact: 'Retinal iconic trace formation, subitizing threshold expansion, and rapid parallel visual intake.',
+    targetMinutes: 20,
+    gameMode: 'mnemonic-pegs',
+    description: 'Number-to-image data keys',
+    neuroImpact: 'Phonetic-to-visual associative binding and left-hemisphere symbolic transcription keys.',
   },
   {
-    id: 'dual-nback-digital',
-    title: 'Dual N-Back (Working Memory RAM Buffer)',
-    category: 'morning',
-    targetMinutes: 18,
-    gameMode: 'dual-nback',
-    description: 'Fluid intelligence (Gf) & multi-stream working memory buffer scaling',
-    neuroImpact: 'Dorsolateral Prefrontal Cortex (DLPFC) dopamine D1 receptor density and executive RAM buffer expansion.',
-  },
-  // Part B: 70% Memory Palace Digital Architecture (84 Minutes)
-  {
-    id: 'palace-encoding-digital',
-    title: 'Digital Palace: Loci Blueprinting & Fast Encoding',
-    category: 'morning',
-    targetMinutes: 42,
-    gameMode: 'memory-palace',
-    description: 'Constructing digital loci routes & high-speed multi-sensory item anchoring',
-    neuroImpact: 'Bilateral parahippocampal cortex and spatial grid cell recruitment for rapid associative binding.',
-  },
-  {
-    id: 'palace-retrieval-digital',
-    title: 'Digital Palace: Reverse-Walk & Stress-Test Retrieval',
-    category: 'morning',
-    targetMinutes: 42,
-    gameMode: 'memory-palace',
-    description: 'Reverse traversal, random-access testing, and clearing ghostly residual images',
-    neuroImpact: 'Hippocampal CA3-CA1 Long-Term Potentiation (LTP), spatial pathway consolidation, and ghosting elimination.',
-  },
-
-  // 2. Midday Recovery Anchor (20 Minutes)
-  {
-    id: 'midday-nsdr',
-    title: 'NSDR / Power Nap & Hydration',
+    id: 'dual-nback-hour',
+    title: 'Dual N-Back Buffer (20 Min)',
     category: 'midday',
     targetMinutes: 20,
-    description: '20-min Non-Sleep Deep Rest or power nap + 500ml electrolyte hydration',
-    neuroImpact: 'Resets striatal dopamine reserves, dissipates cognitive adenosine, and restores afternoon mental stamina.',
+    gameMode: 'dual-nback',
+    description: 'Working memory capacity and speaking focus',
+    neuroImpact: 'Dorsolateral Prefrontal Cortex (DLPFC) fluid executive buffer and speech articulation focus.',
   },
-
-  // 3. Real-Life Physical Practice Block (2 Hours = 120 Minutes)
   {
-    id: 'physical-loci-scouting',
-    title: 'Real-World Loci Scouting & Physical Anchoring',
+    id: 'symbol-detective-hour',
+    title: 'Symbol Detective Lab (20 Min)',
     category: 'evening',
-    targetMinutes: 60,
-    isPhysical: true,
-    description: 'Physically walk through real locations (home, neighborhood, campus, library, city streets). Scout, touch, and number 25–50 crisp permanent physical loci per location with a strict clockwise, non-crossing route.',
-    neuroImpact: 'Retrosplenial cortex and posterior parietal coordinate mapping grounded in true proprioception, physical navigation, and vestibular-ocular stabilization.',
-  },
-  {
-    id: 'physical-loci-retrieval',
-    title: 'Physical Loci Live Encoding & Walking Retrieval',
-    category: 'evening',
-    targetMinutes: 60,
-    isPhysical: true,
-    description: 'Physically walk your real-world route while depositing complex real-world data; execute physical retrieval walks with eyes open under real-world movement and sensory load.',
-    neuroImpact: 'High-order spatial-cognitive binding, stress-resilient recall under physical motion, and permanent biological memory consolidation.',
-  },
-
-  // 4. Nightly Sleep Protocol (7 Hours)
-  {
-    id: 'nightly-sleep',
-    title: '7-Hour Restorative Sleep Protocol',
-    category: 'night',
-    targetMinutes: 420, // 7 Hours
-    description: '4–5 complete 90-minute sleep cycles (pitch dark, cool room, zero food 3h before bed)',
-    neuroImpact: 'Glymphatic clearance of metabolic toxins and deep slow-wave / REM synaptic consolidation.',
+    targetMinutes: 20,
+    gameMode: 'symbol-detective',
+    description: 'Abstract symbol processing and script speed',
+    neuroImpact: 'Occipito-temporal visual word form area (VWFA) and high-speed glyph discrimination.',
   },
 ];
 
@@ -155,9 +104,9 @@ export function loadFourHourPlan(): FourHourPlanState {
       return refreshed;
     }
 
-    // Ensure the tasks strictly reflect the new 30/70 digital (2h) + physical (2h) schema
+    // Ensure the tasks strictly reflect Yoseph's 1-Hour Protocol schema (3 tasks x 20 min)
     const hasObsoleteTask = parsed.tasks.some((t) =>
-      ['matrix-evening', 'pegs-evening', 'symbol-morning', 'ayumu-morning', 'dual-nback-morning', 'palace-evening'].includes(t.id)
+      ['ayumu-digital', 'palace-encoding-digital', 'palace-retrieval-digital', 'midday-nsdr', 'physical-loci-scouting', 'physical-loci-retrieval', 'nightly-sleep'].includes(t.id)
     );
     if (hasObsoleteTask || parsed.tasks.length !== DEFAULT_FOUR_HOUR_TASKS.length) {
       parsed.tasks = createFreshDailyTasks();

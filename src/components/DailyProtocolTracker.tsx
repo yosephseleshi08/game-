@@ -128,10 +128,10 @@ export const DailyProtocolTracker: React.FC<DailyProtocolTrackerProps> = ({
               </span>
             </div>
             <h2 className="text-2xl font-black text-white flex items-center gap-2">
-              Day {protocol.curriculumDay} of 365 Protocol
+              Yosi's Day {protocol.curriculumDay} of 365 Protocol
             </h2>
             <p className="text-xs text-slate-300 mt-1 max-w-xl leading-relaxed">
-              Automated daily mental regimen. Complete today's quota to trigger the anti-burnout lockout.
+              Exclusively created for Yoseph • Exactly 1 Hour Daily (3 disciplines × 20 minutes each). Complete today's quota to trigger the anti-burnout lockout.
               Your next level unlocks cleanly at <strong className="text-emerald-300">12:00 AM (Midnight)</strong> daily.
             </p>
             <div className="flex flex-wrap items-center gap-2 mt-3">
@@ -144,9 +144,9 @@ export const DailyProtocolTracker: React.FC<DailyProtocolTrackerProps> = ({
                 className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-500/20 to-orange-500/20 hover:from-amber-500/30 hover:to-orange-500/30 border border-amber-500/40 text-amber-300 text-xs font-bold transition-all cursor-pointer shadow-sm active:scale-98"
               >
                 <Clock className="w-3.5 h-3.5 text-amber-400" />
-                4-Hour Master Plan Checklist
+                Yosi's 1-Hour Plan
                 <span className="text-[10px] bg-amber-500/20 px-1.5 py-0.5 rounded text-amber-200 font-mono">
-                  240m Daily
+                  60m Daily
                 </span>
               </button>
 

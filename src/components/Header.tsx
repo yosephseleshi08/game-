@@ -92,8 +92,11 @@ export const Header: React.FC<HeaderProps> = ({
           <div>
             <div className="flex items-center gap-2">
               <h1 className="text-sm sm:text-lg font-bold tracking-tight text-white flex items-center gap-1">
-                Photographic Memory <span className="text-cyan-400 font-extrabold">Master</span>
+                Yosi <span className="text-cyan-400 font-extrabold">Game</span>
               </h1>
+              <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 hidden sm:inline">
+                For Yoseph
+              </span>
               {isMilestoneReady && !isLockedOut ? (
                 <button
                   id="header-milestone-ready-btn"
@@ -102,7 +105,7 @@ export const Header: React.FC<HeaderProps> = ({
                     else onSelectMode('daily-protocol');
                   }}
                   className="text-[10px] uppercase font-black px-2 py-0.5 rounded-full border flex items-center gap-1 cursor-pointer transition-all bg-gradient-to-r from-amber-500/20 to-emerald-500/20 border-amber-400/80 text-amber-300 shadow-sm animate-pulse"
-                  title="All 6 steps complete! View milestone celebration & claim XP"
+                  title="Daily protocol complete! View milestone celebration & claim XP"
                 >
                   <Sparkles className="w-3 h-3 text-amber-400" />
                   Day {curriculumDay} Cleared! 🎉
@@ -115,7 +118,7 @@ export const Header: React.FC<HeaderProps> = ({
                     else onSelectMode('daily-protocol');
                   }}
                   className="text-[10px] uppercase font-bold px-2 py-0.5 rounded-full border flex items-center gap-1 cursor-pointer transition-all bg-emerald-950/80 border-emerald-500/50 text-emerald-300 hover:bg-emerald-900/80"
-                  title="Daily protocol complete! Click to view milestone & 60-day progress"
+                  title="Daily protocol complete! Click to view milestone progress"
                 >
                   <Award className="w-3 h-3 text-amber-400" />
                   Day {curriculumDay} Mastered ✓
@@ -132,7 +135,7 @@ export const Header: React.FC<HeaderProps> = ({
               )}
             </div>
             <p className="text-[10px] sm:text-[11px] text-slate-400 hidden xs:block">
-              365-Day Offline Retinal Flash Calibration & Cognitive Laboratory
+              Exclusively created for Yoseph • Daily 1-Hour Cognitive Engine
             </p>
           </div>
         </div>
@@ -197,11 +200,11 @@ export const Header: React.FC<HeaderProps> = ({
                 ? 'bg-amber-950/90 border-amber-500/80 text-amber-300 ring-1 ring-amber-400/40'
                 : 'bg-slate-800 border-slate-700 text-amber-300 hover:bg-slate-700 hover:text-amber-200'
             }`}
-            title="Open 4-Hour Daily Plan & Interactive Checklist"
+            title="Open Yosi's 1-Hour Daily Protocol (60 Min)"
           >
             <Clock className="w-3.5 h-3.5 text-amber-400" />
-            <span className="hidden sm:inline">4h Plan</span>
-            <span className="sm:hidden">4h</span>
+            <span className="hidden sm:inline">1h Plan</span>
+            <span className="sm:hidden">1h</span>
           </button>
 
           {/* Type of Guy Archetype Badge Trigger */}
@@ -311,7 +314,7 @@ export const Header: React.FC<HeaderProps> = ({
             </div>
             <div className="hidden lg:flex flex-col">
               <span className="text-xs font-bold text-white group-hover:text-cyan-300 truncate max-w-[90px]">
-                {currentProfile?.username || 'Solo Athlete'}
+                {currentProfile?.username || 'Yoseph (Yosi)'}
               </span>
               <span className="text-[9px] text-cyan-400 font-mono">
                 Day {curriculumDay} • Lvl {stats.level}

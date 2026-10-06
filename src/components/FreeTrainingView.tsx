@@ -173,12 +173,12 @@ export const FreeTrainingView: React.FC<FreeTrainingViewProps> = ({
             </div>
 
             <h2 className="text-2xl sm:text-4xl font-black text-white tracking-tight mb-2">
-              Train All Steps Freely in Your Downtime
+              Yosi's Cognitive Brain Gym
             </h2>
 
             <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
-              Don't let rigid 2-minute daily locks hold you back, and never surrender your free hours to mindless TikTok or Reels doom scrolling! 
-              Whenever you hit start on any game, your active playing time is automatically recorded and archived at <strong>12:00 AM Midnight</strong>.
+              Exclusively tailored for Yoseph. Practice your 3 core disciplines (Major Pegs, Dual N-Back, Symbol Detective) or explore any laboratory freely during downtime!
+              Every active second is auto-tracked and synchronized.
             </p>
           </div>
 
