@@ -18,6 +18,7 @@ import {
   RefreshCw,
   Smartphone,
   Compass,
+  RotateCcw,
 } from 'lucide-react';
 import { AmbientSoundscapePlayer } from './AmbientSoundscapePlayer';
 import { PWAInstallButton } from './PWAInstallPrompt';
@@ -173,7 +174,7 @@ export const Header: React.FC<HeaderProps> = ({
               if (onRestoreStreak) onRestoreStreak();
             }}
             className="flex flex-col items-center justify-center pl-2.5 border-l border-slate-700/70 cursor-pointer hover:opacity-85 transition-opacity"
-            title="6-Day Streak active! Tap to view/restore streak"
+            title={`Active Streak: ${stats.currentStreak} Days. Tap to reset/manage progress.`}
           >
             <div className="flex items-center text-amber-400 font-bold text-xs">
               <Flame className="w-3.5 h-3.5 fill-amber-400 text-amber-500 animate-bounce" />
@@ -187,6 +188,19 @@ export const Header: React.FC<HeaderProps> = ({
         <div className="flex items-center gap-1.5 sm:gap-2">
           {/* PWA Install & Offline Status */}
           <PWAInstallButton />
+
+          {/* Clean Reset Button */}
+          <button
+            onClick={() => {
+              sound.playClick();
+              if (onRestoreStreak) onRestoreStreak();
+            }}
+            className="flex items-center gap-1 px-2 py-1.5 rounded-lg border border-rose-500/30 bg-rose-950/40 hover:bg-rose-900/60 text-rose-300 text-xs font-bold transition-all cursor-pointer shadow-sm"
+            title="Clean every single thing and reset progress to Day 1"
+          >
+            <RotateCcw className="w-3 h-3 text-rose-400" />
+            <span className="hidden sm:inline">Reset</span>
+          </button>
 
           {/* 4-Hour Master Plan & Daily Checklist */}
           <button

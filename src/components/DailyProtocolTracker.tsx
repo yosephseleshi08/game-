@@ -272,12 +272,12 @@ export const DailyProtocolTracker: React.FC<DailyProtocolTrackerProps> = ({
 
           <div className="mt-5 flex flex-wrap items-center justify-center gap-3">
             <button
-              id="goto-free-training-from-protocol-btn"
-              onClick={() => onNavigateMode('free-training')}
-              className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 text-slate-950 font-black text-xs sm:text-sm shadow-xl shadow-cyan-500/25 transition-all cursor-pointer active:scale-98"
+              id="goto-four-hour-plan-from-protocol-btn"
+              onClick={() => onNavigateMode('four-hour-plan')}
+              className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black text-xs sm:text-sm shadow-xl shadow-amber-500/25 transition-all cursor-pointer active:scale-98"
             >
-              <Zap className="w-4 h-4 fill-slate-950" />
-              Have Free Time? Train All Steps Freely (Brain Gym)
+              <Clock className="w-4 h-4 text-slate-950" />
+              View 1-Hour Routine & 12-Month Transformation Roadmap
             </button>
 
             <button

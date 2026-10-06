@@ -77,7 +77,7 @@ const STATS_STORAGE_KEY = 'pmm_user_stats_v2';
 const SPEED_STORAGE_KEY = 'pmm_flash_speed_v1';
 const CARDS_STORAGE_KEY = 'pmm_spaced_cards_v1';
 
-const YOSI_FRESH_START_KEY = 'yosi_game_fresh_v2';
+export const YOSI_PURE_THREE_GAMES_CLEAN_KEY = 'yosi_pure_3_games_clean_slate_v10';
 
 export function getFreshInitialStats(): UserStats {
   return {
@@ -107,63 +107,39 @@ export function getSixDayRestoredStats(): UserStats {
 
 const defaultStats: UserStats = getFreshInitialStats();
 
-export function loadUserStats(): UserStats {
-  const freshDefaults = getFreshInitialStats();
-  try {
-    // If not yet migrated to Yosi's clean start, clear previous streak data
-    if (localStorage.getItem(YOSI_FRESH_START_KEY) !== 'true') {
-      localStorage.removeItem(STATS_STORAGE_KEY);
-      localStorage.removeItem('pmm_daily_protocol_v1');
-      localStorage.removeItem('pmm_four_hour_plan_state');
-      localStorage.removeItem('pmm_four_hour_plan_state_v1');
-      localStorage.removeItem('pmm_free_training_stats_v1');
-      localStorage.removeItem('pmm_free_training_stats_v2');
-      localStorage.removeItem(LOCAL_PROFILE_KEY);
-      localStorage.setItem(YOSI_FRESH_START_KEY, 'true');
-      saveUserStats(freshDefaults);
-      return freshDefaults;
-    }
-
-    const raw = localStorage.getItem(STATS_STORAGE_KEY);
-    if (!raw) {
-      saveUserStats(freshDefaults);
-      return freshDefaults;
-    }
-    const parsed = JSON.parse(raw);
-    const safeXp = parsed.xp || 0;
-    const safeRank = getRankForXp(safeXp);
-
-    const merged: UserStats = {
-      ...freshDefaults,
-      ...parsed,
-      currentStreak: parsed.currentStreak || 0,
-      bestStreak: parsed.bestStreak || 0,
-      xp: safeXp,
-      level: Math.max(parsed.level || 1, safeRank.currentRank.level),
-      progressHistory: parsed.progressHistory || [],
-    };
-    return merged;
-  } catch {
-    return freshDefaults;
-  }
-}
-
-export function saveUserStats(stats: UserStats): void {
-  try {
-    localStorage.setItem(STATS_STORAGE_KEY, JSON.stringify(stats));
-  } catch {
-    // LocalStorage failure handling
-  }
-}
-
 /**
- * Resets all progress to a clean Day 1 / 0 XP start for Yoseph
+ * Completely purges and resets every single piece of old progress, streak, logs, and cache
+ * Resets Yosi Game to a pristine Day 1 slate with 0 XP, 0 streak, and exclusively the 3 games.
  */
-export function resetAllProgressForYosi(): {
+export function cleanEverySingleThing(): {
   stats: UserStats;
   protocol: DailyProtocolState;
   profile: UserProfile;
 } {
+  try {
+    const keysToRemove: string[] = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (
+        key &&
+        (key.startsWith('pmm_') ||
+          key.startsWith('yosi_') ||
+          key.startsWith('eidetic_') ||
+          key.startsWith('four_hour_') ||
+          key.includes('streak') ||
+          key.includes('protocol') ||
+          key.includes('stats'))
+      ) {
+        keysToRemove.push(key);
+      }
+    }
+    keysToRemove.forEach((k) => localStorage.removeItem(k));
+  } catch {
+    // LocalStorage fallback
+  }
+
+  localStorage.setItem(YOSI_PURE_THREE_GAMES_CLEAN_KEY, 'true');
+
   const freshStats = getFreshInitialStats();
   saveUserStats(freshStats);
 
@@ -199,6 +175,8 @@ export function resetAllProgressForYosi(): {
   };
   saveLocalProfile(freshProfile);
 
+  resetFreeTrainingStatsToZero(1);
+
   return {
     stats: freshStats,
     protocol: freshProtocol,
@@ -206,12 +184,53 @@ export function resetAllProgressForYosi(): {
   };
 }
 
-export function restoreSixDayStreak(): {
-  stats: UserStats;
-  protocol: DailyProtocolState;
-  profile: UserProfile;
-} {
-  return resetAllProgressForYosi();
+export function resetAllProgressForYosi() {
+  return cleanEverySingleThing();
+}
+
+export function restoreSixDayStreak() {
+  return cleanEverySingleThing();
+}
+
+export function loadUserStats(): UserStats {
+  const freshDefaults = getFreshInitialStats();
+  try {
+    // If not yet migrated to pure clean 3-game slate, wipe all old data immediately
+    if (localStorage.getItem(YOSI_PURE_THREE_GAMES_CLEAN_KEY) !== 'true') {
+      const clean = cleanEverySingleThing();
+      return clean.stats;
+    }
+
+    const raw = localStorage.getItem(STATS_STORAGE_KEY);
+    if (!raw) {
+      saveUserStats(freshDefaults);
+      return freshDefaults;
+    }
+    const parsed = JSON.parse(raw);
+    const safeXp = parsed.xp || 0;
+    const safeRank = getRankForXp(safeXp);
+
+    const merged: UserStats = {
+      ...freshDefaults,
+      ...parsed,
+      currentStreak: parsed.currentStreak || 0,
+      bestStreak: parsed.bestStreak || 0,
+      xp: safeXp,
+      level: Math.max(parsed.level || 1, safeRank.currentRank.level),
+      progressHistory: parsed.progressHistory || [],
+    };
+    return merged;
+  } catch {
+    return freshDefaults;
+  }
+}
+
+export function saveUserStats(stats: UserStats): void {
+  try {
+    localStorage.setItem(STATS_STORAGE_KEY, JSON.stringify(stats));
+  } catch {
+    // LocalStorage failure handling
+  }
 }
 
 /**
@@ -616,7 +635,9 @@ export function resetFreeTrainingStatsToZero(curriculumDay: number = 1): FreeTra
 
 export function loadFreeTrainingStats(curriculumDay: number = 1): FreeTrainingSessionStats {
   try {
-    // Check one-time restart to zero requested by user
+    if (localStorage.getItem(YOSI_PURE_THREE_GAMES_CLEAN_KEY) !== 'true') {
+      return resetFreeTrainingStatsToZero(curriculumDay);
+    }
     const hasRestarted = localStorage.getItem(FREE_TRAINING_RESTART_FLAG);
     if (!hasRestarted) {
       return resetFreeTrainingStatsToZero(curriculumDay);

@@ -12,20 +12,14 @@ import {
   loadFreeTrainingStats,
   saveFreeTrainingStats,
   recordFreeTrainingTime,
-  restoreSixDayStreak,
+  cleanEverySingleThing,
 } from './utils/storage';
 import { sound } from './utils/audio';
 import { Header } from './components/Header';
 import { ModeSelector } from './components/ModeSelector';
-import { EideticMatrixGame } from './components/EideticMatrixGame';
-import { AyumuChimpGame } from './components/AyumuChimpGame';
 import { DualNBackGame } from './components/DualNBackGame';
 import { MnemonicPegsGame } from './components/MnemonicPegsGame';
-import { MemoryPalaceGame } from './components/MemoryPalaceGame';
-import { SpacedRepetitionGame } from './components/SpacedRepetitionGame';
-import { MnemonicSpeedGame } from './components/MnemonicSpeedGame';
 import { SymbolDetectiveGame } from './components/SymbolDetectiveGame';
-import { DailyWorkoutGame } from './components/DailyWorkoutGame';
 import { DailyProtocolTracker } from './components/DailyProtocolTracker';
 import { StatsDashboard } from './components/StatsDashboard';
 import { TrainingTipsModal } from './components/TrainingTipsModal';
@@ -122,14 +116,15 @@ export default function App() {
 
   const handleResetAllProgress = () => {
     sound.playClick();
-    const result = restoreSixDayStreak();
+    const result = cleanEverySingleThing();
     setStats(result.stats);
     setProtocol(result.protocol);
     setCurrentProfile(result.profile);
+    setFreeTrainingStats(loadFreeTrainingStats(1));
     if (currentUser) {
-      saveUserCloudData(currentUser.uid, result.stats, result.protocol, freeTrainingStats, result.profile);
+      saveUserCloudData(currentUser.uid, result.stats, result.protocol, loadFreeTrainingStats(1), result.profile);
     }
-    setStreakRestoreNotice('All progress reset to clean slate! Starting fresh at Day 1, Yoseph.');
+    setStreakRestoreNotice('All progress cleaned & reset to 0! Starting fresh on Day 1 for Yoseph.');
     setTimeout(() => setStreakRestoreNotice(null), 5000);
   };
 
@@ -143,8 +138,6 @@ export default function App() {
     'mnemonic-pegs',
     'dual-nback',
     'symbol-detective',
-    'ayumu-chimp',
-    'memory-palace',
   ];
 
   // Yoseph's 1-Hour Protocol Targets (3 disciplines x 20 minutes = 60 minutes)
@@ -1168,11 +1161,11 @@ export default function App() {
                 <button
                   onClick={() => {
                     sound.playClick();
-                    setActiveMode('free-training');
+                    setActiveMode('four-hour-plan');
                   }}
-                  className="px-3 py-1.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 text-xs font-bold transition-all shadow cursor-pointer flex items-center gap-1"
+                  className="px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold transition-all shadow cursor-pointer flex items-center gap-1"
                 >
-                  Training Hub
+                  1h Routine
                 </button>
 
                 <button
@@ -1219,51 +1212,17 @@ export default function App() {
           />
         )}
 
-        {activeMode === 'free-training' && (
-          <FreeTrainingView
-            curriculumDay={protocol.curriculumDay}
-            currentSpeed={currentSpeed}
-            onSpeedChange={handleSpeedChange}
-            onNavigateMode={(mode) => {
-              setFreeTrainingConfig({ isFree: true });
-              setActiveMode(mode);
-            }}
-            onStartStepWithConfig={handleStartStepWithConfig}
-            onAddXp={handleAddXp}
-            stats={freeTrainingStats}
-            onUpdateStats={setFreeTrainingStats}
-          />
-        )}
-
-        {activeMode === 'eidetic-matrix' && (
-          <EideticMatrixGame
-            currentSpeed={currentSpeed}
+        {activeMode === 'mnemonic-pegs' && (
+          <MnemonicPegsGame
             curriculumDay={protocol.curriculumDay}
             isLockedOut={protocol.isLockedOut}
             isFreeTraining={freeTrainingConfig?.isFree}
-            initialLevel={freeTrainingConfig?.level}
-            onSpeedChange={handleSpeedChange}
             onAddXp={handleAddXp}
-            onRecordResult={handleRecordMatrixResult}
+            onRecordMnemonicConversion={handleRecordMnemonicConversion}
+            onCompletePegLevel={handleCompletePegLevel}
             onNavigateMode={setActiveMode}
-            isTaskCompleteToday={protocol.tasks.find((t) => t.id === 'eidetic-matrix')?.isCompleted}
-            completedLevelsToday={protocol.tasks.find((t) => t.id === 'eidetic-matrix')?.currentCount || 0}
-          />
-        )}
-
-        {activeMode === 'ayumu-chimp' && (
-          <AyumuChimpGame
-            currentSpeed={currentSpeed}
-            curriculumDay={protocol.curriculumDay}
-            isLockedOut={protocol.isLockedOut}
-            isFreeTraining={freeTrainingConfig?.isFree}
-            initialDigits={freeTrainingConfig?.digits}
-            onSpeedChange={handleSpeedChange}
-            onAddXp={handleAddXp}
-            onRecordResult={handleRecordAyumuResult}
-            onNavigateMode={setActiveMode}
-            isTaskCompleteToday={protocol.tasks.find((t) => t.id === 'ayumu-chimp')?.isCompleted}
-            completedLevelsToday={protocol.tasks.find((t) => t.id === 'ayumu-chimp')?.currentCount || 0}
+            isTaskCompleteToday={protocol.tasks.find((t) => t.id === 'mnemonic-pegs')?.isCompleted}
+            completedLevelsToday={protocol.tasks.find((t) => t.id === 'mnemonic-pegs')?.currentCount || 0}
           />
         )}
 
@@ -1281,61 +1240,6 @@ export default function App() {
           />
         )}
 
-        {activeMode === 'mnemonic-pegs' && (
-          <MnemonicPegsGame
-            curriculumDay={protocol.curriculumDay}
-            isLockedOut={protocol.isLockedOut}
-            isFreeTraining={freeTrainingConfig?.isFree}
-            onAddXp={handleAddXp}
-            onRecordMnemonicConversion={handleRecordMnemonicConversion}
-            onCompletePegLevel={handleCompletePegLevel}
-            onNavigateMode={setActiveMode}
-            isTaskCompleteToday={protocol.tasks.find((t) => t.id === 'mnemonic-pegs')?.isCompleted}
-            completedLevelsToday={protocol.tasks.find((t) => t.id === 'mnemonic-pegs')?.currentCount || 0}
-          />
-        )}
-
-        {activeMode === 'memory-palace' && (
-          <MemoryPalaceGame
-            curriculumDay={protocol.curriculumDay}
-            isLockedOut={protocol.isLockedOut}
-            isFreeTraining={freeTrainingConfig?.isFree}
-            initialLoci={freeTrainingConfig?.loci}
-            onAddXp={handleAddXp}
-            onCompletePalaceStep={handleCompletePalaceStep}
-            onNavigateMode={setActiveMode}
-            isTaskCompleteToday={protocol.tasks.find((t) => t.id === 'memory-palace')?.isCompleted}
-            completedLevelsToday={protocol.tasks.find((t) => t.id === 'memory-palace')?.currentCount || 0}
-          />
-        )}
-
-        {activeMode === 'spaced-repetition' && (
-          <SpacedRepetitionGame
-            curriculumDay={protocol.curriculumDay}
-            isLockedOut={protocol.isLockedOut}
-            isFreeTraining={freeTrainingConfig?.isFree}
-            onAddXp={handleAddXp}
-            onCardReviewed={handleCardReviewed}
-            onCompleteSpacedLevel={handleCompleteSpacedLevel}
-            onNavigateMode={setActiveMode}
-            isTaskCompleteToday={protocol.tasks.find((t) => t.id === 'spaced-repetition')?.isCompleted}
-            completedLevelsToday={protocol.tasks.find((t) => t.id === 'spaced-repetition')?.currentCount || 0}
-          />
-        )}
-
-        {activeMode === 'mnemonic-speed' && (
-          <MnemonicPegsGame
-            curriculumDay={protocol.curriculumDay}
-            isLockedOut={protocol.isLockedOut}
-            onAddXp={handleAddXp}
-            onRecordMnemonicConversion={handleRecordMnemonicConversion}
-            onCompletePegLevel={handleCompletePegLevel}
-            onNavigateMode={setActiveMode}
-            isTaskCompleteToday={protocol.tasks.find((t) => t.id === 'mnemonic-pegs')?.isCompleted}
-            completedLevelsToday={protocol.tasks.find((t) => t.id === 'mnemonic-pegs')?.currentCount || 0}
-          />
-        )}
-
         {activeMode === 'symbol-detective' && (
           <SymbolDetectiveGame
             currentSpeed={currentSpeed}
@@ -1347,12 +1251,13 @@ export default function App() {
           />
         )}
 
-        {activeMode === 'daily-workout' && (
-          <DailyWorkoutGame
-            stats={stats}
-            curriculumDay={protocol.curriculumDay}
+        {activeMode === 'free-training' && (
+          <FourHourPlanView
+            onNavigateMode={setActiveMode}
             onAddXp={handleAddXp}
-            onSavePQRecord={handleSavePQRecord}
+            todayGamesBreakdown={freeTrainingStats.todayGamesBreakdown}
+            protocol={protocol}
+            todaySeconds={freeTrainingStats.todaySeconds}
           />
         )}
 

@@ -177,7 +177,7 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
           }`}
         >
           <LineChartIcon className="w-4 h-4" />
-          Progress History (Ayumu & Dual N-Back)
+          Progress History & Dual N-Back Telemetry
         </button>
         <button
           onClick={() => setActiveTab('overview')}
@@ -188,7 +188,7 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
           }`}
         >
           <BarChart3 className="w-4 h-4" />
-          Overview & Mastery Ranks
+          3-Game KPI & Mastery Ranks
         </button>
         <button
           onClick={() => setActiveTab('archetype')}
@@ -223,24 +223,15 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
       {/* Tab 3: Overview & Mastery Ranks */}
       {activeTab === 'overview' && (
         <div className="space-y-6 animate-in fade-in duration-200">
-          {/* Primary KPI Grid */}
+          {/* Primary KPI Grid (Strictly for the 3 Games) */}
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
             <div className="bg-slate-900 border border-slate-800 p-3.5 rounded-2xl">
               <div className="flex items-center justify-between text-slate-400 mb-1.5">
-                <span className="text-[11px] font-semibold">Matrix Level</span>
-                <Trophy className="w-4 h-4 text-cyan-400" />
+                <span className="text-[11px] font-semibold">Peg Drills</span>
+                <Zap className="w-4 h-4 text-amber-400" />
               </div>
-              <div className="text-xl font-black text-white">Lvl {stats.matrixMaxLevel}</div>
-              <p className="text-[10px] text-slate-400 mt-0.5">Spatial grid max</p>
-            </div>
-
-            <div className="bg-slate-900 border border-slate-800 p-3.5 rounded-2xl">
-              <div className="flex items-center justify-between text-slate-400 mb-1.5">
-                <span className="text-[11px] font-semibold">Ayumu Max</span>
-                <Flame className="w-4 h-4 text-amber-400" />
-              </div>
-              <div className="text-xl font-black text-white">{stats.ayumuMaxNumbers} Digits</div>
-              <p className="text-[10px] text-slate-400 mt-0.5">Chimp benchmark</p>
+              <div className="text-xl font-black text-white">{stats.mnemonicConversionCount} Drills</div>
+              <p className="text-[10px] text-slate-400 mt-0.5">Major System automation</p>
             </div>
 
             <div className="bg-slate-900 border border-slate-800 p-3.5 rounded-2xl">
@@ -254,29 +245,40 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
 
             <div className="bg-slate-900 border border-slate-800 p-3.5 rounded-2xl">
               <div className="flex items-center justify-between text-slate-400 mb-1.5">
-                <span className="text-[11px] font-semibold">Peg Speed</span>
-                <Zap className="w-4 h-4 text-orange-400" />
+                <span className="text-[11px] font-semibold">Symbol Speed</span>
+                <Trophy className="w-4 h-4 text-purple-400" />
               </div>
-              <div className="text-xl font-black text-white">{stats.mnemonicConversionCount} Drills</div>
-              <p className="text-[10px] text-slate-400 mt-0.5">Mnemonic automation</p>
+              <div className="text-xl font-black text-white">{stats.detectiveHighScore || 0} pts</div>
+              <p className="text-[10px] text-slate-400 mt-0.5">Detective high score</p>
             </div>
 
             <div className="bg-slate-900 border border-slate-800 p-3.5 rounded-2xl">
               <div className="flex items-center justify-between text-slate-400 mb-1.5">
-                <span className="text-[11px] font-semibold">Best Streak</span>
-                <Zap className="w-4 h-4 text-indigo-400" />
+                <span className="text-[11px] font-semibold">Precision</span>
+                <CheckCircle2 className="w-4 h-4 text-emerald-400" />
               </div>
-              <div className="text-xl font-black text-white">{stats.bestStreak} Rounds</div>
-              <p className="text-[10px] text-slate-400 mt-0.5">Perfect recalls</p>
+              <div className="text-xl font-black text-white">{accuracy}%</div>
+              <p className="text-[10px] text-slate-400 mt-0.5">Deliberate accuracy</p>
             </div>
 
             <div className="bg-slate-900 border border-slate-800 p-3.5 rounded-2xl">
               <div className="flex items-center justify-between text-slate-400 mb-1.5">
-                <span className="text-[11px] font-semibold">Fastest Flash</span>
-                <Clock className="w-4 h-4 text-emerald-400" />
+                <span className="text-[11px] font-semibold">Current Streak</span>
+                <Flame className="w-4 h-4 text-orange-400" />
               </div>
-              <div className="text-xl font-black text-white">{stats.fastestFlashMs}ms</div>
-              <p className="text-[10px] text-slate-400 mt-0.5">Exposure record</p>
+              <div className="text-xl font-black text-white">{stats.currentStreak} Days</div>
+              <p className="text-[10px] text-slate-400 mt-0.5">Circadian discipline</p>
+            </div>
+
+            <div className="bg-slate-900 border border-slate-800 p-3.5 rounded-2xl">
+              <div className="flex items-center justify-between text-slate-400 mb-1.5">
+                <span className="text-[11px] font-semibold">Practice Time</span>
+                <Clock className="w-4 h-4 text-cyan-400" />
+              </div>
+              <div className="text-xl font-black text-white">
+                {Math.floor((resolvedFreeTrainingStats?.todaySeconds || 0) / 60)}m
+              </div>
+              <p className="text-[10px] text-slate-400 mt-0.5">Today's active focus</p>
             </div>
           </div>
 

@@ -88,6 +88,12 @@ export function loadDailyProtocol(): DailyProtocolState {
   const { cycleKey } = getCurrentCycleInfo();
 
   try {
+    if (localStorage.getItem('yosi_pure_3_games_clean_slate_v10') !== 'true') {
+      const initial = createInitialProtocol(cycleKey, 1);
+      saveDailyProtocol(initial);
+      return initial;
+    }
+
     const raw = localStorage.getItem(PROTOCOL_STORAGE_KEY);
     if (!raw) {
       const initial = createInitialProtocol(cycleKey, 1);
