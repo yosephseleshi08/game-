@@ -36,13 +36,12 @@ export const DualNBackGame: React.FC<DualNBackGameProps> = ({
   const dayLimit = getMaxDualNBackForDay(curriculumDay);
   const [freePracticeActive, setFreePracticeActive] = useState(isFreeTraining);
 
-  if (isLockedOut && !freePracticeActive) {
+  if (isLockedOut) {
     return (
       <StrictDayLockoutView
         curriculumDay={curriculumDay}
         gameTitle="Dual N-Back Laboratory"
         onNavigateMode={onNavigateMode}
-        onUnlockFreeTraining={() => setFreePracticeActive(true)}
       />
     );
   }

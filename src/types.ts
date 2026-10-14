@@ -351,20 +351,46 @@ export interface ProtocolTask {
   title: string;
   discipline: string;
   targetDescription: string;
-  targetCount: number;
-  currentCount: number;
+  targetCount: number; // target minutes (e.g. 20 or 60)
+  currentCount: number; // elapsed minutes (e.g. 0 to 20 or 60)
   maxAllowedLevel?: number | string;
   isCompleted: boolean;
   gameMode: GameMode;
+  targetSeconds?: number; // exact target seconds (e.g. 1200 or 3600)
+  secondsElapsed?: number; // exact seconds spent
+}
+
+export interface DayHistoryRecord {
+  date: string; // YYYY-MM-DD
+  cycleKey: string;
+  curriculumDay: number;
+  completed: boolean;
+  failed?: boolean;
+  score: number;
+  completedAt?: string;
+  gamesCompletedCount?: number;
+  totalSeconds?: number;
+  memoryPalaceCompleted?: boolean;
+  gamesBreakdown?: Record<string, number>;
+}
+
+export interface MemoryPalaceTimerState {
+  remainingSeconds: number; // starts at 3600
+  elapsedSeconds: number; // 0 to 3600
+  isRunning: boolean;
+  isCompleted: boolean;
+  lastTickDate?: string;
 }
 
 export interface DailyProtocolState {
-  currentCycleDate: string; // The cycle key (e.g. '2026-09-15-12AM')
+  currentCycleDate: string; // YYYY-MM-DD
+  startDate?: string; // YYYY-MM-DD when journey began
   isLockedOut: boolean;
   completedAt?: string;
   curriculumDay: number; // 1 to 365
   currentPhase: number; // 1 to 4
   tasks: ProtocolTask[];
-  history: Record<string, { completed: boolean; score: number; completedAt: string }>;
+  history: Record<string, DayHistoryRecord>;
+  memoryPalaceTimer?: MemoryPalaceTimerState;
 }
 

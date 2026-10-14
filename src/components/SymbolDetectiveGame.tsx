@@ -6,10 +6,12 @@ import {
   DetectiveItem,
   DetectiveQuestion,
   DetectiveLabMode,
+  GameMode,
 } from '../types';
 import { sound } from '../utils/audio';
 import { FLASH_SPEED_OPTIONS } from '../utils/storage';
 import { getDetectiveAdaptiveConfig } from '../utils/dayRestrictions';
+import { StrictDayLockoutView } from './StrictDayLockoutView';
 import {
   Play,
   RotateCcw,
@@ -45,6 +47,8 @@ interface SymbolDetectiveGameProps {
   onRecordResult: (isSuccess: boolean, score: number) => void;
   curriculumDay?: number;
   playerLevel?: number;
+  isLockedOut?: boolean;
+  onNavigateMode?: (mode: GameMode) => void;
 }
 
 const SHAPES: SymbolShape[] = ['star', 'shield', 'heart', 'zap', 'triangle', 'circle', 'square', 'diamond'];
@@ -85,7 +89,19 @@ export const SymbolDetectiveGame: React.FC<SymbolDetectiveGameProps> = ({
   onRecordResult,
   curriculumDay = 1,
   playerLevel = 1,
+  isLockedOut = false,
+  onNavigateMode,
 }) => {
+  if (isLockedOut) {
+    return (
+      <StrictDayLockoutView
+        curriculumDay={curriculumDay}
+        gameTitle="Symbol Detective Lab"
+        onNavigateMode={onNavigateMode || (() => {})}
+      />
+    );
+  }
+
   const adaptiveConfig = getDetectiveAdaptiveConfig(curriculumDay, playerLevel);
 
   // Lab Configuration

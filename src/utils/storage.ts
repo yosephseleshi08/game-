@@ -147,14 +147,21 @@ export function cleanEverySingleThing(): {
   const freshStats = getFreshInitialStats();
   saveUserStats(freshStats);
 
-  const cycleKey = getCurrentCycleInfo().cycleKey;
+  const todayStr = getCurrentCycleInfo().dateString;
   const freshProtocol: DailyProtocolState = {
-    currentCycleDate: cycleKey,
+    currentCycleDate: todayStr,
+    startDate: todayStr,
     isLockedOut: false,
     curriculumDay: 1,
     currentPhase: 1,
     tasks: generateTasksForDay(1),
     history: {},
+    memoryPalaceTimer: {
+      remainingSeconds: 3600,
+      elapsedSeconds: 0,
+      isRunning: false,
+      isCompleted: false,
+    },
   };
   localStorage.setItem('pmm_daily_protocol_v1', JSON.stringify(freshProtocol));
 

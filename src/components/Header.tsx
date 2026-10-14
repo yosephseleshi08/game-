@@ -202,23 +202,23 @@ export const Header: React.FC<HeaderProps> = ({
             <span className="hidden sm:inline">Reset</span>
           </button>
 
-          {/* 4-Hour Master Plan & Daily Checklist */}
+          {/* Daily Protocol Button */}
           <button
-            id="header-four-hour-plan-btn"
+            id="header-daily-protocol-btn"
             onClick={() => {
               sound.playClick();
-              onSelectMode('four-hour-plan');
+              onSelectMode('daily-protocol');
             }}
             className={`flex items-center gap-1 px-2 sm:px-2.5 py-1.5 rounded-lg border text-xs font-bold transition-all cursor-pointer shadow-sm ${
-              activeMode === 'four-hour-plan'
-                ? 'bg-amber-950/90 border-amber-500/80 text-amber-300 ring-1 ring-amber-400/40'
-                : 'bg-slate-800 border-slate-700 text-amber-300 hover:bg-slate-700 hover:text-amber-200'
+              activeMode === 'daily-protocol'
+                ? 'bg-cyan-950/90 border-cyan-500/80 text-cyan-300 ring-1 ring-cyan-400/40'
+                : 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700 hover:text-white'
             }`}
-            title="Open Yosi's 1-Hour Daily Protocol (60 Min)"
+            title="Open Yosi's Daily Protocol"
           >
-            <Clock className="w-3.5 h-3.5 text-amber-400" />
-            <span className="hidden sm:inline">1h Plan</span>
-            <span className="sm:hidden">1h</span>
+            <Clock className="w-3.5 h-3.5 text-cyan-400" />
+            <span className="hidden sm:inline">Protocol</span>
+            <span className="sm:hidden">Protocol</span>
           </button>
 
           {/* Type of Guy Archetype Badge Trigger */}

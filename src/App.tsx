@@ -45,7 +45,13 @@ import {
 } from './utils/firebase';
 import { loadFourHourPlan, saveFourHourPlan, resetFourHourPlanToZero } from './utils/fourHourPlan';
 import type { User } from 'firebase/auth';
-import { loadDailyProtocol, saveDailyProtocol } from './utils/protocol';
+import {
+  loadDailyProtocol,
+  saveDailyProtocol,
+  computeStreaksFromHistory,
+  getLocalDateString,
+  checkIsDailyProtocolFullyDone,
+} from './utils/protocol';
 import { getPlanSpeedForDay } from './utils/flashPlan';
 import { Award, Sparkles, X, Clock, Play, Pause, RotateCcw, Flame, Smartphone, Cloud, RefreshCw } from 'lucide-react';
 
@@ -206,18 +212,42 @@ export default function App() {
       unflushedSecondsRef.current += 1;
 
       // Optimistically increment todaySeconds and todayGamesBreakdown for real-time responsiveness
-      setFreeTrainingStats((prev) => ({
-        ...prev,
-        todaySeconds: prev.todaySeconds + 1,
-        totalSecondsPracticed: (prev.totalSecondsPracticed || 0) + 1,
-        totalMinutesPracticed: Math.floor(((prev.totalSecondsPracticed || 0) + 1) / 60),
-        todayGamesBreakdown: activeMode
-          ? {
-              ...(prev.todayGamesBreakdown || {}),
-              [activeMode]: ((prev.todayGamesBreakdown || {})[activeMode] || 0) + 1,
-            }
-          : prev.todayGamesBreakdown,
-      }));
+      setFreeTrainingStats((prev) => {
+        const currentModeSecs = ((prev.todayGamesBreakdown || {})[activeMode] || 0) + 1;
+
+        // Check if strict 20-minute (1200 seconds) quota is completed!
+        if (currentModeSecs >= 1200) {
+          setTimeout(() => {
+            sound.playMilestoneFanfare();
+            setProtocol((prevP) => {
+              const updatedTasks = prevP.tasks.map((t) =>
+                t.id === activeMode
+                  ? { ...t, isCompleted: true, currentCount: 20, secondsElapsed: 1200 }
+                  : t
+              );
+              return { ...prevP, tasks: updatedTasks };
+            });
+            handleAddXp(250);
+            setStreakRestoreNotice(
+              `🎉 20-Minute Protocol Achieved! ${activeMode} is strictly locked until tomorrow at 12:00 AM.`
+            );
+            setActiveMode('daily-protocol');
+          }, 100);
+        }
+
+        return {
+          ...prev,
+          todaySeconds: prev.todaySeconds + 1,
+          totalSecondsPracticed: (prev.totalSecondsPracticed || 0) + 1,
+          totalMinutesPracticed: Math.floor(((prev.totalSecondsPracticed || 0) + 1) / 60),
+          todayGamesBreakdown: activeMode
+            ? {
+                ...(prev.todayGamesBreakdown || {}),
+                [activeMode]: Math.min(1200, currentModeSecs),
+              }
+            : prev.todayGamesBreakdown,
+        };
+      });
 
       // Flush to disk every 5 seconds
       if (unflushedSecondsRef.current >= 5) {
@@ -267,6 +297,29 @@ export default function App() {
   useEffect(() => {
     saveDailyProtocol(protocol);
   }, [protocol]);
+
+  // Synchronize streaks strictly from real calendar history (red days reset streak to 0)
+  useEffect(() => {
+    const todayStr = getLocalDateString();
+    const isTodayDone = checkIsDailyProtocolFullyDone(
+      protocol.tasks,
+      freeTrainingStats.todayGamesBreakdown,
+      protocol.memoryPalaceTimer
+    );
+    const { currentStreak, bestStreak } = computeStreaksFromHistory(
+      protocol.history,
+      todayStr,
+      isTodayDone
+    );
+
+    if (stats.currentStreak !== currentStreak || stats.bestStreak !== bestStreak) {
+      setStats((prev) => ({
+        ...prev,
+        currentStreak,
+        bestStreak: Math.max(prev.bestStreak, bestStreak),
+      }));
+    }
+  }, [protocol.history, protocol.tasks, freeTrainingStats.todayGamesBreakdown, protocol.memoryPalaceTimer]);
 
   // ----------------------------------------------------
   // Cross-Device Cloud Sync Engine (2 Phones & 1 PC)
@@ -1210,36 +1263,23 @@ export default function App() {
                 <button
                   onClick={() => {
                     sound.playClick();
-                    setActiveMode('four-hour-plan');
-                  }}
-                  className="px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold transition-all shadow cursor-pointer flex items-center gap-1"
-                >
-                  1h Routine
-                </button>
-
-                <button
-                  onClick={() => {
-                    sound.playClick();
                     setFreeTrainingConfig(null);
                     setActiveMode('daily-protocol');
                   }}
-                  className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold transition-all cursor-pointer"
+                  className="px-4 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5"
                 >
-                  Daily
+                  ← Back to Protocol
                 </button>
               </div>
             </div>
           </div>
         )}
 
-        {activeMode === 'daily-protocol' && (
+        {(activeMode === 'daily-protocol' || activeMode === 'four-hour-plan' || activeMode === 'free-training') && (
           <DailyProtocolTracker
             protocol={protocol}
             onUpdateProtocol={setProtocol}
             onNavigateMode={(mode) => {
-              if (mode === 'free-training') {
-                setFreeTrainingConfig({ isFree: true });
-              }
               setActiveMode(mode);
             }}
             onAddXp={handleAddXp}
@@ -1248,29 +1288,26 @@ export default function App() {
             onOpenMilestone={() => setIsMilestoneModalOpen(true)}
             currentSpeed={currentSpeed}
             isSpeedLockedToPlan={isSpeedLockedToPlan}
-          />
-        )}
-
-        {activeMode === 'four-hour-plan' && (
-          <FourHourPlanView
-            onNavigateMode={setActiveMode}
-            onAddXp={handleAddXp}
             todayGamesBreakdown={freeTrainingStats.todayGamesBreakdown}
-            protocol={protocol}
-            todaySeconds={freeTrainingStats.todaySeconds}
+            currentStreak={stats.currentStreak}
           />
         )}
 
         {activeMode === 'mnemonic-pegs' && (
           <MnemonicPegsGame
             curriculumDay={protocol.curriculumDay}
-            isLockedOut={protocol.isLockedOut}
-            isFreeTraining={freeTrainingConfig?.isFree}
+            isLockedOut={
+              protocol.isLockedOut ||
+              (freeTrainingStats.todayGamesBreakdown?.['mnemonic-pegs'] || 0) >= 1200
+            }
             onAddXp={handleAddXp}
             onRecordMnemonicConversion={handleRecordMnemonicConversion}
             onCompletePegLevel={handleCompletePegLevel}
             onNavigateMode={setActiveMode}
-            isTaskCompleteToday={protocol.tasks.find((t) => t.id === 'mnemonic-pegs')?.isCompleted}
+            isTaskCompleteToday={
+              protocol.tasks.find((t) => t.id === 'mnemonic-pegs')?.isCompleted ||
+              (freeTrainingStats.todayGamesBreakdown?.['mnemonic-pegs'] || 0) >= 1200
+            }
             completedLevelsToday={protocol.tasks.find((t) => t.id === 'mnemonic-pegs')?.currentCount || 0}
           />
         )}
@@ -1278,13 +1315,18 @@ export default function App() {
         {activeMode === 'dual-nback' && (
           <DualNBackGame
             curriculumDay={protocol.curriculumDay}
-            isLockedOut={protocol.isLockedOut}
-            isFreeTraining={freeTrainingConfig?.isFree}
+            isLockedOut={
+              protocol.isLockedOut ||
+              (freeTrainingStats.todayGamesBreakdown?.['dual-nback'] || 0) >= 1200
+            }
             initialN={freeTrainingConfig?.nBack}
             onAddXp={handleAddXp}
             onRecordNBackMax={handleRecordNBackMax}
             onNavigateMode={setActiveMode}
-            isTaskCompleteToday={protocol.tasks.find((t) => t.id === 'dual-nback')?.isCompleted}
+            isTaskCompleteToday={
+              protocol.tasks.find((t) => t.id === 'dual-nback')?.isCompleted ||
+              (freeTrainingStats.todayGamesBreakdown?.['dual-nback'] || 0) >= 1200
+            }
             completedRoundsToday={protocol.tasks.find((t) => t.id === 'dual-nback')?.currentCount || 0}
           />
         )}
@@ -1297,16 +1339,11 @@ export default function App() {
             onRecordResult={handleRecordDetectiveResult}
             curriculumDay={protocol.curriculumDay}
             playerLevel={stats.level}
-          />
-        )}
-
-        {activeMode === 'free-training' && (
-          <FourHourPlanView
+            isLockedOut={
+              protocol.isLockedOut ||
+              (freeTrainingStats.todayGamesBreakdown?.['symbol-detective'] || 0) >= 1200
+            }
             onNavigateMode={setActiveMode}
-            onAddXp={handleAddXp}
-            todayGamesBreakdown={freeTrainingStats.todayGamesBreakdown}
-            protocol={protocol}
-            todaySeconds={freeTrainingStats.todaySeconds}
           />
         )}
 

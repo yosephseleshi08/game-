@@ -64,13 +64,12 @@ export const MnemonicPegsGame: React.FC<MnemonicPegsGameProps> = ({
   const [isCheatSheetOpen, setIsCheatSheetOpen] = useState(false);
 
   // If user or day is fully locked out
-  if (isLockedOut && !freePracticeActive) {
+  if (isLockedOut) {
     return (
       <StrictDayLockoutView
         curriculumDay={curriculumDay}
         gameTitle="Mnemonic Peg Drills"
         onNavigateMode={onNavigateMode}
-        onUnlockFreeTraining={() => setFreePracticeActive(true)}
       />
     );
   }

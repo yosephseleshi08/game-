@@ -2,20 +2,11 @@ import React from 'react';
 import { GameMode } from '../types';
 import { sound } from '../utils/audio';
 import {
-  Grid3X3,
-  Hash,
-  Sparkles,
-  Award,
-  BarChart3,
-  Brain,
-  Flame,
   CalendarCheck,
-  Castle,
-  Layers,
-  Zap,
-  Infinity,
-  Clock,
-  Search,
+  BarChart3,
+  ShieldCheck,
+  Activity,
+  Award,
 } from 'lucide-react';
 
 interface ModeSelectorProps {
@@ -25,87 +16,97 @@ interface ModeSelectorProps {
 }
 
 export const ModeSelector: React.FC<ModeSelectorProps> = ({ activeMode, onSelectMode, isLockedOut }) => {
-  const modes: { id: GameMode; label: string; desc: string; icon: React.ReactNode; badge?: string }[] = [
-    {
-      id: 'four-hour-plan',
-      label: "Yosi's 1-Hour Plan",
-      desc: '3 × 20m Daily Routine & Roadmap',
-      icon: <Clock className="w-4 h-4 text-amber-400" />,
-      badge: '1h Focus',
-    },
-    {
-      id: 'mnemonic-pegs',
-      label: 'Mnemonic Major Pegs',
-      desc: 'Game 1 • Number-to-image keys',
-      icon: <Sparkles className="w-4 h-4 text-amber-400" />,
-      badge: '20 Min',
-    },
-    {
-      id: 'dual-nback',
-      label: 'Dual N-Back Buffer',
-      desc: 'Game 2 • Working memory buffer',
-      icon: <Brain className="w-4 h-4 text-sky-400" />,
-      badge: '20 Min',
-    },
-    {
-      id: 'symbol-detective',
-      label: 'Symbol Detective Lab',
-      desc: 'Game 3 • Abstract glyph speed',
-      icon: <Search className="w-4 h-4 text-purple-400" />,
-      badge: '20 Min',
-    },
-    {
-      id: 'daily-protocol',
-      label: "Daily Protocol",
-      desc: '3-Pillar 12 AM Lockout Tracker',
-      icon: <CalendarCheck className="w-4 h-4 text-emerald-400" />,
-      badge: isLockedOut ? 'Mastered' : 'Checklist',
-    },
-    {
-      id: 'stats',
-      label: "Mastery & Stats",
-      desc: '3-Game Telemetry & History',
-      icon: <BarChart3 className="w-4 h-4 text-indigo-400" />,
-    },
-  ];
+  const isProtocolActive = activeMode === 'daily-protocol';
+  const isStatsActive = activeMode === 'stats';
 
   return (
-    <nav aria-label="Game Modes" className="w-full max-w-6xl mx-auto px-3 sm:px-4 pt-3 sm:pt-4 pb-1">
-      <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none touch-pan-x snap-x">
-        {modes.map((m) => {
-          const isActive = activeMode === m.id;
-          return (
-            <button
-              key={m.id}
-              onClick={() => {
-                sound.playClick();
-                onSelectMode(m.id);
-              }}
-              className={`flex-1 min-w-[150px] sm:min-w-[170px] min-h-[48px] text-left p-2.5 rounded-xl border snap-start transition-all duration-200 active:scale-[0.98] cursor-pointer ${
-                isActive
-                  ? 'bg-slate-800 border-cyan-500/80 shadow-md shadow-cyan-500/10 text-white ring-1 ring-cyan-500/30'
-                  : 'bg-slate-900/70 border-slate-800 hover:border-slate-700 text-slate-400 hover:text-slate-200'
+    <nav aria-label="Main Navigation" className="w-full max-w-4xl mx-auto px-4 pt-3 pb-1">
+      <div className="grid grid-cols-2 gap-2 sm:gap-3">
+        {/* Tab 1: Yosi's 1-Hour Daily Protocol */}
+        <button
+          onClick={() => {
+            sound.playClick();
+            onSelectMode('daily-protocol');
+          }}
+          className={`text-left p-3 sm:p-3.5 rounded-2xl border transition-all duration-200 active:scale-[0.98] cursor-pointer relative overflow-hidden ${
+            isProtocolActive
+              ? 'bg-slate-900 border-cyan-500 shadow-lg shadow-cyan-500/10 text-white ring-1 ring-cyan-500/40'
+              : 'bg-slate-900/60 border-slate-800 hover:border-slate-700 text-slate-400 hover:text-slate-200'
+          }`}
+        >
+          <div className="flex items-center justify-between gap-1 mb-1">
+            <div className="flex items-center gap-2 font-black text-xs sm:text-sm text-slate-100 truncate">
+              <div
+                className={`p-1.5 rounded-xl ${
+                  isProtocolActive
+                    ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40'
+                    : 'bg-slate-800 text-slate-400'
+                }`}
+              >
+                <CalendarCheck className="w-4 h-4" />
+              </div>
+              <span className="truncate">Yosi's Daily Protocol</span>
+            </div>
+            {isLockedOut ? (
+              <span className="text-[10px] uppercase px-2 py-0.5 rounded-full font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+                Mastered
+              </span>
+            ) : (
+              <span
+                className={`text-[10px] uppercase px-2 py-0.5 rounded-full font-bold ${
+                  isProtocolActive
+                    ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30'
+                    : 'bg-slate-800 text-slate-400'
+                }`}
+              >
+                1h + 1h
+              </span>
+            )}
+          </div>
+          <p className="text-[11px] text-slate-400 truncate pl-8">
+            3 × 20m Games + 1h Manual Palace
+          </p>
+        </button>
+
+        {/* Tab 2: Yoseph's Personal Telemetry / Yosi's Cognitive Index & Telemetry */}
+        <button
+          onClick={() => {
+            sound.playClick();
+            onSelectMode('stats');
+          }}
+          className={`text-left p-3 sm:p-3.5 rounded-2xl border transition-all duration-200 active:scale-[0.98] cursor-pointer relative overflow-hidden ${
+            isStatsActive
+              ? 'bg-slate-900 border-indigo-500 shadow-lg shadow-indigo-500/10 text-white ring-1 ring-indigo-500/40'
+              : 'bg-slate-900/60 border-slate-800 hover:border-slate-700 text-slate-400 hover:text-slate-200'
+          }`}
+        >
+          <div className="flex items-center justify-between gap-1 mb-1">
+            <div className="flex items-center gap-2 font-black text-xs sm:text-sm text-slate-100 truncate">
+              <div
+                className={`p-1.5 rounded-xl ${
+                  isStatsActive
+                    ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/40'
+                    : 'bg-slate-800 text-slate-400'
+                }`}
+              >
+                <BarChart3 className="w-4 h-4" />
+              </div>
+              <span className="truncate">Yoseph's Personal Telemetry</span>
+            </div>
+            <span
+              className={`text-[10px] uppercase px-2 py-0.5 rounded-full font-bold ${
+                isStatsActive
+                  ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/30'
+                  : 'bg-slate-800 text-slate-400'
               }`}
             >
-              <div className="flex items-center justify-between gap-1 mb-1">
-                <div className="flex items-center gap-1.5 font-semibold text-xs text-slate-200 truncate">
-                  {m.icon}
-                  <span className="truncate">{m.label}</span>
-                </div>
-                {m.badge && (
-                  <span
-                    className={`text-[9px] uppercase px-1.5 py-0.5 rounded font-bold shrink-0 ${
-                      isActive ? 'bg-cyan-500/20 text-cyan-300' : 'bg-slate-800 text-slate-400'
-                    }`}
-                  >
-                    {m.badge}
-                  </span>
-                )}
-              </div>
-              <p className="text-[11px] text-slate-400 leading-tight truncate">{m.desc}</p>
-            </button>
-          );
-        })}
+              Cognitive Index
+            </span>
+          </div>
+          <p className="text-[11px] text-slate-400 truncate pl-8">
+            Green/Red Calendar & Mastery Stats
+          </p>
+        </button>
       </div>
     </nav>
   );
