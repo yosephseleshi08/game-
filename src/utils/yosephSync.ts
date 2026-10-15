@@ -14,8 +14,14 @@ const UNLOCK_STORAGE_KEY = 'yoseph_vault_unlocked';
 const UNLOCKED_TIMESTAMP_KEY = 'yoseph_vault_unlocked_at';
 
 export function isDeviceUnlocked(): boolean {
-  if (typeof window === 'undefined') return false;
-  return localStorage.getItem(UNLOCK_STORAGE_KEY) === 'true';
+  if (typeof window === 'undefined') return true;
+  // Unlocked by default so Yoseph can open the app on mobile and PC immediately without password interruptions.
+  const stored = localStorage.getItem(UNLOCK_STORAGE_KEY);
+  if (stored === null) {
+    localStorage.setItem(UNLOCK_STORAGE_KEY, 'true');
+    return true;
+  }
+  return stored !== 'false';
 }
 
 export function setDeviceUnlocked(unlocked: boolean): void {
@@ -24,7 +30,7 @@ export function setDeviceUnlocked(unlocked: boolean): void {
     localStorage.setItem(UNLOCK_STORAGE_KEY, 'true');
     localStorage.setItem(UNLOCKED_TIMESTAMP_KEY, new Date().toISOString());
   } else {
-    localStorage.removeItem(UNLOCK_STORAGE_KEY);
+    localStorage.setItem(UNLOCK_STORAGE_KEY, 'false');
     localStorage.removeItem(UNLOCKED_TIMESTAMP_KEY);
   }
 }

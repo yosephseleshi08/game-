@@ -1,0 +1,166 @@
+{
+  "stats": {
+    "xp": 0,
+    "level": 1,
+    "totalGamesPlayed": 0,
+    "matrixMaxLevel": 1,
+    "ayumuMaxNumbers": 3,
+    "detectiveHighScore": 0,
+    "fastestFlashMs": 2000,
+    "currentStreak": 0,
+    "bestStreak": 0,
+    "accuracyRate": 0,
+    "totalAttempts": 0,
+    "totalCorrectAttempts": 0,
+    "dualNBackMaxN": 1,
+    "mnemonicConversionCount": 0,
+    "cardsMastered": 0,
+    "pqHistory": [],
+    "progressHistory": []
+  },
+  "protocol": {
+    "curriculumDay": 1,
+    "currentPhase": 1,
+    "isLockedOut": false,
+    "tasks": [
+      {
+        "id": "mnemonic-pegs",
+        "title": "Mnemonic Major Pegs (20 Min)",
+        "discipline": "Number-to-Image Data Keys",
+        "targetDescription": "Master 20 minutes of number-to-image phonetic peg conversions (Single Digits (0–9); strictly locks at 20m)",
+        "targetCount": 20,
+        "currentCount": 0,
+        "maxAllowedLevel": "Single Digits (0–9)",
+        "isCompleted": false,
+        "gameMode": "mnemonic-pegs",
+        "targetSeconds": 1200,
+        "secondsElapsed": 0
+      },
+      {
+        "id": "dual-nback",
+        "title": "Dual N-Back Buffer (20 Min)",
+        "discipline": "Working Memory Capacity & Speaking Focus",
+        "targetDescription": "Train 20 minutes of dual auditory + spatial working memory RAM buffer at N=1 (strictly locks at 20m)",
+        "targetCount": 20,
+        "currentCount": 0,
+        "maxAllowedLevel": 1,
+        "isCompleted": false,
+        "gameMode": "dual-nback",
+        "targetSeconds": 1200,
+        "secondsElapsed": 0
+      },
+      {
+        "id": "symbol-detective",
+        "title": "Symbol Detective Lab (20 Min)",
+        "discipline": "Abstract Symbol Processing & Script Speed",
+        "targetDescription": "Train 20 minutes of high-speed glyph discrimination and visual feature-binding (strictly locks at 20m)",
+        "targetCount": 20,
+        "currentCount": 0,
+        "maxAllowedLevel": "Adaptive Speed",
+        "isCompleted": false,
+        "gameMode": "symbol-detective",
+        "targetSeconds": 1200,
+        "secondsElapsed": 0
+      },
+      {
+        "id": "memory-palace",
+        "title": "Manual Memory Palace Training (1 Hour)",
+        "discipline": "Offline Deep Loci Visualization",
+        "targetDescription": "Sit down and practice your memory palace loci manually with the 60-minute focus countdown timer (mandatory for daily streak)",
+        "targetCount": 60,
+        "currentCount": 0,
+        "maxAllowedLevel": "60 Min Offline Immersion",
+        "isCompleted": false,
+        "gameMode": "memory-palace",
+        "targetSeconds": 3600,
+        "secondsElapsed": 0
+      }
+    ],
+    "memoryPalaceTimer": {
+      "remainingSeconds": 3600,
+      "elapsedSeconds": 0,
+      "isRunning": false,
+      "isCompleted": false
+    },
+    "history": {}
+  },
+  "freeTrainingStats": {
+    "totalMinutesPracticed": 0,
+    "totalSecondsPracticed": 0,
+    "totalRepsCompleted": 0,
+    "doomScrollMinutesSaved": 0,
+    "sessionsCount": 0,
+    "lastSessionDate": "2026-10-15T09:44:37.775Z",
+    "todayCurriculumDay": 1,
+    "todaySeconds": 0,
+    "todayReps": 0,
+    "todayGamesBreakdown": {},
+    "dailyHistory": {}
+  },
+  "fourHourPlan": {
+    "currentDate": "2026-10-15",
+    "tasks": [
+      {
+        "id": "mnemonic-pegs-hour",
+        "title": "Mnemonic Major Pegs (20 Min)",
+        "category": "morning",
+        "targetMinutes": 20,
+        "gameMode": "mnemonic-pegs",
+        "description": "Number-to-image data keys",
+        "neuroImpact": "Phonetic-to-visual associative binding and left-hemisphere symbolic transcription keys.",
+        "isCompleted": false,
+        "elapsedSeconds": 0
+      },
+      {
+        "id": "dual-nback-hour",
+        "title": "Dual N-Back Buffer (20 Min)",
+        "category": "midday",
+        "targetMinutes": 20,
+        "gameMode": "dual-nback",
+        "description": "Working memory capacity and speaking focus",
+        "neuroImpact": "Dorsolateral Prefrontal Cortex (DLPFC) fluid executive buffer and speech articulation focus.",
+        "isCompleted": false,
+        "elapsedSeconds": 0
+      },
+      {
+        "id": "symbol-detective-hour",
+        "title": "Symbol Detective Lab (20 Min)",
+        "category": "evening",
+        "targetMinutes": 20,
+        "gameMode": "symbol-detective",
+        "description": "Abstract symbol processing and script speed",
+        "neuroImpact": "Occipito-temporal visual word form area (VWFA) and high-speed glyph discrimination.",
+        "isCompleted": false,
+        "elapsedSeconds": 0
+      }
+    ],
+    "currentStreak": 0,
+    "bestStreak": 0,
+    "totalSessionsCompleted": 0,
+    "history": {},
+    "nsdrElapsedSeconds": 0
+  },
+  "profile": {
+    "id": "yoseph-master",
+    "email": "yoseph@game.app",
+    "username": "Yoseph (Yosi)",
+    "photoUrl": "yosi-prime",
+    "avatarPresetId": "yosi-prime",
+    "level": 1,
+    "xp": 0,
+    "rankTitle": "Novice Observer",
+    "curriculumDay": 1,
+    "currentStreak": 0,
+    "bestStreak": 0,
+    "ayumuMaxNumbers": 3,
+    "matrixMaxLevel": 1,
+    "dualNBackMaxN": 1,
+    "fastestFlashMs": 2000,
+    "detectiveHighScore": 0,
+    "lockedFlashSpeed": 1200,
+    "isSpeedLockedToPlan": true,
+    "updatedAt": "2026-10-15T09:57:07.095Z",
+    "createdAt": "2026-10-15T09:44:37.776Z"
+  },
+  "lastSyncedAt": "2026-10-15T09:57:07.095Z"
+}

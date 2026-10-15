@@ -66,6 +66,7 @@ export default function App() {
   const [cloudSyncStatus, setCloudSyncStatus] = useState<'synced' | 'syncing' | 'offline' | 'error'>('synced');
   const [lastSyncedTime, setLastSyncedTime] = useState<Date | null>(null);
   const isSyncingFromRemoteRef = useRef(false);
+  const hasCompletedInitialSyncRef = useRef(false);
   const syncTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // 365-Day Flash Speed Lock State
@@ -172,19 +173,7 @@ export default function App() {
     setTimeout(() => setStreakRestoreNotice(null), 5000);
   };
 
-  // Immediate startup purge of legacy 19 streak / 7-day state
-  useEffect(() => {
-    if (
-      stats.currentStreak === 19 ||
-      stats.bestStreak === 19 ||
-      stats.xp >= 30000 ||
-      protocol.curriculumDay === 7 ||
-      Object.keys(protocol.history || {}).length >= 10
-    ) {
-      console.log('[AI Studio] Purging legacy progress on startup...');
-      handleResetAllProgress();
-    }
-  }, []);
+
 
   // Free Training & Live Game Session Timer (Daily 12 AM Tracking)
   const [freeTrainingStats, setFreeTrainingStats] = useState<FreeTrainingSessionStats>(() => loadFreeTrainingStats());
@@ -349,6 +338,7 @@ export default function App() {
   // ----------------------------------------------------
   const handleForceSync = async () => {
     setCloudSyncStatus('syncing');
+    isSyncingFromRemoteRef.current = true;
     try {
       const serverData = await fetchServerMasterProgress();
       const localPlan = loadFourHourPlan();
@@ -367,7 +357,6 @@ export default function App() {
           saveFourHourPlan(mergedPlan);
         }
 
-        isSyncingFromRemoteRef.current = true;
         setStats(merged.mergedStats);
         saveUserStats(merged.mergedStats);
         setProtocol(merged.mergedProtocol);
@@ -400,10 +389,6 @@ export default function App() {
           fourHourPlan: mergedPlan || localPlan,
           profile: updatedProfile,
         });
-
-        setTimeout(() => {
-          isSyncingFromRemoteRef.current = false;
-        }, 800);
       } else {
         await pushServerMasterProgress({
           stats,
@@ -418,6 +403,11 @@ export default function App() {
     } catch (err) {
       console.warn('Sync error:', err);
       setCloudSyncStatus('error');
+    } finally {
+      hasCompletedInitialSyncRef.current = true;
+      setTimeout(() => {
+        isSyncingFromRemoteRef.current = false;
+      }, 800);
     }
   };
 
@@ -451,6 +441,7 @@ export default function App() {
   // Debounced auto-save to server when user completes training on this device
   useEffect(() => {
     if (isSyncingFromRemoteRef.current) return;
+    if (!hasCompletedInitialSyncRef.current) return;
 
     if (syncTimeoutRef.current) {
       clearTimeout(syncTimeoutRef.current);

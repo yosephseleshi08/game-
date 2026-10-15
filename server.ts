@@ -72,11 +72,32 @@ const DEFAULT_YOSEPH_STATE = {
         targetDescription: 'Train 20 minutes of high-speed glyph discrimination and visual feature-binding (20m goal)',
         targetCount: 20,
         currentCount: 0,
+        targetSeconds: 1200,
+        secondsElapsed: 0,
         maxAllowedLevel: 'Adaptive Speed',
         isCompleted: false,
         gameMode: 'symbol-detective',
       },
+      {
+        id: 'memory-palace',
+        title: 'Manual Memory Palace Training (1 Hour)',
+        discipline: 'Offline Deep Loci Visualization',
+        targetDescription: 'Sit down and practice your memory palace loci manually with the 60-minute focus countdown timer (mandatory for daily streak)',
+        targetCount: 60,
+        currentCount: 0,
+        targetSeconds: 3600,
+        secondsElapsed: 0,
+        maxAllowedLevel: '60 Min Offline Immersion',
+        isCompleted: false,
+        gameMode: 'memory-palace',
+      },
     ],
+    memoryPalaceTimer: {
+      remainingSeconds: 3600,
+      elapsedSeconds: 0,
+      isRunning: false,
+      isCompleted: false,
+    },
     history: {},
   },
   freeTrainingStats: {
@@ -206,6 +227,23 @@ async function startServer() {
       ),
     };
 
+    // Merge memory palace timer (Loci 60m focus timer) across devices
+    const currentTimer = currentProtocol.memoryPalaceTimer;
+    const incomingTimer = incomingProtocol.memoryPalaceTimer;
+    const currentElapsed = currentTimer?.elapsedSeconds || 0;
+    const incomingElapsed = incomingTimer?.elapsedSeconds || 0;
+    const bestElapsed = Math.max(currentElapsed, incomingElapsed);
+    const isPalaceDone = Boolean(currentTimer?.isCompleted || incomingTimer?.isCompleted || bestElapsed >= 3600);
+    const bestRemaining = isPalaceDone ? 0 : Math.max(0, 3600 - bestElapsed);
+
+    const mergedMemoryPalaceTimer = {
+      elapsedSeconds: bestElapsed,
+      remainingSeconds: bestRemaining,
+      isRunning: false,
+      isCompleted: isPalaceDone,
+      lastTickDate: incomingTimer?.lastTickDate || currentTimer?.lastTickDate,
+    };
+
     // Merge protocol: keep higher curriculum day and combine history
     const mergedHistory = {
       ...(currentProtocol.history || {}),
@@ -214,42 +252,104 @@ async function startServer() {
 
     const higherDay = Math.max(currentProtocol.curriculumDay || 1, incomingProtocol.curriculumDay || 1);
 
-    let mergedTasks = incomingProtocol.tasks;
-    if (currentProtocol.curriculumDay === incomingProtocol.curriculumDay && currentProtocol.tasks) {
-      mergedTasks = currentProtocol.tasks.map((ct: any) => {
-        const it = incomingProtocol.tasks?.find((t: any) => t.id === ct.id);
-        if (!it) return ct;
-        return {
-          ...ct,
-          ...it,
-          isCompleted: ct.isCompleted || it.isCompleted,
-          currentCount: Math.max(ct.currentCount || 0, it.currentCount || 0),
-        };
-      });
-    }
+    // Guarantee all 4 core tasks exist and merge elapsed seconds
+    const standardTaskIds = ['mnemonic-pegs', 'dual-nback', 'symbol-detective', 'memory-palace'];
+    const allKnownTasks = [...(currentProtocol.tasks || []), ...(incomingProtocol.tasks || [])];
+    const mergedTasks = standardTaskIds.map((id) => {
+      const ct = currentProtocol.tasks?.find((t: any) => t.id === id);
+      const it = incomingProtocol.tasks?.find((t: any) => t.id === id);
+      const template = it || ct || allKnownTasks.find((t: any) => t.id === id) || {
+        id,
+        title: id === 'memory-palace' ? 'Manual Memory Palace Training (1 Hour)' : id,
+        discipline: id === 'memory-palace' ? 'Offline Deep Loci Visualization' : id,
+        targetDescription: '',
+        targetCount: id === 'memory-palace' ? 60 : 20,
+        currentCount: 0,
+        targetSeconds: id === 'memory-palace' ? 3600 : 1200,
+        secondsElapsed: 0,
+        isCompleted: false,
+        gameMode: id,
+      };
+
+      const maxSecs = Math.max(
+        ct?.secondsElapsed || 0,
+        it?.secondsElapsed || 0,
+        id === 'memory-palace' ? bestElapsed : 0
+      );
+      const maxCount = Math.max(
+        ct?.currentCount || 0,
+        it?.currentCount || 0,
+        Math.floor(maxSecs / 60)
+      );
+      const isTaskDone = Boolean(
+        ct?.isCompleted ||
+        it?.isCompleted ||
+        (template.targetCount && maxCount >= template.targetCount) ||
+        (template.targetSeconds && maxSecs >= template.targetSeconds) ||
+        (id === 'memory-palace' && isPalaceDone)
+      );
+
+      return {
+        ...template,
+        currentCount: maxCount,
+        secondsElapsed: maxSecs,
+        isCompleted: isTaskDone,
+      };
+    });
 
     const mergedProtocol = {
-      ...incomingProtocol,
+      ...(incomingProtocol.curriculumDay >= currentProtocol.curriculumDay ? incomingProtocol : currentProtocol),
       curriculumDay: higherDay,
       tasks: mergedTasks,
-      isLockedOut: currentProtocol.isLockedOut || incomingProtocol.isLockedOut,
+      memoryPalaceTimer: mergedMemoryPalaceTimer,
+      isLockedOut: Boolean(currentProtocol.isLockedOut || incomingProtocol.isLockedOut),
       history: mergedHistory,
     };
 
-    // Merge free training stats
+    // Merge free training stats with Math.max on per-game breakdowns
     const currentFree = masterData.freeTrainingStats || DEFAULT_YOSEPH_STATE.freeTrainingStats;
     const incomingFree = incoming.freeTrainingStats || {};
+
+    const allGameModes = Array.from(new Set([
+      ...Object.keys(currentFree.todayGamesBreakdown || {}),
+      ...Object.keys(incomingFree.todayGamesBreakdown || {}),
+      'memory-palace',
+      'mnemonic-pegs',
+      'dual-nback',
+      'symbol-detective',
+    ]));
+
+    const mergedBreakdown: Record<string, number> = {};
+    for (const gm of allGameModes) {
+      mergedBreakdown[gm] = Math.max(
+        currentFree.todayGamesBreakdown?.[gm] || 0,
+        incomingFree.todayGamesBreakdown?.[gm] || 0,
+        gm === 'memory-palace' ? bestElapsed : 0
+      );
+    }
+
+    const calculatedTodaySeconds = Object.values(mergedBreakdown).reduce((a, b) => a + b, 0);
+
     const mergedFree = {
       ...currentFree,
       ...incomingFree,
-      totalSecondsPracticed: Math.max(currentFree.totalSecondsPracticed || 0, incomingFree.totalSecondsPracticed || 0),
-      totalMinutesPracticed: Math.max(currentFree.totalMinutesPracticed || 0, incomingFree.totalMinutesPracticed || 0),
+      totalSecondsPracticed: Math.max(
+        currentFree.totalSecondsPracticed || 0,
+        incomingFree.totalSecondsPracticed || 0,
+        calculatedTodaySeconds
+      ),
+      totalMinutesPracticed: Math.max(
+        currentFree.totalMinutesPracticed || 0,
+        incomingFree.totalMinutesPracticed || 0,
+        Math.floor(Math.max(currentFree.totalSecondsPracticed || 0, incomingFree.totalSecondsPracticed || 0, calculatedTodaySeconds) / 60)
+      ),
       totalRepsCompleted: Math.max(currentFree.totalRepsCompleted || 0, incomingFree.totalRepsCompleted || 0),
-      todaySeconds: Math.max(currentFree.todaySeconds || 0, incomingFree.todaySeconds || 0),
-      todayGamesBreakdown: {
-        ...(currentFree.todayGamesBreakdown || {}),
-        ...(incomingFree.todayGamesBreakdown || {}),
-      },
+      todaySeconds: Math.max(
+        currentFree.todaySeconds || 0,
+        incomingFree.todaySeconds || 0,
+        calculatedTodaySeconds
+      ),
+      todayGamesBreakdown: mergedBreakdown,
       dailyHistory: {
         ...(currentFree.dailyHistory || {}),
         ...(incomingFree.dailyHistory || {}),

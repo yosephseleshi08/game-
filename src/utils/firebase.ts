@@ -25,7 +25,7 @@ import {
   setLogLevel,
 } from 'firebase/firestore';
 import firebaseConfig from '../../firebase-applet-config.json';
-import { UserProfile, UserStats, DailyProtocolState, FreeTrainingSessionStats, FourHourPlanState } from '../types';
+import { UserProfile, UserStats, DailyProtocolState, FreeTrainingSessionStats, FourHourPlanState, ProtocolTask, GameMode } from '../types';
 import { getRankForXp } from './storage';
 import { generateSixDayStreakHistory } from './protocol';
 
@@ -714,6 +714,23 @@ export function mergeUserProgress(
       : sLocal.progressHistory,
   };
 
+  // Merge memory palace timer (Loci 60m focus timer) across devices
+  const localTimer = pLocal.memoryPalaceTimer;
+  const cloudTimer = pCloud.memoryPalaceTimer;
+  const localElapsed = localTimer?.elapsedSeconds || 0;
+  const cloudElapsed = cloudTimer?.elapsedSeconds || 0;
+  const bestElapsed = Math.max(localElapsed, cloudElapsed);
+  const isPalaceDone = Boolean(localTimer?.isCompleted || cloudTimer?.isCompleted || bestElapsed >= 3600);
+  const bestRemaining = isPalaceDone ? 0 : Math.max(0, 3600 - bestElapsed);
+
+  const mergedMemoryPalaceTimer = {
+    elapsedSeconds: bestElapsed,
+    remainingSeconds: bestRemaining,
+    isRunning: false,
+    isCompleted: isPalaceDone,
+    lastTickDate: cloudTimer?.lastTickDate || localTimer?.lastTickDate,
+  };
+
   // Merge protocol: choose the higher curriculum day, and ALWAYS merge history!
   const combinedHistory = {
     ...(pLocal.history || {}),
@@ -722,56 +739,112 @@ export function mergeUserProgress(
 
   const highestDay = Math.max(pCloud.curriculumDay || 1, pLocal.curriculumDay || 1);
 
-  let mergedProtocol: DailyProtocolState;
-  if (pCloud.curriculumDay > pLocal.curriculumDay) {
-    mergedProtocol = {
-      ...pCloud,
-      curriculumDay: highestDay,
-      history: combinedHistory,
+  // Guarantee all 4 core tasks exist and merge elapsed seconds
+  const standardTaskIds: ProtocolTask['id'][] = ['mnemonic-pegs', 'dual-nback', 'symbol-detective', 'memory-palace'];
+  const allKnownTasks = [...(pLocal.tasks || []), ...(pCloud.tasks || [])];
+  const mergedTasks: ProtocolTask[] = standardTaskIds.map((id) => {
+    const localTask = pLocal.tasks?.find((t) => t.id === id);
+    const cloudTask = pCloud.tasks?.find((t) => t.id === id);
+    const fallbackTemplate: ProtocolTask = {
+      id,
+      title: id === 'memory-palace' ? 'Manual Memory Palace Training (1 Hour)' : id,
+      discipline: id === 'memory-palace' ? 'Offline Deep Loci Visualization' : id,
+      targetDescription: '',
+      targetCount: id === 'memory-palace' ? 60 : 20,
+      currentCount: 0,
+      targetSeconds: id === 'memory-palace' ? 3600 : 1200,
+      secondsElapsed: 0,
+      isCompleted: false,
+      gameMode: id as GameMode,
     };
-  } else if (pLocal.curriculumDay > pCloud.curriculumDay) {
-    mergedProtocol = {
-      ...pLocal,
-      curriculumDay: highestDay,
-      history: combinedHistory,
-    };
-  } else {
-    // Same day: merge task completions
-    const mergedTasks = pLocal.tasks.map((localTask) => {
-      const cloudTask = pCloud.tasks.find((ct) => ct.id === localTask.id);
-      if (!cloudTask) return localTask;
-      return {
-        ...localTask,
-        isCompleted: localTask.isCompleted || cloudTask.isCompleted,
-        currentCount: Math.max(localTask.currentCount, cloudTask.currentCount),
-      };
-    });
+    const template = cloudTask || localTask || allKnownTasks.find((t) => t.id === id) || fallbackTemplate;
 
-    mergedProtocol = {
-      ...pCloud,
-      curriculumDay: pLocal.curriculumDay,
-      tasks: mergedTasks,
-      isLockedOut: pLocal.isLockedOut || pCloud.isLockedOut,
-      history: combinedHistory,
-    };
-  }
+    const maxSecs = Math.max(
+      localTask?.secondsElapsed || 0,
+      cloudTask?.secondsElapsed || 0,
+      id === 'memory-palace' ? bestElapsed : 0
+    );
+    const maxCount = Math.max(
+      localTask?.currentCount || 0,
+      cloudTask?.currentCount || 0,
+      Math.floor(maxSecs / 60)
+    );
+    const isCompleted = Boolean(
+      localTask?.isCompleted ||
+      cloudTask?.isCompleted ||
+      (template.targetCount && maxCount >= template.targetCount) ||
+      (template.targetSeconds && maxSecs >= template.targetSeconds) ||
+      (id === 'memory-palace' && isPalaceDone)
+    );
 
-  // Merge free training stats
+    return {
+      ...template,
+      currentCount: maxCount,
+      secondsElapsed: maxSecs,
+      isCompleted,
+    };
+  });
+
+  const mergedProtocol: DailyProtocolState = {
+    ...(pCloud.curriculumDay >= pLocal.curriculumDay ? pCloud : pLocal),
+    curriculumDay: highestDay,
+    tasks: mergedTasks,
+    memoryPalaceTimer: mergedMemoryPalaceTimer,
+    isLockedOut: Boolean(pLocal.isLockedOut || pCloud.isLockedOut),
+    history: combinedHistory,
+  };
+
+  // Merge free training stats with Math.max on per-game breakdowns
   let mergedFreeStats: FreeTrainingSessionStats | undefined;
-  if (localFreeStats && cloudFreeStats) {
+  if (localFreeStats || cloudFreeStats) {
+    const lFree = localFreeStats || ({} as Partial<FreeTrainingSessionStats>);
+    const cFree = cloudFreeStats || ({} as Partial<FreeTrainingSessionStats>);
+
+    const allGameModes = Array.from(new Set([
+      ...Object.keys(lFree.todayGamesBreakdown || {}),
+      ...Object.keys(cFree.todayGamesBreakdown || {}),
+      'memory-palace',
+      'mnemonic-pegs',
+      'dual-nback',
+      'symbol-detective',
+    ]));
+
+    const mergedBreakdown: Record<string, number> = {};
+    for (const gm of allGameModes) {
+      mergedBreakdown[gm] = Math.max(
+        lFree.todayGamesBreakdown?.[gm] || 0,
+        cFree.todayGamesBreakdown?.[gm] || 0,
+        gm === 'memory-palace' ? bestElapsed : 0
+      );
+    }
+
+    const calculatedTodaySeconds = Object.values(mergedBreakdown).reduce((a, b) => a + b, 0);
+
     mergedFreeStats = {
-      ...cloudFreeStats,
-      totalSecondsPracticed: Math.max(localFreeStats.totalSecondsPracticed, cloudFreeStats.totalSecondsPracticed),
-      totalMinutesPracticed: Math.max(localFreeStats.totalMinutesPracticed, cloudFreeStats.totalMinutesPracticed),
-      totalRepsCompleted: Math.max(localFreeStats.totalRepsCompleted, cloudFreeStats.totalRepsCompleted),
-      sessionsCount: Math.max(localFreeStats.sessionsCount, cloudFreeStats.sessionsCount),
+      ...(cloudFreeStats || localFreeStats!),
+      totalSecondsPracticed: Math.max(
+        lFree.totalSecondsPracticed || 0,
+        cFree.totalSecondsPracticed || 0,
+        calculatedTodaySeconds
+      ),
+      totalMinutesPracticed: Math.max(
+        lFree.totalMinutesPracticed || 0,
+        cFree.totalMinutesPracticed || 0,
+        Math.floor(Math.max(lFree.totalSecondsPracticed || 0, cFree.totalSecondsPracticed || 0, calculatedTodaySeconds) / 60)
+      ),
+      totalRepsCompleted: Math.max(lFree.totalRepsCompleted || 0, cFree.totalRepsCompleted || 0),
+      sessionsCount: Math.max(lFree.sessionsCount || 0, cFree.sessionsCount || 0),
+      todaySeconds: Math.max(
+        lFree.todaySeconds || 0,
+        cFree.todaySeconds || 0,
+        calculatedTodaySeconds
+      ),
+      todayGamesBreakdown: mergedBreakdown,
       dailyHistory: {
-        ...(localFreeStats.dailyHistory || {}),
-        ...(cloudFreeStats.dailyHistory || {}),
+        ...(lFree.dailyHistory || {}),
+        ...(cFree.dailyHistory || {}),
       },
     };
-  } else {
-    mergedFreeStats = cloudFreeStats || localFreeStats;
   }
 
   return { mergedStats, mergedProtocol, mergedFreeStats };

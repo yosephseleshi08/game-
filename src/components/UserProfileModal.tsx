@@ -70,6 +70,7 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
   );
   const [isEditing, setIsEditing] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [syncingManual, setSyncingManual] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
@@ -568,6 +569,19 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
                 <span className="text-[11px] font-medium">Automatic sync active across all your devices</span>
               </div>
+
+              {onForceSync && (
+                <button
+                  type="button"
+                  onClick={handleManualSyncClick}
+                  disabled={syncingManual}
+                  className="py-2.5 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-cyan-400 hover:text-cyan-300 border border-slate-700 text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer shrink-0 disabled:opacity-50"
+                  title="Force cloud sync now"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${syncingManual ? 'animate-spin' : ''}`} />
+                  <span>{syncingManual ? 'Syncing...' : 'Sync'}</span>
+                </button>
+              )}
 
               {onLockApp && (
                 <button
