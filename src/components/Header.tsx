@@ -43,8 +43,8 @@ interface HeaderProps {
   onOpenProfile: () => void;
   currentUser?: { email?: string | null; displayName?: string | null } | null;
   cloudSyncStatus?: 'synced' | 'syncing' | 'offline' | 'error';
-  onOpenAuth?: () => void;
   onForceSync?: () => void;
+  onLockApp?: () => void;
   archetype?: AthleteArchetype;
   onOpenArchetype?: () => void;
   onRestoreStreak?: () => void;
@@ -69,9 +69,9 @@ export const Header: React.FC<HeaderProps> = ({
   currentProfile,
   onOpenProfile,
   currentUser,
-  cloudSyncStatus = 'offline',
-  onOpenAuth,
+  cloudSyncStatus = 'synced',
   onForceSync,
+  onLockApp,
   archetype,
   onOpenArchetype,
   onRestoreStreak,
@@ -239,36 +239,37 @@ export const Header: React.FC<HeaderProps> = ({
             <span className="font-mono text-[11px] sm:text-xs">{currentSpeed}ms</span>
           </button>
 
-          {/* Cross-Device Cloud Sync Button (2 Phones & 1 PC) */}
-          {currentUser ? (
+          {/* Yoseph Unified Cross-Device Cloud Sync Button (2 Phones & 1 PC) */}
+          <button
+            id="header-cloud-synced-btn"
+            onClick={() => {
+              sound.playClick();
+              if (onForceSync) onForceSync();
+              else onOpenProfile();
+            }}
+            className="flex items-center gap-1 px-1.5 sm:px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-750 border border-cyan-500/40 text-cyan-300 text-xs font-semibold cursor-pointer transition-all shadow-sm group active:scale-95"
+            title="All devices auto-sync to Yoseph's unified record. Click to sync now."
+          >
+            <Cloud className={`w-3.5 h-3.5 text-cyan-400 ${cloudSyncStatus === 'syncing' ? 'animate-bounce' : ''}`} />
+            <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-emerald-400 animate-pulse" />
+            <span className="hidden sm:inline text-[11px] font-mono">
+              {cloudSyncStatus === 'syncing' ? 'Syncing...' : 'Synced'}
+            </span>
+          </button>
+
+          {/* Lock App / Yoseph's Vault Button */}
+          {onLockApp && (
             <button
-              id="header-cloud-synced-btn"
+              id="header-lock-app-btn"
               onClick={() => {
                 sound.playClick();
-                if (onForceSync) onForceSync();
-                else onOpenProfile();
+                onLockApp();
               }}
-              className="flex items-center gap-1 px-1.5 sm:px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-750 border border-cyan-500/40 text-cyan-300 text-xs font-semibold cursor-pointer transition-all shadow-sm group active:scale-95"
-              title="Click to manually refresh sync across your 2 phones & PC"
+              className="flex items-center gap-1 p-1.5 sm:px-2 sm:py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 hover:text-cyan-300 text-xs font-semibold cursor-pointer transition-all shadow-sm active:scale-95"
+              title="Lock game with password yoseph535"
             >
-              <Cloud className={`w-3.5 h-3.5 text-cyan-400 ${cloudSyncStatus === 'syncing' ? 'animate-bounce' : ''}`} />
-              <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-emerald-400 animate-pulse" />
-              <span className="hidden md:inline text-[11px] font-mono">
-                {cloudSyncStatus === 'syncing' ? 'Syncing...' : 'Synced'}
-              </span>
-            </button>
-          ) : (
-            <button
-              id="header-cloud-sync-devices-btn"
-              onClick={() => {
-                sound.playClick();
-                if (onOpenAuth) onOpenAuth();
-              }}
-              className="flex items-center gap-1 px-2 sm:px-2.5 py-1.5 rounded-xl bg-gradient-to-r from-cyan-600/90 to-indigo-600/90 hover:from-cyan-500 hover:to-indigo-500 text-white text-xs font-bold cursor-pointer transition-all shadow-md shadow-cyan-950/40 active:scale-95"
-              title="Connect one account to automatically sync your progress across 2 phones and PC"
-            >
-              <Smartphone className="w-3.5 h-3.5 text-cyan-200" />
-              <span className="hidden sm:inline">Sync</span>
+              <Lock className="w-3.5 h-3.5 text-slate-400 group-hover:text-cyan-300" />
+              <span className="hidden md:inline text-[11px]">Lock</span>
             </button>
           )}
 

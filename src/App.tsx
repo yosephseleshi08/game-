@@ -29,22 +29,21 @@ import { UserProfileModal } from './components/UserProfileModal';
 import { DailyMilestoneModal } from './components/DailyMilestoneModal';
 import { FreeTrainingView } from './components/FreeTrainingView';
 import { FourHourPlanView } from './components/FourHourPlanView';
-import { AuthModal } from './components/AuthModal';
-import { GoogleAuthGate } from './components/GoogleAuthGate';
+import { YosephSecurityGate } from './components/YosephSecurityGate';
 import { TypeOfGuyModal } from './components/TypeOfGuyModal';
 import { getAthleteArchetype } from './utils/archetype';
 import {
-  subscribeToAuth,
-  saveUserCloudData,
-  loadUserCloudData,
-  subscribeToUserCloudData,
   mergeUserProgress,
   mergeFourHourPlans,
-  logoutUser,
-  resetUserCloudData,
 } from './utils/firebase';
+import {
+  isDeviceUnlocked,
+  setDeviceUnlocked,
+  fetchServerMasterProgress,
+  pushServerMasterProgress,
+  resetServerMasterProgress,
+} from './utils/yosephSync';
 import { loadFourHourPlan, saveFourHourPlan, resetFourHourPlanToZero } from './utils/fourHourPlan';
-import type { User } from 'firebase/auth';
 import {
   loadDailyProtocol,
   saveDailyProtocol,
@@ -53,19 +52,18 @@ import {
   checkIsDailyProtocolFullyDone,
 } from './utils/protocol';
 import { getPlanSpeedForDay } from './utils/flashPlan';
-import { Award, Sparkles, X, Clock, Play, Pause, RotateCcw, Flame, Smartphone, Cloud, RefreshCw } from 'lucide-react';
+import { Award, Sparkles, X, Clock, Play, Pause, RotateCcw, Flame, Smartphone, Laptop, Cloud, RefreshCw, Lock } from 'lucide-react';
 
 export default function App() {
   const [protocol, setProtocol] = useState(() => loadDailyProtocol());
   const [stats, setStats] = useState<UserStats>(() => loadUserStats());
 
-  // Cross-Device Authentication & Cloud Synchronization (2 Phones & 1 PC)
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [isAuthLoading, setIsAuthLoading] = useState(true);
-  const [isAuthGateDismissed, setIsAuthGateDismissed] = useState(false);
-  const [cloudSyncStatus, setCloudSyncStatus] = useState<'synced' | 'syncing' | 'offline' | 'error'>('offline');
+  // Yoseph Security Vault & Password Lock
+  const [isUnlocked, setIsUnlocked] = useState<boolean>(() => isDeviceUnlocked());
+
+  // Cross-Device Synchronization (2 Phones & 1 PC)
+  const [cloudSyncStatus, setCloudSyncStatus] = useState<'synced' | 'syncing' | 'offline' | 'error'>('synced');
   const [lastSyncedTime, setLastSyncedTime] = useState<Date | null>(null);
-  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const isSyncingFromRemoteRef = useRef(false);
   const syncTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -121,6 +119,12 @@ export default function App() {
     return loadLocalProfile() || createLocalAthleteProfile('Yoseph (Yosi)', 'yosi-prime');
   });
 
+  const handleLockApp = () => {
+    sound.playClick();
+    setDeviceUnlocked(false);
+    setIsUnlocked(false);
+  };
+
   const handleResetAllProgress = async () => {
     sound.playClick();
     isSyncingFromRemoteRef.current = true;
@@ -132,15 +136,13 @@ export default function App() {
     setCurrentGameSeconds(0);
     unflushedSecondsRef.current = 0;
 
-    if (currentUser) {
-      setCloudSyncStatus('syncing');
-      try {
-        await resetUserCloudData(currentUser.uid);
-        setLastSyncedTime(new Date());
-        setCloudSyncStatus('synced');
-      } catch (err) {
-        console.error('Failed to reset user cloud data:', err);
-      }
+    setCloudSyncStatus('syncing');
+    try {
+      await resetServerMasterProgress();
+      setLastSyncedTime(new Date());
+      setCloudSyncStatus('synced');
+    } catch (err) {
+      console.error('Failed to reset master cloud data:', err);
     }
     setStreakRestoreNotice('All progress cleaned & reset to 0! Starting fresh on Day 1 for Yoseph.');
     setTimeout(() => {
@@ -322,319 +324,24 @@ export default function App() {
   }, [protocol.history, protocol.tasks, freeTrainingStats.todayGamesBreakdown, protocol.memoryPalaceTimer]);
 
   // ----------------------------------------------------
-  // Cross-Device Cloud Sync Engine (2 Phones & 1 PC)
+  // Yoseph Unified Multi-Device Sync Engine (2 Phones & 1 PC)
   // ----------------------------------------------------
-  useEffect(() => {
-    let unsubSnapshot: (() => void) | null = null;
-
-    const unsubAuth = subscribeToAuth(async (user) => {
-      setCurrentUser(user);
-      setIsAuthLoading(false);
-
-      if (unsubSnapshot) {
-        unsubSnapshot();
-        unsubSnapshot = null;
-      }
-
-      if (!user) {
-        setCloudSyncStatus('offline');
-        return;
-      }
-
-      // User logged in: pull cloud data and merge with current device
-      setCloudSyncStatus('syncing');
-      try {
-        const cloudData = await loadUserCloudData(user.uid);
-        const localFourHour = loadFourHourPlan();
-
-        if (cloudData) {
-          const isLegacy =
-            cloudData.stats.currentStreak === 19 ||
-            cloudData.stats.bestStreak === 19 ||
-            cloudData.stats.xp >= 30000 ||
-            cloudData.protocol.curriculumDay === 7 ||
-            Object.keys(cloudData.protocol.history || {}).length >= 10;
-
-          if (isLegacy) {
-            console.log('[AI Studio] Cleansing legacy cloud data in Auth init...');
-            await resetUserCloudData(user.uid);
-            const fresh = cleanEverySingleThing();
-            setStats(fresh.stats);
-            setProtocol(fresh.protocol);
-            setCurrentProfile(fresh.profile);
-            setFreeTrainingStats(fresh.freeTrainingStats);
-            setCloudSyncStatus('synced');
-            setLastSyncedTime(new Date());
-            return;
-          }
-
-          // Merge local device state with cloud state (takes highest XP, level, curriculum day, streak)
-          const merged = mergeUserProgress(
-            stats,
-            cloudData.stats,
-            protocol,
-            cloudData.protocol,
-            freeTrainingStats,
-            cloudData.freeTrainingStats
-          );
-
-          // Merge 4-hour plan across devices
-          const mergedFourHour = mergeFourHourPlans(localFourHour, cloudData.fourHourPlan);
-          if (mergedFourHour) {
-            saveFourHourPlan(mergedFourHour);
-          }
-
-          isSyncingFromRemoteRef.current = true;
-          setStats(merged.mergedStats);
-          saveUserStats(merged.mergedStats);
-
-          setProtocol(merged.mergedProtocol);
-          saveDailyProtocol(merged.mergedProtocol);
-
-          if (merged.mergedFreeStats) {
-            setFreeTrainingStats(merged.mergedFreeStats);
-            saveFreeTrainingStats(merged.mergedFreeStats);
-          }
-
-          let updatedProfile = currentProfile;
-          if (cloudData.profile) {
-            updatedProfile = {
-              ...currentProfile,
-              ...cloudData.profile,
-              level: merged.mergedStats.level,
-              xp: merged.mergedStats.xp,
-              curriculumDay: merged.mergedProtocol.curriculumDay,
-              currentStreak: merged.mergedStats.currentStreak,
-              bestStreak: merged.mergedStats.bestStreak,
-            };
-            setCurrentProfile(updatedProfile);
-            saveLocalProfile(updatedProfile);
-          }
-
-          // Push merged highest-watermark state back to cloud so both device and cloud are completely unified
-          await saveUserCloudData(
-            user.uid,
-            merged.mergedStats,
-            merged.mergedProtocol,
-            merged.mergedFreeStats || freeTrainingStats,
-            updatedProfile,
-            mergedFourHour || localFourHour
-          );
-          setLastSyncedTime(new Date());
-          setCloudSyncStatus('synced');
-
-          setTimeout(() => {
-            isSyncingFromRemoteRef.current = false;
-          }, 1000);
-        } else {
-          // First time this account is seen on cloud: push local device records to cloud
-          await saveUserCloudData(
-            user.uid,
-            stats,
-            protocol,
-            freeTrainingStats,
-            currentProfile,
-            localFourHour
-          );
-          setLastSyncedTime(new Date());
-          setCloudSyncStatus('synced');
-        }
-
-        // Live real-time listener for multi-device synchronization (Phone 1, Phone 2, and PC)
-        unsubSnapshot = subscribeToUserCloudData(user.uid, (remoteData) => {
-          if (!remoteData || isSyncingFromRemoteRef.current) return;
-
-          if (remoteData.fourHourPlan) {
-            const currentPlan = loadFourHourPlan();
-            const merged = mergeFourHourPlans(currentPlan, remoteData.fourHourPlan);
-            if (merged) {
-              saveFourHourPlan(merged);
-            }
-          }
-
-          isSyncingFromRemoteRef.current = true;
-          setStats((prevStats) => {
-            const merged = mergeUserProgress(
-              prevStats,
-              remoteData.stats,
-              protocol,
-              remoteData.protocol,
-              freeTrainingStats,
-              remoteData.freeTrainingStats
-            );
-            saveUserStats(merged.mergedStats);
-            saveDailyProtocol(merged.mergedProtocol);
-            setProtocol(merged.mergedProtocol);
-
-            if (merged.mergedFreeStats) {
-              saveFreeTrainingStats(merged.mergedFreeStats);
-              setFreeTrainingStats(merged.mergedFreeStats);
-            }
-
-            if (remoteData.profile) {
-              setCurrentProfile((prevProf) => {
-                const upProf = {
-                  ...prevProf,
-                  ...remoteData.profile,
-                  level: merged.mergedStats.level,
-                  xp: merged.mergedStats.xp,
-                  curriculumDay: merged.mergedProtocol.curriculumDay,
-                  currentStreak: merged.mergedStats.currentStreak,
-                  bestStreak: merged.mergedStats.bestStreak,
-                };
-                saveLocalProfile(upProf);
-                return upProf;
-              });
-            }
-
-            setTimeout(() => {
-              isSyncingFromRemoteRef.current = false;
-            }, 800);
-
-            return merged.mergedStats;
-          });
-
-          setLastSyncedTime(new Date());
-          setCloudSyncStatus('synced');
-        });
-      } catch (err) {
-        console.error('Error in cross-device cloud sync:', err);
-        setCloudSyncStatus('error');
-      }
-    });
-
-    return () => {
-      unsubAuth();
-      if (unsubSnapshot) unsubSnapshot();
-    };
-  }, []);
-
-  // Instant foreground / window-focus auto-sync when picking up Phone 1, Phone 2, or PC
-  useEffect(() => {
-    if (!currentUser) return;
-
-    const handleSyncOnForeground = async () => {
-      if (document.visibilityState === 'visible' && !isSyncingFromRemoteRef.current) {
-        try {
-          setCloudSyncStatus('syncing');
-          const remoteData = await loadUserCloudData(currentUser.uid);
-          const currentPlan = loadFourHourPlan();
-          if (remoteData) {
-            if (remoteData.fourHourPlan) {
-              const mergedPlan = mergeFourHourPlans(currentPlan, remoteData.fourHourPlan);
-              if (mergedPlan) saveFourHourPlan(mergedPlan);
-            }
-            isSyncingFromRemoteRef.current = true;
-            setStats((prevStats) => {
-              const merged = mergeUserProgress(
-                prevStats,
-                remoteData.stats,
-                protocol,
-                remoteData.protocol,
-                freeTrainingStats,
-                remoteData.freeTrainingStats
-              );
-              saveUserStats(merged.mergedStats);
-              saveDailyProtocol(merged.mergedProtocol);
-              setProtocol(merged.mergedProtocol);
-
-              if (merged.mergedFreeStats) {
-                saveFreeTrainingStats(merged.mergedFreeStats);
-                setFreeTrainingStats(merged.mergedFreeStats);
-              }
-
-              if (remoteData.profile) {
-                setCurrentProfile((prevProf) => {
-                  const upProf = {
-                    ...prevProf,
-                    ...remoteData.profile,
-                    level: merged.mergedStats.level,
-                    xp: merged.mergedStats.xp,
-                    curriculumDay: merged.mergedProtocol.curriculumDay,
-                    currentStreak: merged.mergedStats.currentStreak,
-                    bestStreak: merged.mergedStats.bestStreak,
-                  };
-                  saveLocalProfile(upProf);
-                  return upProf;
-                });
-              }
-
-              setTimeout(() => {
-                isSyncingFromRemoteRef.current = false;
-              }, 800);
-
-              return merged.mergedStats;
-            });
-            setLastSyncedTime(new Date());
-            setCloudSyncStatus('synced');
-          }
-        } catch (e) {
-          console.warn('Foreground sync error:', e);
-        }
-      }
-    };
-
-    window.addEventListener('focus', handleSyncOnForeground);
-    document.addEventListener('visibilitychange', handleSyncOnForeground);
-    return () => {
-      window.removeEventListener('focus', handleSyncOnForeground);
-      document.removeEventListener('visibilitychange', handleSyncOnForeground);
-    };
-  }, [currentUser, protocol, freeTrainingStats]);
-
-  // Debounced auto-save to cloud when user completes training on this device
-  useEffect(() => {
-    if (!currentUser || isSyncingFromRemoteRef.current) return;
-
-    if (syncTimeoutRef.current) {
-      clearTimeout(syncTimeoutRef.current);
-    }
-
-    syncTimeoutRef.current = setTimeout(async () => {
-      try {
-        setCloudSyncStatus('syncing');
-        const plan = loadFourHourPlan();
-        await saveUserCloudData(
-          currentUser.uid,
-          stats,
-          protocol,
-          freeTrainingStats,
-          currentProfile,
-          plan
-        );
-        setCloudSyncStatus('synced');
-        setLastSyncedTime(new Date());
-      } catch (err) {
-        console.error('Failed to sync to cloud:', err);
-        setCloudSyncStatus('error');
-      }
-    }, 600);
-
-    return () => {
-      if (syncTimeoutRef.current) clearTimeout(syncTimeoutRef.current);
-    };
-  }, [stats, protocol, freeTrainingStats, currentProfile, currentUser]);
-
   const handleForceSync = async () => {
-    if (!currentUser) {
-      setIsAuthModalOpen(true);
-      return;
-    }
     setCloudSyncStatus('syncing');
     try {
-      const cloudData = await loadUserCloudData(currentUser.uid);
+      const serverData = await fetchServerMasterProgress();
       const localPlan = loadFourHourPlan();
 
-      if (cloudData) {
+      if (serverData) {
         const merged = mergeUserProgress(
           stats,
-          cloudData.stats,
+          serverData.stats,
           protocol,
-          cloudData.protocol,
+          serverData.protocol,
           freeTrainingStats,
-          cloudData.freeTrainingStats
+          serverData.freeTrainingStats
         );
-        const mergedPlan = mergeFourHourPlans(localPlan, cloudData.fourHourPlan);
+        const mergedPlan = mergeFourHourPlans(localPlan, serverData.fourHourPlan);
         if (mergedPlan) {
           saveFourHourPlan(mergedPlan);
         }
@@ -649,45 +356,108 @@ export default function App() {
           saveFreeTrainingStats(merged.mergedFreeStats);
         }
 
-        await saveUserCloudData(
-          currentUser.uid,
-          merged.mergedStats,
-          merged.mergedProtocol,
-          merged.mergedFreeStats || freeTrainingStats,
-          currentProfile,
-          mergedPlan || localPlan
-        );
+        let updatedProfile = currentProfile;
+        if (serverData.profile) {
+          updatedProfile = {
+            ...currentProfile,
+            ...serverData.profile,
+            level: merged.mergedStats.level,
+            xp: merged.mergedStats.xp,
+            curriculumDay: merged.mergedProtocol.curriculumDay,
+            currentStreak: merged.mergedStats.currentStreak,
+            bestStreak: merged.mergedStats.bestStreak,
+          };
+          setCurrentProfile(updatedProfile);
+          saveLocalProfile(updatedProfile);
+        }
+
+        // Push combined highest watermark back to server
+        await pushServerMasterProgress({
+          stats: merged.mergedStats,
+          protocol: merged.mergedProtocol,
+          freeTrainingStats: merged.mergedFreeStats || freeTrainingStats,
+          fourHourPlan: mergedPlan || localPlan,
+          profile: updatedProfile,
+        });
+
         setTimeout(() => {
           isSyncingFromRemoteRef.current = false;
         }, 800);
       } else {
-        await saveUserCloudData(
-          currentUser.uid,
+        await pushServerMasterProgress({
           stats,
           protocol,
           freeTrainingStats,
-          currentProfile,
-          localPlan
-        );
+          fourHourPlan: localPlan,
+          profile: currentProfile,
+        });
       }
       setCloudSyncStatus('synced');
       setLastSyncedTime(new Date());
     } catch (err) {
-      console.error('Force sync error:', err);
+      console.warn('Sync error:', err);
       setCloudSyncStatus('error');
-      throw err;
     }
   };
 
-  const handleSignOut = async () => {
-    try {
-      await logoutUser();
-      setCurrentUser(null);
-      setCloudSyncStatus('offline');
-    } catch (err) {
-      console.error('Sign out error:', err);
+  // Sync on startup and poll every 15s so any other phone or PC updates immediately appear
+  useEffect(() => {
+    handleForceSync();
+    const interval = setInterval(() => {
+      if (!isSyncingFromRemoteRef.current) {
+        handleForceSync();
+      }
+    }, 15000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Sync immediately when switching tabs or reopening the app on phone / PC
+  useEffect(() => {
+    const handleSyncOnForeground = async () => {
+      if (document.visibilityState === 'visible' && !isSyncingFromRemoteRef.current) {
+        await handleForceSync();
+      }
+    };
+
+    window.addEventListener('focus', handleSyncOnForeground);
+    document.addEventListener('visibilitychange', handleSyncOnForeground);
+    return () => {
+      window.removeEventListener('focus', handleSyncOnForeground);
+      document.removeEventListener('visibilitychange', handleSyncOnForeground);
+    };
+  }, [stats, protocol, freeTrainingStats]);
+
+  // Debounced auto-save to server when user completes training on this device
+  useEffect(() => {
+    if (isSyncingFromRemoteRef.current) return;
+
+    if (syncTimeoutRef.current) {
+      clearTimeout(syncTimeoutRef.current);
     }
-  };
+
+    syncTimeoutRef.current = setTimeout(async () => {
+      try {
+        setCloudSyncStatus('syncing');
+        const plan = loadFourHourPlan();
+        await pushServerMasterProgress({
+          stats,
+          protocol,
+          freeTrainingStats,
+          profile: currentProfile,
+          fourHourPlan: plan,
+        });
+        setCloudSyncStatus('synced');
+        setLastSyncedTime(new Date());
+      } catch (err) {
+        console.warn('Failed to push progress to master sync:', err);
+        setCloudSyncStatus('error');
+      }
+    }, 800);
+
+    return () => {
+      if (syncTimeoutRef.current) clearTimeout(syncTimeoutRef.current);
+    };
+  }, [stats, protocol, freeTrainingStats, currentProfile]);
 
   // 3. Keep speed locked to curriculum day if lock is enabled
   useEffect(() => {
@@ -1024,9 +794,16 @@ export default function App() {
   });
 
   return (
-    <div className="min-h-screen w-full max-w-full overflow-x-hidden bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-cyan-500 selection:text-slate-950">
-      {/* Top Header */}
-      <Header
+    <div className="min-h-screen w-full max-w-full overflow-x-hidden bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-cyan-500 selection:text-slate-950 relative">
+      <div
+        className={`flex-1 flex flex-col w-full transition-all duration-300 ${
+          !isUnlocked
+            ? 'filter blur-xl pointer-events-none select-none max-h-screen overflow-hidden opacity-25'
+            : 'opacity-100'
+        }`}
+      >
+        {/* Top Header */}
+        <Header
         stats={stats}
         currentSpeed={currentSpeed}
         isSpeedLockedToPlan={isSpeedLockedToPlan}
@@ -1044,10 +821,9 @@ export default function App() {
         onOpenMilestone={() => setIsMilestoneModalOpen(true)}
         currentProfile={currentProfile}
         onOpenProfile={() => setIsProfileOpen(true)}
-        currentUser={currentUser}
         cloudSyncStatus={cloudSyncStatus}
-        onOpenAuth={() => setIsAuthModalOpen(true)}
         onForceSync={handleForceSync}
+        onLockApp={handleLockApp}
         archetype={athleteArchetype}
         onOpenArchetype={() => setIsArchetypeModalOpen(true)}
         onRestoreStreak={handleResetAllProgress}
@@ -1118,56 +894,32 @@ export default function App() {
       <main className="flex-1 w-full pb-12">
         {/* Multi-Device Cloud Sync Notice (Phones & PC) */}
         <div className="max-w-4xl mx-auto px-4 pt-3 pb-1">
-          {!currentUser ? (
-            <div className="p-3 sm:p-3.5 rounded-2xl bg-gradient-to-r from-cyan-950/80 via-slate-900 to-indigo-950/80 border border-cyan-500/50 shadow-lg flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-              <div className="flex items-start gap-3">
-                <div className="p-2 rounded-xl bg-cyan-500/20 text-cyan-300 shrink-0 mt-0.5 sm:mt-0 ring-1 ring-cyan-400/30">
-                  <Smartphone className="w-4 h-4" />
-                </div>
-                <div>
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <h3 className="text-xs font-bold text-white flex items-center gap-1.5">
-                      Training on 2 Phones & PC?
-                    </h3>
-                    <span className="text-[9px] uppercase font-mono font-bold px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">
-                      Local Offline Mode
-                    </span>
-                  </div>
-                  <p className="text-[11px] text-slate-300 leading-relaxed mt-0.5">
-                    Each device saves progress in its own local browser by default. To sync all 3 devices, <strong>sign in with the same account (Google or Email)</strong> on each phone and your PC!
-                  </p>
-                </div>
-              </div>
-              <button
-                id="banner-sync-devices-btn"
-                onClick={() => {
-                  sound.playClick();
-                  setIsAuthModalOpen(true);
-                }}
-                className="w-full sm:w-auto px-4 py-2 rounded-xl bg-gradient-to-r from-cyan-500 to-indigo-500 hover:from-cyan-400 hover:to-indigo-400 text-slate-950 font-black text-xs shrink-0 flex items-center justify-center gap-1.5 shadow-md shadow-cyan-950/50 cursor-pointer active:scale-95 transition-all"
-              >
-                <Cloud className="w-3.5 h-3.5" />
-                <span>Sync All 3 Devices</span>
-              </button>
-            </div>
-          ) : (
-            <div className="px-3 py-1.5 rounded-xl bg-slate-900/90 border border-emerald-500/30 flex items-center justify-between text-xs shadow-sm">
-              <div className="flex items-center gap-2 truncate">
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
-                <span className="text-[11px] text-emerald-300 font-semibold truncate">
-                  Cloud Synced across devices: <span className="font-mono text-cyan-200">{currentUser.email || currentUser.displayName || 'Connected Account'}</span>
+          <div className="px-3.5 py-2 rounded-2xl bg-slate-900/90 border border-cyan-500/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-xs shadow-sm">
+            <div className="flex items-center gap-2.5 truncate">
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse shrink-0" />
+              <div className="truncate">
+                <span className="text-[11px] text-white font-bold">
+                  Yoseph's Multi-Device Sync Active:
+                </span>
+                <span className="text-[11px] text-slate-300 ml-1.5 font-medium">
+                  Phone 1, Phone 2 & PC linked to the same master progress.
                 </span>
               </div>
+            </div>
+            <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
+              <span className="text-[10px] text-slate-400 font-mono">
+                {lastSyncedTime ? `Synced ${lastSyncedTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}` : 'Synced'}
+              </span>
               <button
                 onClick={handleForceSync}
-                className="text-[10px] font-mono text-cyan-400 hover:text-cyan-300 px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 transition-colors flex items-center gap-1 shrink-0 ml-2 cursor-pointer"
+                className="text-[10px] font-mono font-bold text-cyan-300 hover:text-white px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 transition-colors flex items-center gap-1 cursor-pointer"
                 title="Force instant synchronization across all devices"
               >
-                <RefreshCw className={`w-2.5 h-2.5 ${cloudSyncStatus === 'syncing' ? 'animate-spin' : ''}`} />
+                <RefreshCw className={`w-3 h-3 text-cyan-400 ${cloudSyncStatus === 'syncing' ? 'animate-spin' : ''}`} />
                 <span>{cloudSyncStatus === 'syncing' ? 'Syncing...' : 'Sync Now'}</span>
               </button>
             </div>
-          )}
+          </div>
         </div>
 
         {/* Active Game Session & Daily 12 AM Timer Bar */}
@@ -1385,19 +1137,12 @@ export default function App() {
         onUpdateProfile={(updated) => {
           setCurrentProfile(updated);
           saveLocalProfile(updated);
-          if (currentUser) {
-            saveUserCloudData(currentUser.uid, stats, protocol, freeTrainingStats, updated);
-          }
+          handleForceSync();
         }}
-        currentUser={currentUser}
         cloudSyncStatus={cloudSyncStatus}
         lastSyncedAt={lastSyncedTime}
-        onOpenAuth={() => {
-          setIsProfileOpen(false);
-          setIsAuthModalOpen(true);
-        }}
         onForceSync={handleForceSync}
-        onSignOut={handleSignOut}
+        onLockApp={handleLockApp}
         onRestoreStreak={handleResetAllProgress}
         onDataRestored={(restoredStats) => {
           setStats(restoredStats);
@@ -1405,23 +1150,9 @@ export default function App() {
           setProtocol(freshProtocol);
           const freshProfile = loadLocalProfile();
           if (freshProfile) setCurrentProfile(freshProfile);
-          if (currentUser) {
-            saveUserCloudData(currentUser.uid, restoredStats, freshProtocol, freeTrainingStats, freshProfile || currentProfile);
-          }
+          handleForceSync();
           setStreakRestoreNotice('🔥 Save file loaded: 6-Day Streak and Progress Restored!');
           setTimeout(() => setStreakRestoreNotice(null), 5000);
-        }}
-      />
-
-      {/* Cross-Device Unified Account Sign-In / Sign-Up Modal */}
-      <AuthModal
-        isOpen={isAuthModalOpen}
-        onClose={() => setIsAuthModalOpen(false)}
-        onAuthSuccess={async () => {
-          setIsAuthModalOpen(false);
-          if (currentUser) {
-            await handleForceSync();
-          }
         }}
       />
 
@@ -1461,30 +1192,22 @@ export default function App() {
         archetype={athleteArchetype}
       />
 
-      {/* Required Google Sign-In Gate to Sync All 3 Devices */}
-      {!currentUser && !isAuthGateDismissed && !isAuthLoading && (
-        <GoogleAuthGate
-          isOpen={true}
-          currentStreak={stats.currentStreak}
-          curriculumDay={protocol.curriculumDay}
-          onSuccess={(profile) => {
-            if (profile) setCurrentProfile(profile);
-            setIsAuthGateDismissed(true);
-            setStreakRestoreNotice('🔥 Google account connected! All 3 devices are now synced.');
-            setTimeout(() => setStreakRestoreNotice(null), 5000);
-          }}
-          onDismissOffline={() => {
-            setIsAuthGateDismissed(true);
-          }}
-        />
-      )}
+        {/* Footer */}
+        <footer className="border-t border-slate-900 bg-slate-950 py-4 px-4 text-center text-xs text-slate-500 safe-bottom">
+          <p>
+            Yosi Game • Created Exclusively for Yoseph • 1-Hour Daily Cognitive Mastery Engine
+          </p>
+        </footer>
+      </div>
 
-      {/* Footer */}
-      <footer className="border-t border-slate-900 bg-slate-950 py-4 px-4 text-center text-xs text-slate-500 safe-bottom">
-        <p>
-          Yosi Game • Created Exclusively for Yoseph • 1-Hour Daily Cognitive Mastery Engine
-        </p>
-      </footer>
+      {/* Mandatory Yoseph Security Gate (Password: yoseph535) */}
+      <YosephSecurityGate
+        isOpen={!isUnlocked}
+        onUnlockSuccess={() => {
+          setIsUnlocked(true);
+          handleForceSync();
+        }}
+      />
     </div>
   );
 }

@@ -38,8 +38,8 @@ interface UserProfileModalProps {
   currentUser?: { email?: string | null; displayName?: string | null } | null;
   cloudSyncStatus?: 'synced' | 'syncing' | 'offline' | 'error';
   lastSyncedAt?: Date | null;
-  onOpenAuth?: () => void;
   onForceSync?: () => Promise<void> | void;
+  onLockApp?: () => void;
   onSignOut?: () => void;
   onRestoreStreak?: () => void;
   onDataRestored?: (stats: UserStats) => void;
@@ -55,10 +55,10 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
   curriculumDay,
   onUpdateProfile,
   currentUser,
-  cloudSyncStatus = 'offline',
+  cloudSyncStatus = 'synced',
   lastSyncedAt,
-  onOpenAuth,
   onForceSync,
+  onLockApp,
   onSignOut,
   onRestoreStreak,
   onDataRestored,
@@ -455,94 +455,67 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
                   Cross-Device Sync (2 Phones & PC)
                 </h4>
                 <span className="text-[10px] text-slate-400">
-                  {currentUser ? 'Active Cloud Account Connected' : 'Local Device Only'}
+                  Unified Cloud Progress for Yoseph
                 </span>
               </div>
             </div>
 
-            {currentUser ? (
-              <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-800 text-[10px] font-mono">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                {cloudSyncStatus === 'syncing' ? 'Syncing...' : 'Synchronized'}
-              </span>
-            ) : (
-              <span className="px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 text-[10px] font-mono">
-                Local Only
-              </span>
-            )}
+            <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-800 text-[10px] font-mono">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              {cloudSyncStatus === 'syncing' ? 'Syncing...' : 'Synchronized'}
+            </span>
           </div>
 
-          {currentUser ? (
-            <div className="space-y-3">
-              <div className="p-3 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-between">
-                <div className="truncate mr-2">
-                  <span className="text-[10px] text-slate-400 uppercase tracking-wider block font-bold">
-                    Connected Account
-                  </span>
-                  <span className="text-xs font-mono text-cyan-300 truncate block">
-                    {currentUser.email || currentUser.displayName || 'Authenticated User'}
-                  </span>
-                </div>
-                <div className="text-right shrink-0">
-                  <span className="text-[10px] text-slate-400 block">Last Synced</span>
-                  <span className="text-[10px] font-mono text-slate-300">
-                    {lastSyncedAt ? lastSyncedAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : 'Just now'}
-                  </span>
-                </div>
+          <div className="space-y-3">
+            <div className="p-3 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-between">
+              <div className="truncate mr-2">
+                <span className="text-[10px] text-slate-400 uppercase tracking-wider block font-bold">
+                  Unified Athlete Account
+                </span>
+                <span className="text-xs font-mono text-cyan-300 truncate block">
+                  Yoseph (Yosi) • All Devices Connected
+                </span>
               </div>
-
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  disabled={syncingManual || cloudSyncStatus === 'syncing'}
-                  onClick={handleManualSyncClick}
-                  className="flex-1 py-2.5 px-3 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-md shadow-cyan-950/40 disabled:opacity-50"
-                >
-                  <RefreshCw className={`w-3.5 h-3.5 ${syncingManual || cloudSyncStatus === 'syncing' ? 'animate-spin' : ''}`} />
-                  <span>{syncingManual ? 'Syncing...' : 'Sync All Devices Now'}</span>
-                </button>
-
-                {onSignOut && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      sound.playClick();
-                      onSignOut();
-                    }}
-                    className="py-2.5 px-3 rounded-xl bg-slate-800 hover:bg-rose-950/60 text-slate-300 hover:text-rose-300 border border-slate-700 hover:border-rose-800 text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer"
-                    title="Sign out of this device"
-                  >
-                    <LogOut className="w-3.5 h-3.5" />
-                    <span>Sign Out</span>
-                  </button>
-                )}
+              <div className="text-right shrink-0">
+                <span className="text-[10px] text-slate-400 block">Last Synced</span>
+                <span className="text-[10px] font-mono text-slate-300">
+                  {lastSyncedAt ? lastSyncedAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : 'Just now'}
+                </span>
               </div>
-
-              <p className="text-[10px] text-slate-400 leading-relaxed">
-                ✓ Any progress made on this device automatically syncs to your other phone and PC whenever you open the app.
-              </p>
             </div>
-          ) : (
-            <div className="space-y-3">
-              <p className="text-[11px] text-slate-300 leading-relaxed">
-                Play on multiple devices? Connect a single account using Google or Email so your <strong>Day {curriculumDay} Protocol</strong>, <strong>{stats.xp} XP</strong>, streaks, and records automatically stay in sync on your 2 phones and PC.
-              </p>
 
+            <div className="flex items-center gap-2">
               <button
                 type="button"
-                onClick={() => {
-                  sound.playClick();
-                  onClose();
-                  if (onOpenAuth) onOpenAuth();
-                }}
-                className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-cyan-500 via-indigo-500 to-cyan-400 hover:from-cyan-400 hover:to-indigo-400 text-slate-950 font-black text-xs transition-all flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-cyan-950/50"
+                disabled={syncingManual || cloudSyncStatus === 'syncing'}
+                onClick={handleManualSyncClick}
+                className="flex-1 py-2.5 px-3 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-md shadow-cyan-950/40 disabled:opacity-50"
               >
-                <Smartphone className="w-4 h-4 text-slate-950" />
-                <Laptop className="w-4 h-4 text-slate-950" />
-                <span>Connect Account to Sync 2 Phones & PC</span>
+                <RefreshCw className={`w-3.5 h-3.5 ${syncingManual || cloudSyncStatus === 'syncing' ? 'animate-spin' : ''}`} />
+                <span>{syncingManual ? 'Syncing...' : 'Sync All Devices Now'}</span>
               </button>
+
+              {onLockApp && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    sound.playClick();
+                    onClose();
+                    onLockApp();
+                  }}
+                  className="py-2.5 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer"
+                  title="Lock game with password yoseph535"
+                >
+                  <Lock className="w-3.5 h-3.5 text-cyan-400" />
+                  <span>Lock Vault</span>
+                </button>
+              )}
             </div>
-          )}
+
+            <p className="text-[10px] text-slate-400 leading-relaxed">
+              ✓ All progress, streaks, daily protocol goals, and XP are recorded to the same master save. You can play on Phone 1, Phone 2, or PC and keep your exact goal and streak intact.
+            </p>
+          </div>
         </div>
 
         {/* Footer Actions */}
