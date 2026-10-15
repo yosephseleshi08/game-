@@ -16,6 +16,7 @@ import {
 } from './utils/storage';
 import { sound } from './utils/audio';
 import { Header } from './components/Header';
+import { InspirationalQuote } from './components/InspirationalQuote';
 import { ModeSelector } from './components/ModeSelector';
 import { DualNBackGame } from './components/DualNBackGame';
 import { MnemonicPegsGame } from './components/MnemonicPegsGame';
@@ -828,6 +829,9 @@ export default function App() {
         onOpenArchetype={() => setIsArchetypeModalOpen(true)}
         onRestoreStreak={handleResetAllProgress}
       />
+
+      {/* Daily Cognitive Inspirational Quote */}
+      <InspirationalQuote curriculumDay={protocol.curriculumDay} />
 
       {/* Mode Navigation Tabs */}
       <ModeSelector
