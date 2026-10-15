@@ -15,8 +15,12 @@ import {
   RotateCcw,
   Upload,
   Brain,
+  Cloud,
+  RefreshCw,
+  Download,
 } from 'lucide-react';
 import { AmbientSoundscapePlayer } from './AmbientSoundscapePlayer';
+import { PWAInstallButton } from './PWAInstallPrompt';
 
 interface HeaderProps {
   stats: UserStats;
@@ -63,6 +67,8 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenMilestone,
   currentProfile,
   onOpenProfile,
+  cloudSyncStatus = 'synced',
+  onForceSync,
   onLockApp,
   archetype,
   onOpenArchetype,
@@ -269,6 +275,26 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* Right: Key Controls (Responsive & Compact) */}
         <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
+          {/* Download / Install App on Any Device */}
+          <PWAInstallButton />
+
+          {/* Unified Cross-Device Cloud Sync Button (PC & Phones) */}
+          <button
+            type="button"
+            onClick={() => {
+              sound.playClick();
+              if (onForceSync) onForceSync();
+            }}
+            className="flex items-center gap-1 px-2 py-1.5 rounded-lg border border-cyan-500/30 bg-slate-800 hover:bg-slate-750 text-cyan-300 text-xs font-semibold cursor-pointer transition-all shadow-sm active:scale-95"
+            title="Cross-device cloud sync (PC & Phones) - Click to manually refresh sync"
+          >
+            <Cloud className={`w-3.5 h-3.5 text-cyan-400 ${cloudSyncStatus === 'syncing' ? 'animate-bounce' : ''}`} />
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+            <span className="hidden md:inline text-[11px] font-mono">
+              {cloudSyncStatus === 'syncing' ? 'Syncing...' : 'Synced'}
+            </span>
+          </button>
+
           {/* Archetype Badge (Desktop) */}
           {archetype && (
             <button

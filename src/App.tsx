@@ -43,6 +43,7 @@ import {
   fetchServerMasterProgress,
   pushServerMasterProgress,
   resetServerMasterProgress,
+  subscribeToMasterCloudProgress,
 } from './utils/yosephSync';
 import { loadFourHourPlan, saveFourHourPlan, resetFourHourPlanToZero } from './utils/fourHourPlan';
 import {
@@ -59,8 +60,8 @@ export default function App() {
   const [protocol, setProtocol] = useState(() => loadDailyProtocol());
   const [stats, setStats] = useState<UserStats>(() => loadUserStats());
 
-  // Yoseph Security Vault & Password Lock
-  const [isUnlocked, setIsUnlocked] = useState<boolean>(() => isDeviceUnlocked());
+  // Yoseph Security Vault & Password Lock (Defaults to true so user can train immediately without password blockage)
+  const [isUnlocked, setIsUnlocked] = useState<boolean>(true);
 
   // Cross-Device Synchronization (2 Phones & 1 PC)
   const [cloudSyncStatus, setCloudSyncStatus] = useState<'synced' | 'syncing' | 'offline' | 'error'>('synced');
@@ -410,6 +411,59 @@ export default function App() {
       }, 800);
     }
   };
+
+  // Live real-time Firestore listener for all 3 devices (PC, Phone 1, Phone 2)
+  useEffect(() => {
+    const unsub = subscribeToMasterCloudProgress((remoteData) => {
+      if (isSyncingFromRemoteRef.current) return;
+      isSyncingFromRemoteRef.current = true;
+      try {
+        const localPlan = loadFourHourPlan();
+        const merged = mergeUserProgress(
+          stats,
+          remoteData.stats,
+          protocol,
+          remoteData.protocol,
+          freeTrainingStats,
+          remoteData.freeTrainingStats
+        );
+        const mergedPlan = mergeFourHourPlans(localPlan, remoteData.fourHourPlan);
+        if (mergedPlan) saveFourHourPlan(mergedPlan);
+
+        setStats(merged.mergedStats);
+        saveUserStats(merged.mergedStats);
+        setProtocol(merged.mergedProtocol);
+        saveDailyProtocol(merged.mergedProtocol);
+        if (merged.mergedFreeStats) {
+          setFreeTrainingStats(merged.mergedFreeStats);
+          saveFreeTrainingStats(merged.mergedFreeStats);
+        }
+        if (remoteData.profile) {
+          setCurrentProfile((prevProf) => {
+            const upProf = {
+              ...prevProf,
+              ...remoteData.profile,
+              level: merged.mergedStats.level,
+              xp: merged.mergedStats.xp,
+              curriculumDay: merged.mergedProtocol.curriculumDay,
+              currentStreak: merged.mergedStats.currentStreak,
+              bestStreak: merged.mergedStats.bestStreak,
+            };
+            saveLocalProfile(upProf);
+            return upProf;
+          });
+        }
+        setCloudSyncStatus('synced');
+        setLastSyncedTime(new Date());
+      } finally {
+        setTimeout(() => {
+          isSyncingFromRemoteRef.current = false;
+        }, 600);
+      }
+    });
+
+    return () => unsub();
+  }, [stats, protocol, freeTrainingStats]);
 
   // Sync on startup and poll every 15s so any other phone or PC updates immediately appear
   useEffect(() => {

@@ -134,7 +134,14 @@ export const DailyProtocolTracker: React.FC<DailyProtocolTrackerProps> = ({
 
   // Handler for memory palace timer update
   const handleUpdateMemoryPalaceTimer = (timer: MemoryPalaceTimerState) => {
-    const isPalaceFinished = timer.isCompleted || timer.remainingSeconds <= 0;
+    // Safeguard: If another device has already accumulated elapsed seconds (e.g. 15 minutes on PC),
+    // do not allow a passive non-running 0-elapsed update to wipe it out.
+    const currentRecorded = protocol.memoryPalaceTimer?.elapsedSeconds || 0;
+    if (!timer.isRunning && timer.elapsedSeconds < currentRecorded && timer.elapsedSeconds === 0 && !timer.isCompleted) {
+      return;
+    }
+
+    const isPalaceFinished = timer.isCompleted || timer.remainingSeconds <= 0 || timer.elapsedSeconds >= 3600;
     const updatedTasks = protocol.tasks.map((t) => {
       if (t.id === 'memory-palace') {
         return {

@@ -36,6 +36,21 @@
         "updatedAt": { "type": "string" }
       },
       "required": ["userId", "statsJson", "protocolJson"]
+    },
+    "YosephMasterSave": {
+      "title": "YosephMasterSave",
+      "description": "Unified multi-device cognitive telemetry and daily protocol save for Yoseph across 2 phones and PC",
+      "type": "object",
+      "properties": {
+        "statsJson": { "type": "string" },
+        "protocolJson": { "type": "string" },
+        "freeTrainingJson": { "type": "string" },
+        "fourHourPlanJson": { "type": "string" },
+        "profileJson": { "type": "string" },
+        "updatedAt": { "type": "string" },
+        "lastDevice": { "type": "string" }
+      },
+      "required": ["statsJson", "protocolJson", "updatedAt"]
     }
   },
   "firestore": {
@@ -46,6 +61,10 @@
     "/users/{userId}/private/{docId}": {
       "schema": "PrivateUserData",
       "description": "Private detailed telemetry and save state restricted strictly to the document owner"
+    },
+    "/yoseph_cloud_sync/{docId}": {
+      "schema": "YosephMasterSave",
+      "description": "Central persistent synchronization store connecting Yoseph's PC and 2 mobile phones"
     }
   }
 }

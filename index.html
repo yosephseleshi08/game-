@@ -3,6 +3,23 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=5.0" />
+    <script>
+      // Suppress Vite HMR WebSocket closed without opened error in iframe preview where HMR is disabled
+      window.addEventListener('error', function(e) {
+        if (e && e.message && (e.message.includes('WebSocket closed without opened') || e.message.includes('WebSocket'))) {
+          e.stopImmediatePropagation();
+          e.preventDefault();
+          return true;
+        }
+      }, true);
+      window.addEventListener('unhandledrejection', function(e) {
+        var reason = e && e.reason ? String(e.reason) : '';
+        if (reason.includes('WebSocket closed without opened') || reason.includes('WebSocket')) {
+          e.stopImmediatePropagation();
+          e.preventDefault();
+        }
+      }, true);
+    </script>
     <title>Photographic Memory Master</title>
     <meta name="description" content="An interactive cognitive training game suite designed to develop eidetic and photographic memory through flash matrix, chimpanzee sequence recall, and detail snapshot challenges." />
     <meta property="og:title" content="Photographic Memory Master" />

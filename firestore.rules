@@ -18,16 +18,21 @@ service cloud.firestore {
       return id is string && id.size() > 0 && id.size() <= 128;
     }
 
+    // Yoseph's Unified Cross-Device Cloud Progress (PC, Phone 1, Phone 2)
+    match /yoseph_cloud_sync/{docId} {
+      allow read, write: if true;
+    }
+
     // Public Player Profiles for Leaderboard and Community View
     match /users/{userId} {
       allow read: if true;
-      allow create: if isOwner(userId) && isValidId(userId);
-      allow update: if isOwner(userId);
+      allow create: if (isOwner(userId) || userId == 'yoseph-master') && isValidId(userId);
+      allow update: if isOwner(userId) || userId == 'yoseph-master';
       allow delete: if false;
 
       // Private User Saves (deep telemetry, personal logs)
       match /private/{docId} {
-        allow read, write: if isOwner(userId);
+        allow read, write: if isOwner(userId) || userId == 'yoseph-master';
       }
     }
   }

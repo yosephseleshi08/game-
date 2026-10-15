@@ -57,24 +57,34 @@ export const ManualMemoryPalaceTimer: React.FC<ManualMemoryPalaceTimerProps> = (
   const oscRef = useRef<OscillatorNode | null>(null);
   const gainRef = useRef<GainNode | null>(null);
 
-  // Sync state if prop changes from parent (e.g. cloud sync)
+  const hasUserInteractedRef = useRef(false);
+
+  // Sync state when timerState arrives or changes from parent (e.g. cloud sync)
   useEffect(() => {
-    if (timerState) {
-      if (timerState.remainingSeconds !== undefined && Math.abs(timerState.remainingSeconds - remainingSeconds) > 3) {
+    if (timerState && !isRunning) {
+      if (
+        timerState.remainingSeconds !== undefined &&
+        timerState.remainingSeconds !== remainingSeconds
+      ) {
         setRemainingSeconds(timerState.remainingSeconds);
       }
-      if (timerState.elapsedSeconds !== undefined && Math.abs(timerState.elapsedSeconds - elapsedSeconds) > 3) {
+      if (
+        timerState.elapsedSeconds !== undefined &&
+        timerState.elapsedSeconds !== elapsedSeconds
+      ) {
         setElapsedSeconds(timerState.elapsedSeconds);
       }
       if (timerState.isCompleted !== undefined && timerState.isCompleted !== isCompleted) {
         setIsCompleted(timerState.isCompleted);
       }
     }
-  }, [timerState]);
+  }, [timerState?.remainingSeconds, timerState?.elapsedSeconds, timerState?.isCompleted, isRunning]);
 
   // Main countdown timer interval
   useEffect(() => {
     if (!isRunning || isCompleted) return;
+
+    hasUserInteractedRef.current = true;
 
     const interval = setInterval(() => {
       setRemainingSeconds((prevRem) => {
@@ -100,8 +110,11 @@ export const ManualMemoryPalaceTimer: React.FC<ManualMemoryPalaceTimerProps> = (
     return () => clearInterval(interval);
   }, [isRunning, isCompleted]);
 
-  // Periodically save state up to parent
+  // Periodically save state up to parent ONLY when running or after user interaction/reset
   useEffect(() => {
+    if (!hasUserInteractedRef.current && !isRunning) {
+      return;
+    }
     onUpdateTimer({
       remainingSeconds,
       elapsedSeconds,
@@ -147,12 +160,19 @@ export const ManualMemoryPalaceTimer: React.FC<ManualMemoryPalaceTimerProps> = (
 
   const handleConfirmReset = () => {
     sound.playClick();
+    hasUserInteractedRef.current = true;
     setIsRunning(false);
     setIsCompleted(false);
     setRemainingSeconds(TOTAL_TARGET_SECONDS);
     setElapsedSeconds(0);
     setShowResetConfirm(false);
     stopAlphaDrone();
+    onUpdateTimer({
+      remainingSeconds: TOTAL_TARGET_SECONDS,
+      elapsedSeconds: 0,
+      isRunning: false,
+      isCompleted: false,
+    });
   };
 
   // Gentle procedural Alpha wave binaural / drone (10Hz alpha pulse on 136.1Hz Om carrier)

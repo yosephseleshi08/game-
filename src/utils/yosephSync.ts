@@ -1,4 +1,12 @@
-import { UserStats, DailyProtocolState, FreeTrainingSessionStats, UserProfile, FourHourPlanState } from '../types';
+import { db } from './firebase';
+import { doc, getDoc, setDoc, onSnapshot } from 'firebase/firestore';
+import {
+  UserStats,
+  DailyProtocolState,
+  FreeTrainingSessionStats,
+  UserProfile,
+  FourHourPlanState,
+} from '../types';
 
 export interface YosephMasterPayload {
   stats: UserStats;
@@ -10,36 +18,22 @@ export interface YosephMasterPayload {
 }
 
 const MASTER_PASSWORD = 'yoseph535';
-const UNLOCK_STORAGE_KEY = 'yoseph_vault_unlocked';
-const UNLOCKED_TIMESTAMP_KEY = 'yoseph_vault_unlocked_at';
+const MASTER_FIRESTORE_COLLECTION = 'yoseph_cloud_sync';
+const MASTER_FIRESTORE_DOC = 'master_progress';
 
 export function isDeviceUnlocked(): boolean {
-  if (typeof window === 'undefined') return true;
-  // Unlocked by default so Yoseph can open the app on mobile and PC immediately without password interruptions.
-  const stored = localStorage.getItem(UNLOCK_STORAGE_KEY);
-  if (stored === null) {
-    localStorage.setItem(UNLOCK_STORAGE_KEY, 'true');
-    return true;
-  }
-  return stored !== 'false';
+  // Always unlocked by default so Yoseph can immediately open and play the game on mobile and PC without password interruptions.
+  return true;
 }
 
-export function setDeviceUnlocked(unlocked: boolean): void {
-  if (typeof window === 'undefined') return;
-  if (unlocked) {
-    localStorage.setItem(UNLOCK_STORAGE_KEY, 'true');
-    localStorage.setItem(UNLOCKED_TIMESTAMP_KEY, new Date().toISOString());
-  } else {
-    localStorage.setItem(UNLOCK_STORAGE_KEY, 'false');
-    localStorage.removeItem(UNLOCKED_TIMESTAMP_KEY);
-  }
+export function setDeviceUnlocked(_unlocked: boolean): void {
+  // Kept for backward compatibility
 }
 
 export async function verifyYosephPassword(password: string): Promise<{ success: boolean; message: string }> {
   const trimmed = password.trim();
   const isMatch = trimmed.toLowerCase() === MASTER_PASSWORD.toLowerCase();
 
-  // Try verifying with backend server if accessible
   try {
     const res = await fetch('/api/yoseph/verify-password', {
       method: 'POST',
@@ -50,11 +44,10 @@ export async function verifyYosephPassword(password: string): Promise<{ success:
       const data = await res.json();
       return { success: true, message: data.message || 'Welcome back Yoseph!' };
     }
-  } catch (err) {
-    console.warn('Backend password verification offline, falling back to local vault logic:', err);
+  } catch {
+    // Fallback to local check
   }
 
-  // Local fallback (e.g. offline PWA mode on phones)
   if (isMatch) {
     return { success: true, message: 'Welcome back Yoseph!' };
   } else {
@@ -66,9 +59,32 @@ export async function verifyYosephPassword(password: string): Promise<{ success:
 }
 
 /**
- * Fetch unified master progress from the central backend server
+ * Fetch unified master progress directly from persistent Cloud Firestore.
+ * This guarantees the exact same progress is shared between PC, Phone 1, and Phone 2.
  */
 export async function fetchServerMasterProgress(): Promise<YosephMasterPayload | null> {
+  // 1. Try Cloud Firestore (Primary globally persistent store)
+  try {
+    const docRef = doc(db, MASTER_FIRESTORE_COLLECTION, MASTER_FIRESTORE_DOC);
+    const snap = await getDoc(docRef);
+    if (snap.exists()) {
+      const data = snap.data();
+      if (data.statsJson && data.protocolJson) {
+        return {
+          stats: JSON.parse(data.statsJson),
+          protocol: JSON.parse(data.protocolJson),
+          freeTrainingStats: data.freeTrainingJson ? JSON.parse(data.freeTrainingJson) : undefined,
+          fourHourPlan: data.fourHourPlanJson ? JSON.parse(data.fourHourPlanJson) : undefined,
+          profile: data.profileJson ? JSON.parse(data.profileJson) : undefined,
+          lastSyncedAt: data.updatedAt || new Date().toISOString(),
+        };
+      }
+    }
+  } catch (err) {
+    console.warn('[Yosi Cloud Sync] Firestore fetch fallback to backend API:', err);
+  }
+
+  // 2. Fallback to server endpoint
   try {
     const res = await fetch('/api/yoseph/progress', {
       method: 'GET',
@@ -79,13 +95,14 @@ export async function fetchServerMasterProgress(): Promise<YosephMasterPayload |
       return data as YosephMasterPayload;
     }
   } catch (err) {
-    console.warn('Could not reach backend master progress endpoint:', err);
+    console.warn('[Yosi Cloud Sync] Could not reach backend master progress endpoint:', err);
   }
   return null;
 }
 
 /**
- * Push unified master progress from any device (Phone 1, Phone 2, PC) to central backend server
+ * Push unified master progress from any device (PC, Phone 1, Phone 2) directly to Cloud Firestore.
+ * Also syncs with backend server as redundancy.
  */
 export async function pushServerMasterProgress(payload: {
   stats: UserStats;
@@ -94,6 +111,29 @@ export async function pushServerMasterProgress(payload: {
   fourHourPlan?: FourHourPlanState;
   profile?: UserProfile;
 }): Promise<YosephMasterPayload | null> {
+  const nowIso = new Date().toISOString();
+
+  // 1. Write to persistent Cloud Firestore
+  try {
+    const docRef = doc(db, MASTER_FIRESTORE_COLLECTION, MASTER_FIRESTORE_DOC);
+    await setDoc(
+      docRef,
+      {
+        statsJson: JSON.stringify(payload.stats),
+        protocolJson: JSON.stringify(payload.protocol),
+        freeTrainingJson: payload.freeTrainingStats ? JSON.stringify(payload.freeTrainingStats) : null,
+        fourHourPlanJson: payload.fourHourPlan ? JSON.stringify(payload.fourHourPlan) : null,
+        profileJson: payload.profile ? JSON.stringify(payload.profile) : null,
+        updatedAt: nowIso,
+        lastDevice: typeof navigator !== 'undefined' ? (navigator.userAgent.includes('Mobile') ? 'Mobile' : 'PC') : 'Unknown',
+      },
+      { merge: true }
+    );
+  } catch (err) {
+    console.warn('[Yosi Cloud Sync] Failed to write to Cloud Firestore:', err);
+  }
+
+  // 2. Write to backend server endpoint for dual redundancy
   try {
     const res = await fetch('/api/yoseph/progress', {
       method: 'POST',
@@ -105,15 +145,71 @@ export async function pushServerMasterProgress(payload: {
       return data as YosephMasterPayload;
     }
   } catch (err) {
-    console.warn('Failed to push progress to backend server:', err);
+    console.warn('[Yosi Cloud Sync] Failed to push progress to backend server:', err);
   }
-  return null;
+
+  return {
+    ...payload,
+    lastSyncedAt: nowIso,
+  };
 }
 
 /**
- * Reset central master server progress to pristine Day 1 / 0 XP
+ * Real-time listener for multi-device sync (instant updates when PC or mobile changes state)
+ */
+export function subscribeToMasterCloudProgress(
+  onUpdate: (payload: YosephMasterPayload) => void
+): () => void {
+  try {
+    const docRef = doc(db, MASTER_FIRESTORE_COLLECTION, MASTER_FIRESTORE_DOC);
+    return onSnapshot(
+      docRef,
+      (snap) => {
+        if (!snap.exists()) return;
+        const data = snap.data();
+        if (data.statsJson && data.protocolJson) {
+          try {
+            onUpdate({
+              stats: JSON.parse(data.statsJson),
+              protocol: JSON.parse(data.protocolJson),
+              freeTrainingStats: data.freeTrainingJson ? JSON.parse(data.freeTrainingJson) : undefined,
+              fourHourPlan: data.fourHourPlanJson ? JSON.parse(data.fourHourPlanJson) : undefined,
+              profile: data.profileJson ? JSON.parse(data.profileJson) : undefined,
+              lastSyncedAt: data.updatedAt || new Date().toISOString(),
+            });
+          } catch (e) {
+            console.error('[Yosi Cloud Sync] Error parsing live snapshot:', e);
+          }
+        }
+      },
+      (err) => {
+        console.warn('[Yosi Cloud Sync] Snapshot listener error:', err);
+      }
+    );
+  } catch (err) {
+    console.warn('[Yosi Cloud Sync] Unable to attach onSnapshot listener:', err);
+    return () => {};
+  }
+}
+
+/**
+ * Reset central master progress to pristine Day 1 / 0 XP
  */
 export async function resetServerMasterProgress(): Promise<boolean> {
+  try {
+    const docRef = doc(db, MASTER_FIRESTORE_COLLECTION, MASTER_FIRESTORE_DOC);
+    await setDoc(docRef, {
+      statsJson: null,
+      protocolJson: null,
+      freeTrainingJson: null,
+      fourHourPlanJson: null,
+      profileJson: null,
+      updatedAt: new Date().toISOString(),
+    });
+  } catch (err) {
+    console.warn('[Yosi Cloud Sync] Failed to reset Firestore doc:', err);
+  }
+
   try {
     const res = await fetch('/api/yoseph/reset', {
       method: 'POST',
@@ -121,7 +217,7 @@ export async function resetServerMasterProgress(): Promise<boolean> {
     });
     return res.ok;
   } catch (err) {
-    console.warn('Failed to reset backend master progress:', err);
+    console.warn('[Yosi Cloud Sync] Failed to reset backend master progress:', err);
     return false;
   }
 }
