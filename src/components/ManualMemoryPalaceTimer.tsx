@@ -44,7 +44,8 @@ export const ManualMemoryPalaceTimer: React.FC<ManualMemoryPalaceTimerProps> = (
   const [elapsedSeconds, setElapsedSeconds] = useState(
     timerState?.elapsedSeconds !== undefined ? timerState.elapsedSeconds : 0
   );
-  const [isRunning, setIsRunning] = useState(Boolean(timerState?.isRunning));
+  // Always initialize isRunning to false so the countdown never starts on its own
+  const [isRunning, setIsRunning] = useState(false);
   const [isCompleted, setIsCompleted] = useState(Boolean(timerState?.isCompleted));
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
@@ -296,7 +297,13 @@ export const ManualMemoryPalaceTimer: React.FC<ManualMemoryPalaceTimerProps> = (
 
       {/* Main Digital Clock & Circular Gauge */}
       <div className="flex flex-col items-center justify-center my-2 sm:my-4 relative z-10 w-full">
-        <div className="relative flex items-center justify-center">
+        <div
+          onClick={toggleTimer}
+          className={`relative flex items-center justify-center cursor-pointer select-none transition-transform active:scale-95 group ${
+            !isCompleted ? 'hover:scale-[1.02]' : ''
+          }`}
+          title={isCompleted ? '60-Minute Focus Completed' : isRunning ? 'Click to Pause' : 'Click to Start 1h Countdown'}
+        >
           {/* Circular SVG Progress Ring */}
           <svg className="w-44 h-44 sm:w-60 sm:h-60 transform -rotate-90">
             <circle
@@ -340,10 +347,10 @@ export const ManualMemoryPalaceTimer: React.FC<ManualMemoryPalaceTimerProps> = (
               </div>
             ) : (
               <>
-                <span className="text-[9px] sm:text-xs uppercase font-mono tracking-widest text-slate-400 mb-0.5 sm:mb-1">
-                  {isRunning ? '⏳ Focus Active' : '⏸️ Sitting Practice'}
+                <span className="text-[9px] sm:text-xs uppercase font-mono tracking-widest text-slate-400 mb-0.5 sm:mb-1 group-hover:text-amber-300 transition-colors">
+                  {isRunning ? '⏳ Click to Pause' : '▶️ Click to Start'}
                 </span>
-                <span className="text-3xl sm:text-5xl font-mono font-black text-white tracking-tight drop-shadow-md">
+                <span className="text-3xl sm:text-5xl font-mono font-black text-white tracking-tight drop-shadow-md group-hover:text-amber-200 transition-colors">
                   {formatTime(remainingSeconds)}
                 </span>
                 <span className="text-[10px] sm:text-xs text-amber-300/80 font-mono mt-0.5 sm:mt-1 font-bold">

@@ -200,40 +200,39 @@ export const DailyProtocolTracker: React.FC<DailyProtocolTrackerProps> = ({
   });
 
   return (
-    <div className="w-full max-w-4xl mx-auto px-3 sm:px-4 py-4 sm:py-6 overflow-x-hidden">
+    <div className="w-full max-w-4xl mx-auto px-3 sm:px-4 py-3 sm:py-6 pb-24">
       {/* Top Protocol Header */}
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl sm:rounded-3xl p-4 sm:p-6 mb-5 sm:mb-6 shadow-2xl relative overflow-hidden backdrop-blur">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+      <div className="bg-slate-900 border border-slate-800 rounded-2xl sm:rounded-3xl p-3.5 sm:p-6 mb-4 sm:mb-6 shadow-xl relative backdrop-blur">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 mb-3 sm:mb-4">
           <div className="min-w-0">
-            <div className="flex items-center gap-1.5 sm:gap-2 mb-1.5 flex-wrap">
-              <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-emerald-400 bg-emerald-950/80 px-2.5 sm:px-3 py-0.5 rounded-full border border-emerald-800/60 flex items-center gap-1">
-                <Calendar className="w-3 h-3 sm:w-3.5 sm:h-3.5" /> 365-Day Calendar
+            <div className="flex items-center gap-1.5 sm:gap-2 mb-1 flex-wrap">
+              <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-emerald-400 bg-emerald-950/80 px-2 sm:px-2.5 py-0.5 rounded-full border border-emerald-800/60 flex items-center gap-1">
+                <Calendar className="w-3 h-3 text-emerald-400" /> 365 Calendar
               </span>
               <span className="text-[10px] sm:text-xs text-cyan-300 font-mono font-bold bg-cyan-950/80 px-2 sm:px-2.5 py-0.5 rounded-full border border-cyan-800/60">
                 {new Date().toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
               </span>
             </div>
-            <h2 className="text-xl sm:text-3xl font-black text-white flex items-center gap-2 truncate">
+            <h2 className="text-lg sm:text-2xl md:text-3xl font-black text-white flex items-center gap-2 truncate">
               Yosi's Day {protocol.curriculumDay} Protocol
             </h2>
-            <p className="text-xs text-slate-300 mt-1 max-w-xl leading-relaxed">
-              Exclusively designed for Yoseph: <strong className="text-cyan-300">1 Hour 3-Game Practice (20m each)</strong> + <strong className="text-amber-300">1 Hour Manual Memory Palace Focus</strong> = 2 Hours Total.
-              Each game strictly locks for tomorrow once 20 minutes is reached.
+            <p className="text-[11px] sm:text-xs text-slate-300 mt-0.5 sm:mt-1 max-w-xl leading-relaxed">
+              Exclusively designed for Yoseph: <strong className="text-cyan-300 font-bold">1h 3-Game Practice</strong> (20m each) + <strong className="text-amber-300 font-bold">1h Memory Palace Focus</strong> = 2 Hours Total.
             </p>
           </div>
 
           {/* 12 AM Reset Countdown Card */}
-          <div className="bg-slate-950/80 border border-slate-800 p-3 sm:p-3.5 rounded-2xl flex flex-col items-center w-full sm:w-auto sm:min-w-[170px] shadow-inner shrink-0">
-            <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider flex items-center gap-1 mb-1">
+          <div className="bg-slate-950/90 border border-slate-800 p-2.5 sm:p-3 rounded-2xl flex sm:flex-col items-center justify-between sm:justify-center w-full sm:w-auto sm:min-w-[150px] shadow-inner shrink-0 gap-1">
+            <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider flex items-center gap-1">
               <Clock className="w-3 h-3 text-cyan-400" />
-              12:00 AM Midnight Reset
+              Midnight Reset
             </span>
-            <div className="text-lg sm:text-xl font-mono font-black text-cyan-400 tracking-tight">
+            <div className="text-base sm:text-lg font-mono font-black text-cyan-400 tracking-tight">
               {String(timeLeft.hours).padStart(2, '0')}:{String(timeLeft.minutes).padStart(2, '0')}:
               {String(timeLeft.seconds).padStart(2, '0')}
             </div>
-            <span className="text-[9px] text-slate-500 mt-0.5 font-medium text-center">
-              {protocol.isLockedOut ? 'Locked until 12:00 AM' : 'Resets at midnight'}
+            <span className="text-[9px] text-slate-500 font-medium hidden sm:block">
+              {protocol.isLockedOut ? 'Locked until 12 AM' : 'Resets at 12:00 AM'}
             </span>
           </div>
         </div>

@@ -4,9 +4,7 @@ import { sound } from '../utils/audio';
 import {
   CalendarCheck,
   BarChart3,
-  ShieldCheck,
-  Activity,
-  Award,
+  CheckCircle2,
 } from 'lucide-react';
 
 interface ModeSelectorProps {
@@ -22,8 +20,9 @@ export const ModeSelector: React.FC<ModeSelectorProps> = ({ activeMode, onSelect
   return (
     <nav aria-label="Main Navigation" className="w-full max-w-4xl mx-auto px-3 sm:px-4 pt-2 sm:pt-3 pb-1">
       <div className="grid grid-cols-2 gap-2 sm:gap-3">
-        {/* Tab 1: Yosi's 1-Hour Daily Protocol */}
+        {/* Tab 1: Daily Protocol */}
         <button
+          type="button"
           onClick={() => {
             sound.playClick();
             onSelectMode('daily-protocol');
@@ -45,11 +44,11 @@ export const ModeSelector: React.FC<ModeSelectorProps> = ({ activeMode, onSelect
               >
                 <CalendarCheck className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               </div>
-              <span className="truncate">Yosi's Protocol</span>
+              <span className="font-bold text-xs sm:text-sm text-white">Daily Protocol</span>
             </div>
             {isLockedOut ? (
               <span className="text-[9px] sm:text-[10px] uppercase px-1.5 sm:px-2 py-0.5 rounded-full font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shrink-0">
-                Done
+                Done ✓
               </span>
             ) : (
               <span
@@ -64,12 +63,13 @@ export const ModeSelector: React.FC<ModeSelectorProps> = ({ activeMode, onSelect
             )}
           </div>
           <p className="text-[10px] sm:text-[11px] text-slate-400 truncate pl-0 sm:pl-7">
-            3×20m + 1h Palace
+            3×20m Games + 1h Palace
           </p>
         </button>
 
-        {/* Tab 2: Yoseph's Personal Telemetry / Yosi's Cognitive Index & Telemetry */}
+        {/* Tab 2: Telemetry & Stats */}
         <button
+          type="button"
           onClick={() => {
             sound.playClick();
             onSelectMode('stats');
@@ -91,7 +91,7 @@ export const ModeSelector: React.FC<ModeSelectorProps> = ({ activeMode, onSelect
               >
                 <BarChart3 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               </div>
-              <span className="truncate">Yoseph Telemetry</span>
+              <span className="font-bold text-xs sm:text-sm text-white">Telemetry & Stats</span>
             </div>
             <span
               className={`text-[9px] sm:text-[10px] uppercase px-1.5 sm:px-2 py-0.5 rounded-full font-bold shrink-0 ${
@@ -100,11 +100,11 @@ export const ModeSelector: React.FC<ModeSelectorProps> = ({ activeMode, onSelect
                   : 'bg-slate-800 text-slate-400'
               }`}
             >
-              Index
+              Records
             </span>
           </div>
           <p className="text-[10px] sm:text-[11px] text-slate-400 truncate pl-0 sm:pl-7">
-            Calendar & Stats
+            Calendar, Streaks & Trends
           </p>
         </button>
       </div>

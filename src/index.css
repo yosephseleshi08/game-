@@ -15,22 +15,36 @@
   }
 }
 
-html, body {
-  overflow-x: hidden;
-  width: 100%;
-  max-width: 100vw;
+html {
   margin: 0;
   padding: 0;
-  overscroll-behavior-y: none;
+  width: 100%;
+  min-height: 100%;
+  overflow-x: hidden;
+  overflow-y: auto;
   -webkit-tap-highlight-color: transparent;
   -webkit-text-size-adjust: 100%;
 }
 
-#root {
-  overflow-x: hidden;
+body {
+  margin: 0;
+  padding: 0;
   width: 100%;
-  max-width: 100%;
   min-height: 100%;
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y pinch-zoom;
+  background-color: #020617;
+  color: #f8fafc;
+}
+
+#root {
+  width: 100%;
+  min-height: 100%;
+  overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 /* Custom sleek scrollbar for mobile touch-scroll containers */
@@ -40,4 +54,3 @@ html, body {
   touch-action: pan-x;
   scrollbar-width: thin;
 }
-

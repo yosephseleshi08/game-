@@ -126,6 +126,26 @@ export default function App() {
     setIsUnlocked(false);
   };
 
+  const handleUpdateProfilePhoto = (newPhotoUrl: string) => {
+    sound.playSuccess();
+    const updated: UserProfile = {
+      ...currentProfile,
+      photoUrl: newPhotoUrl,
+      updatedAt: new Date().toISOString(),
+    };
+    setCurrentProfile(updated);
+    saveLocalProfile(updated);
+    if (isUnlocked) {
+      pushServerMasterProgress({
+        stats,
+        protocol,
+        freeTrainingStats,
+        fourHourPlan: loadFourHourPlan(),
+        profile: updated,
+      }).catch(console.error);
+    }
+  };
+
   const handleResetAllProgress = async () => {
     sound.playClick();
     isSyncingFromRemoteRef.current = true;
@@ -828,6 +848,7 @@ export default function App() {
         archetype={athleteArchetype}
         onOpenArchetype={() => setIsArchetypeModalOpen(true)}
         onRestoreStreak={handleResetAllProgress}
+        onUpdatePhoto={handleUpdateProfilePhoto}
       />
 
       {/* Daily Cognitive Inspirational Quote */}
@@ -895,37 +916,7 @@ export default function App() {
       )}
 
       {/* Primary Dynamic View */}
-      <main className="flex-1 w-full pb-12">
-        {/* Multi-Device Cloud Sync Notice (Phones & PC) */}
-        <div className="max-w-4xl mx-auto px-4 pt-3 pb-1">
-          <div className="px-3.5 py-2 rounded-2xl bg-slate-900/90 border border-cyan-500/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-xs shadow-sm">
-            <div className="flex items-center gap-2.5 truncate">
-              <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse shrink-0" />
-              <div className="truncate">
-                <span className="text-[11px] text-white font-bold">
-                  Yoseph's Multi-Device Sync Active:
-                </span>
-                <span className="text-[11px] text-slate-300 ml-1.5 font-medium">
-                  Phone 1, Phone 2 & PC linked to the same master progress.
-                </span>
-              </div>
-            </div>
-            <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
-              <span className="text-[10px] text-slate-400 font-mono">
-                {lastSyncedTime ? `Synced ${lastSyncedTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}` : 'Synced'}
-              </span>
-              <button
-                onClick={handleForceSync}
-                className="text-[10px] font-mono font-bold text-cyan-300 hover:text-white px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 transition-colors flex items-center gap-1 cursor-pointer"
-                title="Force instant synchronization across all devices"
-              >
-                <RefreshCw className={`w-3 h-3 text-cyan-400 ${cloudSyncStatus === 'syncing' ? 'animate-spin' : ''}`} />
-                <span>{cloudSyncStatus === 'syncing' ? 'Syncing...' : 'Sync Now'}</span>
-              </button>
-            </div>
-          </div>
-        </div>
-
+      <main className="flex-1 w-full pb-16">
         {/* Active Game Session & Daily 12 AM Timer Bar */}
         {isPlayingGame && (
           <div className="w-full max-w-4xl mx-auto px-3 sm:px-4 pt-2 sm:pt-3 pb-1">

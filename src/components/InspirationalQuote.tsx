@@ -218,52 +218,52 @@ export const InspirationalQuote: React.FC<InspirationalQuoteProps> = ({
   return (
     <section
       aria-label="Daily Inspirational Quote"
-      className="w-full max-w-4xl mx-auto px-3 sm:px-4 pt-3 pb-1"
+      className="w-full max-w-4xl mx-auto px-3 sm:px-4 pt-2.5 pb-1"
     >
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-slate-900/95 via-slate-900/85 to-slate-950/95 border border-slate-800/90 hover:border-cyan-500/30 transition-all p-3.5 sm:p-4 shadow-sm group">
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-slate-900/90 via-slate-900/80 to-slate-950/90 border border-slate-800/90 hover:border-cyan-500/30 transition-all p-3 sm:p-4 shadow-sm group">
         {/* Subtle ambient gradient flare */}
-        <div className="absolute top-0 right-0 w-44 h-44 bg-cyan-500/5 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute top-0 right-0 w-36 h-36 bg-cyan-500/5 rounded-full blur-2xl pointer-events-none" />
 
-        <div className="flex items-start gap-3">
+        <div className="flex items-start gap-2.5 sm:gap-3">
           {/* Quote Icon Badge */}
-          <div className="w-8 h-8 rounded-xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400 shrink-0 mt-0.5 shadow-sm">
-            <Quote className="w-4 h-4" />
+          <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400 shrink-0 mt-0.5 shadow-sm">
+            <Quote className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
           </div>
 
           {/* Main Content Area */}
-          <div className="flex-1 min-w-0 pr-1">
+          <div className="flex-1 min-w-0">
             {/* Header Metadata Bar */}
-            <div className="flex items-center justify-between gap-2 mb-1.5 flex-wrap">
-              <div className="flex items-center gap-1.5 text-[11px] text-slate-400 font-mono uppercase tracking-wider">
-                <span className="text-cyan-400 font-bold flex items-center gap-1">
-                  <Brain className="w-3.5 h-3.5 text-cyan-400" /> Daily Mindset
+            <div className="flex items-center justify-between gap-2 mb-1">
+              <div className="flex items-center gap-1.5 text-[10px] sm:text-[11px] text-slate-400 font-mono uppercase tracking-wider truncate">
+                <span className="text-cyan-400 font-bold flex items-center gap-1 shrink-0">
+                  <Brain className="w-3 h-3 text-cyan-400" /> Focus
                 </span>
                 <span aria-hidden="true" className="text-slate-600">·</span>
-                <span className="text-slate-300 font-medium">{activeQuote.discipline}</span>
-                <span aria-hidden="true" className="text-slate-600">·</span>
-                <span className="text-slate-500">Day {curriculumDay}</span>
+                <span className="text-slate-300 font-medium truncate">{activeQuote.discipline}</span>
+                <span aria-hidden="true" className="text-slate-600 hidden xs:inline">·</span>
+                <span className="text-slate-500 hidden xs:inline shrink-0">Day {curriculumDay}</span>
               </div>
 
               {/* Top Controls */}
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-1 shrink-0">
                 <button
                   type="button"
                   onClick={handleNextQuote}
-                  className="px-2 py-1 rounded-lg bg-slate-800/70 hover:bg-slate-800 text-slate-300 hover:text-cyan-300 transition-colors cursor-pointer text-[11px] flex items-center gap-1 font-medium"
+                  className="px-2 py-0.5 rounded-lg bg-slate-800/70 hover:bg-slate-800 text-slate-300 hover:text-cyan-300 transition-colors cursor-pointer text-[10px] flex items-center gap-1 font-medium"
                   title="Next cognitive quote"
                 >
-                  <RefreshCw className="w-3 h-3 group-hover:rotate-45 transition-transform duration-300" />
-                  <span className="hidden xs:inline">Shuffle</span>
+                  <RefreshCw className="w-3 h-3" />
+                  <span className="hidden sm:inline">Shuffle</span>
                 </button>
 
                 <button
                   type="button"
                   onClick={handleCopyQuote}
-                  className="px-2 py-1 rounded-lg bg-slate-800/70 hover:bg-slate-800 text-slate-300 hover:text-cyan-300 transition-colors cursor-pointer text-[11px] flex items-center gap-1 font-medium"
+                  className="px-2 py-0.5 rounded-lg bg-slate-800/70 hover:bg-slate-800 text-slate-300 hover:text-cyan-300 transition-colors cursor-pointer text-[10px] flex items-center gap-1 font-medium"
                   title="Copy quote"
                 >
                   {copied ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
-                  <span className="hidden xs:inline">{copied ? 'Copied' : 'Copy'}</span>
+                  <span className="hidden sm:inline">{copied ? 'Copied' : 'Copy'}</span>
                 </button>
 
                 <button
@@ -272,14 +272,14 @@ export const InspirationalQuote: React.FC<InspirationalQuoteProps> = ({
                   className="p-1 rounded-lg bg-slate-800/70 hover:bg-slate-800 text-slate-400 hover:text-slate-200 transition-colors cursor-pointer text-xs flex items-center"
                   title={isCollapsed ? "Expand quote" : "Collapse quote"}
                 >
-                  {isCollapsed ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronUp className="w-3.5 h-3.5" />}
+                  {isCollapsed ? <ChevronDown className="w-3 h-3" /> : <ChevronUp className="w-3 h-3" />}
                 </button>
               </div>
             </div>
 
             {/* Expanded vs Collapsed Quote View */}
             {!isCollapsed ? (
-              <div className="space-y-2 mt-1">
+              <div className="space-y-1.5 mt-0.5">
                 <p className="text-xs sm:text-sm text-slate-100 font-medium italic leading-relaxed tracking-tight text-balance">
                   "{activeQuote.quote}"
                 </p>
@@ -287,7 +287,7 @@ export const InspirationalQuote: React.FC<InspirationalQuoteProps> = ({
                 <div className="flex items-center gap-1.5 text-xs text-slate-400 flex-wrap pt-0.5">
                   <span className="font-semibold text-white not-italic">{activeQuote.author}</span>
                   <span aria-hidden="true" className="text-slate-600">·</span>
-                  <span className="text-[11px] text-slate-400">
+                  <span className="text-[11px] text-slate-400 truncate max-w-[200px] sm:max-w-none">
                     {activeQuote.role}
                   </span>
                 </div>

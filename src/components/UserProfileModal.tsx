@@ -66,12 +66,57 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
   const [username, setUsername] = useState(profile?.username || 'Memory Athlete');
   const [selectedPresetId, setSelectedPresetId] = useState(profile?.avatarPresetId || 'ayumu');
   const [customPhotoUrl, setCustomPhotoUrl] = useState(
-    profile?.photoUrl && profile.photoUrl.startsWith('http') ? profile.photoUrl : ''
+    profile?.photoUrl && (profile.photoUrl.startsWith('data:') || profile.photoUrl.startsWith('http')) ? profile.photoUrl : ''
   );
   const [isEditing, setIsEditing] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [syncingManual, setSyncingManual] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+  const handleDevicePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const raw = event.target?.result as string;
+      if (!raw) return;
+
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const maxDim = 256;
+        let w = img.width;
+        let h = img.height;
+        if (w > h) {
+          if (w > maxDim) {
+            h = Math.round((h * maxDim) / w);
+            w = maxDim;
+          }
+        } else {
+          if (h > maxDim) {
+            w = Math.round((w * maxDim) / h);
+            h = maxDim;
+          }
+        }
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.drawImage(img, 0, 0, w, h);
+          const compressed = canvas.toDataURL('image/jpeg', 0.85);
+          setCustomPhotoUrl(compressed);
+        } else {
+          setCustomPhotoUrl(raw);
+        }
+        sound.playSuccess();
+        setMsg('Photo selected! Tap "Save Changes" to apply.');
+      };
+      img.src = raw;
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
+  };
 
   if (!isOpen) return null;
 
@@ -156,7 +201,7 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
         {/* Profile Card Header */}
         <div className="flex items-center gap-4 mb-6">
           <div className="relative">
-            {profile?.photoUrl && profile.photoUrl.startsWith('http') ? (
+            {profile?.photoUrl && (profile.photoUrl.startsWith('data:') || profile.photoUrl.startsWith('http') || profile.photoUrl.startsWith('blob:')) ? (
               <img
                 src={profile.photoUrl}
                 alt={profile.username}
@@ -215,12 +260,57 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-2 flex items-center gap-1.5">
-                <Camera className="w-3.5 h-3.5 text-cyan-400" /> Change Profile Avatar
+              <label className="block text-xs font-semibold text-slate-300 mb-2 flex items-center justify-between">
+                <span className="flex items-center gap-1.5">
+                  <Camera className="w-3.5 h-3.5 text-cyan-400" /> Change Profile Avatar
+                </span>
+                <span className="text-[10px] text-cyan-400 font-mono">Upload or Choose Preset</span>
               </label>
+
+              {/* Direct Device Photo Upload Button */}
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleDevicePhotoUpload}
+                accept="image/*"
+                className="hidden"
+                aria-hidden="true"
+              />
+              <div className="mb-3">
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-cyan-600 to-indigo-600 hover:from-cyan-500 hover:to-indigo-500 text-white font-black text-xs transition-all flex items-center justify-center gap-2 cursor-pointer shadow-md shadow-cyan-950/40 active:scale-98"
+                >
+                  <Camera className="w-4 h-4" />
+                  <span>📷 Upload Photo from Device (Phone or PC)</span>
+                </button>
+                {customPhotoUrl && (customPhotoUrl.startsWith('data:') || customPhotoUrl.startsWith('http')) && (
+                  <div className="mt-2 p-2 rounded-xl bg-slate-900 border border-cyan-500/40 flex items-center gap-2">
+                    <img
+                      src={customPhotoUrl}
+                      alt="Selected preview"
+                      className="w-10 h-10 rounded-lg object-cover ring-1 ring-cyan-400"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <span className="text-[11px] font-bold text-white block">Custom Photo Selected</span>
+                      <span className="text-[10px] text-emerald-400 block font-mono">Ready to save</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setCustomPhotoUrl('')}
+                      className="text-[10px] text-rose-400 hover:text-rose-300 underline cursor-pointer p-1"
+                    >
+                      Clear
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              <div className="text-[11px] text-slate-400 mb-1.5 font-medium">Or select an athlete icon:</div>
               <div className="grid grid-cols-4 gap-2 mb-3">
                 {AVATAR_PRESETS.map((p) => {
-                  const isSelected = selectedPresetId === p.id;
+                  const isSelected = selectedPresetId === p.id && !customPhotoUrl;
                   return (
                     <button
                       key={p.id}
@@ -247,17 +337,6 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
                     </button>
                   );
                 })}
-              </div>
-
-              <div>
-                <span className="text-[11px] text-slate-400 block mb-1">Or paste custom image URL:</span>
-                <input
-                  type="url"
-                  value={customPhotoUrl}
-                  onChange={(e) => setCustomPhotoUrl(e.target.value)}
-                  placeholder="https://example.com/avatar.png"
-                  className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 text-white text-xs focus:border-cyan-400 focus:outline-none"
-                />
               </div>
             </div>
 
@@ -485,15 +564,10 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
             </div>
 
             <div className="flex items-center gap-2">
-              <button
-                type="button"
-                disabled={syncingManual || cloudSyncStatus === 'syncing'}
-                onClick={handleManualSyncClick}
-                className="flex-1 py-2.5 px-3 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-md shadow-cyan-950/40 disabled:opacity-50"
-              >
-                <RefreshCw className={`w-3.5 h-3.5 ${syncingManual || cloudSyncStatus === 'syncing' ? 'animate-spin' : ''}`} />
-                <span>{syncingManual ? 'Syncing...' : 'Sync All Devices Now'}</span>
-              </button>
+              <div className="flex-1 py-2 px-3 rounded-xl bg-slate-900 border border-emerald-500/30 text-emerald-300 text-xs flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
+                <span className="text-[11px] font-medium">Automatic sync active across all your devices</span>
+              </div>
 
               {onLockApp && (
                 <button
@@ -503,7 +577,7 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
                     onClose();
                     onLockApp();
                   }}
-                  className="py-2.5 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer"
+                  className="py-2.5 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer shrink-0"
                   title="Lock game with password yoseph535"
                 >
                   <Lock className="w-3.5 h-3.5 text-cyan-400" />
