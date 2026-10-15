@@ -496,8 +496,8 @@ export const GeniusRoadmapModal: React.FC<GeniusRoadmapModalProps> = ({
         </div>
 
         {/* View Switcher Tabs */}
-        <div className="bg-slate-950 border-b border-slate-800 px-4 sm:px-6 py-2.5 flex flex-wrap items-center justify-between gap-3 text-xs">
-          <div className="flex items-center gap-1.5 p-1 bg-slate-900 rounded-xl border border-slate-800">
+        <div className="bg-slate-950 border-b border-slate-800 px-3 sm:px-6 py-2 sm:py-2.5 flex flex-wrap items-center justify-between gap-2.5 sm:gap-3 text-xs">
+          <div className="flex flex-wrap items-center gap-1 sm:gap-1.5 p-1 bg-slate-900 rounded-xl border border-slate-800 max-w-full">
             <button
               onClick={() => {
                 sound.playClick();

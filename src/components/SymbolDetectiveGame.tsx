@@ -485,53 +485,53 @@ export const SymbolDetectiveGame: React.FC<SymbolDetectiveGameProps> = ({
     : 0;
 
   return (
-    <div className="max-w-4xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
+    <div className="w-full max-w-4xl mx-auto px-3 sm:px-4 py-4 sm:py-6 overflow-x-hidden">
       {/* Lab Banner */}
       <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-5 mb-5 shadow-xl relative overflow-hidden backdrop-blur">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <div className="flex flex-wrap items-center gap-2 mb-1.5">
-              <span className="text-xs font-bold uppercase tracking-wider text-purple-400 bg-purple-950/90 px-2.5 py-0.5 rounded-full border border-purple-800/60 flex items-center gap-1">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 mb-1.5">
+              <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-purple-400 bg-purple-950/90 px-2 sm:px-2.5 py-0.5 rounded-full border border-purple-800/60 flex items-center gap-1">
                 <Search className="w-3 h-3 text-purple-400" />
                 Cognitive Visual Lab
               </span>
-              <span className="text-[10px] bg-slate-800 text-purple-300 px-2 py-0.5 rounded border border-slate-700 font-mono">
+              <span className="text-[9px] sm:text-[10px] bg-slate-800 text-purple-300 px-1.5 sm:px-2 py-0.5 rounded border border-slate-700 font-mono">
                 Exposure: {(selectedSpeedMs / 1000).toFixed(2)}s
               </span>
-              <span className="text-[10px] bg-slate-800 text-cyan-300 px-2 py-0.5 rounded border border-slate-700 font-mono">
-                Grid: {gridDim}x{gridDim} ({gridDim * gridDim} Cells)
+              <span className="text-[9px] sm:text-[10px] bg-slate-800 text-cyan-300 px-1.5 sm:px-2 py-0.5 rounded border border-slate-700 font-mono">
+                Grid: {gridDim}x{gridDim}
               </span>
             </div>
-            <h2 className="text-xl sm:text-2xl font-black text-white flex items-center gap-2">
+            <h2 className="text-lg sm:text-2xl font-black text-white flex items-center gap-2">
               Symbol Detective Laboratory
             </h2>
-            <p className="text-xs text-slate-400 mt-0.5">
-              Multi-paradigm visual cortex research: Feature binding, pre-attentive search, change blindness & parallel subitizing.
+            <p className="text-[11px] sm:text-xs text-slate-400 mt-0.5">
+              Multi-paradigm visual cortex research: Feature binding, pop-out, change blindness & subitizing.
             </p>
           </div>
 
           {/* Telemetry Chips */}
-          <div className="flex items-center gap-2 sm:gap-3">
-            <div className="bg-slate-800/80 border border-slate-700/80 px-3 py-1.5 rounded-xl text-center">
-              <span className="text-[9px] uppercase font-bold text-slate-400 block">Streak</span>
-              <span className="text-base sm:text-lg font-black text-amber-400 flex items-center justify-center gap-0.5">
-                <Flame className="w-3.5 h-3.5 fill-amber-400" />
+          <div className="flex items-center gap-2 self-start sm:self-auto shrink-0">
+            <div className="bg-slate-800/80 border border-slate-700/80 px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-xl text-center">
+              <span className="text-[8px] sm:text-[9px] uppercase font-bold text-slate-400 block">Streak</span>
+              <span className="text-sm sm:text-lg font-black text-amber-400 flex items-center justify-center gap-0.5">
+                <Flame className="w-3 h-3 sm:w-3.5 sm:h-3.5 fill-amber-400" />
                 {streak}
               </span>
             </div>
-            <div className="bg-slate-800/80 border border-slate-700/80 px-3 py-1.5 rounded-xl text-center">
-              <span className="text-[9px] uppercase font-bold text-slate-400 block">Accuracy</span>
-              <span className="text-base sm:text-lg font-black text-emerald-400">{accuracyPct}%</span>
+            <div className="bg-slate-800/80 border border-slate-700/80 px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-xl text-center">
+              <span className="text-[8px] sm:text-[9px] uppercase font-bold text-slate-400 block">Accuracy</span>
+              <span className="text-sm sm:text-lg font-black text-emerald-400">{accuracyPct}%</span>
             </div>
-            <div className="bg-slate-800/80 border border-slate-700/80 px-3 py-1.5 rounded-xl text-center">
-              <span className="text-[9px] uppercase font-bold text-slate-400 block">Score</span>
-              <span className="text-base sm:text-lg font-black text-purple-300">{score}</span>
+            <div className="bg-slate-800/80 border border-slate-700/80 px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-xl text-center">
+              <span className="text-[8px] sm:text-[9px] uppercase font-bold text-slate-400 block">Score</span>
+              <span className="text-sm sm:text-lg font-black text-purple-300">{score}</span>
             </div>
           </div>
         </div>
 
         {/* Lab Protocol Switcher Tabs */}
-        <div className="mt-4 pt-3 border-t border-slate-800/80 flex items-center gap-1.5 overflow-x-auto pb-1">
+        <div className="mt-3.5 pt-3 border-t border-slate-800/80 flex items-center gap-1.5 overflow-x-auto pb-1 max-w-full">
           <button
             onClick={() => {
               if (stage === 'idle' || stage === 'result') {
@@ -691,7 +691,7 @@ export const SymbolDetectiveGame: React.FC<SymbolDetectiveGameProps> = ({
 
           {/* Matrix Board */}
           <div
-            className={`grid gap-2 sm:gap-2.5 p-3 sm:p-4 rounded-2xl bg-slate-950 border border-slate-800/90 w-full aspect-square max-w-[420px] ${
+            className={`grid gap-2 sm:gap-2.5 p-2.5 sm:p-4 rounded-2xl bg-slate-950 border border-slate-800/90 w-full aspect-square max-w-[280px] sm:max-w-[420px] ${
               gridDim === 2 ? 'grid-cols-2' : gridDim === 4 ? 'grid-cols-4' : 'grid-cols-3'
             }`}
           >

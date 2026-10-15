@@ -305,54 +305,49 @@ export const DualNBackGame: React.FC<DualNBackGameProps> = ({
   };
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-6">
+    <div className="w-full max-w-4xl mx-auto px-3 sm:px-4 py-4 sm:py-6 overflow-x-hidden">
       {/* Header Banner */}
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 mb-6 shadow-xl relative backdrop-blur">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <div className="flex flex-wrap items-center gap-2 mb-1">
+      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-5 mb-5 sm:mb-6 shadow-xl relative backdrop-blur">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 mb-1">
               {freePracticeActive ? (
-                <span className="text-xs font-black uppercase tracking-wider text-slate-950 bg-gradient-to-r from-cyan-400 to-indigo-300 px-3 py-0.5 rounded-full shadow-sm flex items-center gap-1">
+                <span className="text-[10px] sm:text-xs font-black uppercase tracking-wider text-slate-950 bg-gradient-to-r from-cyan-400 to-indigo-300 px-2.5 sm:px-3 py-0.5 rounded-full shadow-sm flex items-center gap-1">
                   <Sparkles className="w-3 h-3 text-slate-950" />
-                  Free Training Session • Unlimited Practice
+                  Free Training Session
                 </span>
               ) : (
-                <span className="text-xs font-bold uppercase tracking-wider text-cyan-400 bg-cyan-950/80 px-2.5 py-0.5 rounded-full border border-cyan-800/60 flex items-center gap-1">
-                  <Brain className="w-3.5 h-3.5" /> Step 3 of 6 • Dual N-Back
+                <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-cyan-400 bg-cyan-950/80 px-2 sm:px-2.5 py-0.5 rounded-full border border-cyan-800/60 flex items-center gap-1">
+                  <Brain className="w-3 h-3 sm:w-3.5 sm:h-3.5" /> Step 2 • Dual N-Back
                 </span>
               )}
-              <span className="text-[10px] bg-amber-950/70 text-amber-300 font-bold px-2 py-0.5 rounded border border-amber-700/60">
-                100% Perfect Strike Required
+              <span className="text-[9px] sm:text-[10px] bg-amber-950/70 text-amber-300 font-bold px-1.5 sm:px-2 py-0.5 rounded border border-amber-700/60">
+                100% Perfect Strike
               </span>
-              {!freePracticeActive && (
-                <span className="text-[10px] bg-cyan-950/70 text-cyan-300 font-bold px-2 py-0.5 rounded border border-cyan-700/60">
-                  2 Rounds Required ({completedRoundsToday}/2 Cleared)
-                </span>
-              )}
               {!freePracticeActive ? (
-                <span className="text-[10px] bg-slate-800 text-cyan-300 font-mono px-2 py-0.5 rounded border border-slate-700">
-                  {curriculumDay < 4 ? `Day ${curriculumDay} Target: N=1 (Calibration)` : `Day ${curriculumDay} Target: N=${dayLimit.targetN}`}
+                <span className="text-[9px] sm:text-[10px] bg-slate-800 text-cyan-300 font-mono px-1.5 sm:px-2 py-0.5 rounded border border-slate-700">
+                  {curriculumDay < 4 ? `Day ${curriculumDay}: N=1` : `Target: N=${dayLimit.targetN}`}
                 </span>
               ) : (
-                <span className="text-[10px] bg-emerald-950 text-emerald-300 font-bold px-2 py-0.5 rounded border border-emerald-700">
-                  All N-Levels Unlocked
+                <span className="text-[9px] sm:text-[10px] bg-emerald-950 text-emerald-300 font-bold px-1.5 sm:px-2 py-0.5 rounded border border-emerald-700">
+                  All N Unlocked
                 </span>
               )}
             </div>
-            <h2 className="text-xl font-extrabold text-white flex items-center gap-2">
+            <h2 className="text-lg sm:text-xl font-extrabold text-white flex items-center gap-2">
               Dual N-Back Laboratory
             </h2>
-            <p className="text-xs text-slate-400 mt-0.5">
+            <p className="text-[11px] sm:text-xs text-slate-400 mt-0.5">
               Simultaneously track spatial grid positions and auditory letters from{' '}
               <strong className="text-cyan-300 font-bold">
-                {n === 1 ? '1 step back (immediate consecutive repeat)' : `${n} steps back`}
+                {n === 1 ? '1 step back (immediate repeat)' : `${n} steps back`}
               </strong>.
             </p>
           </div>
 
           {/* Level Selector N=1..5 */}
-          <div className="flex items-center gap-2 bg-slate-800/80 border border-slate-700 p-1.5 rounded-xl">
-            <span className="text-xs text-slate-400 pl-2 font-medium">N-Level:</span>
+          <div className="flex items-center gap-1.5 sm:gap-2 bg-slate-800/80 border border-slate-700 p-1 sm:p-1.5 rounded-xl self-start sm:self-auto overflow-x-auto max-w-full">
+            <span className="text-[10px] sm:text-xs text-slate-400 pl-1 font-medium shrink-0">N:</span>
             <div className="flex items-center gap-1">
               {[1, 2, 3, 4, 5].map((level) => {
                 const isLocked = !freePracticeActive && level > dayLimit.maxN;
@@ -366,8 +361,8 @@ export const DualNBackGame: React.FC<DualNBackGameProps> = ({
                       setStage('idle');
                     }}
                     disabled={stage === 'running' || isLocked}
-                    title={isLocked ? `Strictly locked for Day ${curriculumDay}. Switch to Free Training to practice any N level.` : undefined}
-                    className={`px-3 py-1 rounded-lg text-xs font-black transition-all flex items-center gap-1 ${
+                    title={isLocked ? `Locked for Day ${curriculumDay}` : undefined}
+                    className={`px-2 sm:px-3 py-1 rounded-lg text-xs font-black transition-all flex items-center gap-0.5 ${
                       isLocked
                         ? 'text-slate-600 bg-slate-900/50 cursor-not-allowed border border-slate-800 opacity-60'
                         : n === level
@@ -377,7 +372,6 @@ export const DualNBackGame: React.FC<DualNBackGameProps> = ({
                   >
                     {isLocked ? <Lock className="w-2.5 h-2.5 text-amber-500/80" /> : null}
                     N={level}
-                    {isLocked && level === 2 ? <span className="text-[9px] text-amber-400/90 ml-0.5 font-normal">(Day 4)</span> : null}
                   </button>
                 );
               })}
@@ -387,11 +381,11 @@ export const DualNBackGame: React.FC<DualNBackGameProps> = ({
       </div>
 
       {/* Main Play Area */}
-      <div className="flex flex-col items-center">
-        <div className="relative p-6 bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl flex flex-col items-center w-full max-w-[540px]">
+      <div className="flex flex-col items-center w-full">
+        <div className="relative p-4 sm:p-6 bg-slate-900 border border-slate-800 rounded-2xl sm:rounded-3xl shadow-2xl flex flex-col items-center w-full max-w-[540px]">
           {/* Countdown */}
           {stage === 'countdown' && (
-            <div className="absolute inset-0 bg-slate-950/85 z-20 rounded-3xl flex flex-col items-center justify-center backdrop-blur-xs">
+            <div className="absolute inset-0 bg-slate-950/85 z-20 rounded-2xl sm:rounded-3xl flex flex-col items-center justify-center backdrop-blur-xs">
               <span className="text-xs font-semibold uppercase tracking-widest text-cyan-400 mb-2">
                 Engaging Executive Attention
               </span>
@@ -422,7 +416,7 @@ export const DualNBackGame: React.FC<DualNBackGameProps> = ({
           )}
 
           {/* 3x3 Spatial Grid */}
-          <div className="grid grid-cols-3 gap-3 p-4 rounded-2xl bg-slate-950 border border-slate-800/90 w-full aspect-square max-w-[340px] mb-6">
+          <div className="grid grid-cols-3 gap-2.5 sm:gap-3 p-3 sm:p-4 rounded-2xl bg-slate-950 border border-slate-800/90 w-full aspect-square max-w-[280px] sm:max-w-[340px] mb-5 sm:mb-6">
             {Array.from({ length: 9 }).map((_, cellIdx) => {
               const isActive = activeCell === cellIdx;
 

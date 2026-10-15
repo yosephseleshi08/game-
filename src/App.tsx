@@ -1024,7 +1024,7 @@ export default function App() {
   });
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-cyan-500 selection:text-slate-950">
+    <div className="min-h-screen w-full max-w-full overflow-x-hidden bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-cyan-500 selection:text-slate-950">
       {/* Top Header */}
       <Header
         stats={stats}
@@ -1172,12 +1172,12 @@ export default function App() {
 
         {/* Active Game Session & Daily 12 AM Timer Bar */}
         {isPlayingGame && (
-          <div className="max-w-4xl mx-auto px-4 pt-3 pb-1">
-            <div className="bg-gradient-to-r from-slate-900 via-slate-950 to-slate-900 border border-cyan-500/40 rounded-2xl p-3 flex flex-wrap items-center justify-between gap-3 shadow-xl backdrop-blur">
-              <div className="flex items-center gap-3">
-                <div className="relative flex items-center justify-center">
+          <div className="w-full max-w-4xl mx-auto px-3 sm:px-4 pt-2 sm:pt-3 pb-1">
+            <div className="bg-gradient-to-r from-slate-900 via-slate-950 to-slate-900 border border-cyan-500/40 rounded-2xl p-3 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 shadow-xl backdrop-blur">
+              <div className="flex items-start sm:items-center gap-2.5 sm:gap-3 min-w-0">
+                <div className="relative flex items-center justify-center shrink-0 mt-0.5 sm:mt-0">
                   <div
-                    className={`w-9 h-9 rounded-xl flex items-center justify-center border transition-all ${
+                    className={`w-8 h-8 sm:w-9 sm:h-9 rounded-xl flex items-center justify-center border transition-all ${
                       isGameTimerPaused
                         ? 'bg-amber-500/20 text-amber-300 border-amber-500/40'
                         : 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40'
@@ -1190,16 +1190,16 @@ export default function App() {
                   )}
                 </div>
 
-                <div>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="text-xs font-mono font-bold text-white flex items-center gap-1.5">
-                      Session Time:
-                      <span className="text-cyan-400 font-extrabold text-sm">
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                    <span className="text-xs font-mono font-bold text-white flex items-center gap-1">
+                      Session:
+                      <span className="text-cyan-400 font-extrabold text-xs sm:text-sm">
                         {formatTimerClock(currentGameSeconds)}
                       </span>
                     </span>
                     <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-cyan-950 text-cyan-300 border border-cyan-800">
-                      📅 Today: {formatTimerClock(freeTrainingStats.todaySeconds)}
+                      📅 {formatTimerClock(freeTrainingStats.todaySeconds)}
                     </span>
                     {activeModuleTarget && (
                       <span
@@ -1210,8 +1210,8 @@ export default function App() {
                         }`}
                         title="Yosi's 1-Hour Protocol: 20-minute module goal auto-verifies when completed"
                       >
-                        <Clock className="w-3 h-3" />
-                        1h Routine (20m): {isModuleGoalMet ? (
+                        <Clock className="w-2.5 h-2.5" />
+                        20m Target: {isModuleGoalMet ? (
                           <span className="text-emerald-300 font-bold">✓ Mastered</span>
                         ) : (
                           <span>
@@ -1221,14 +1221,14 @@ export default function App() {
                       </span>
                     )}
                   </div>
-                  <p className="text-[11px] text-slate-400 mt-0.5">
+                  <p className="text-[10px] sm:text-[11px] text-slate-400 mt-0.5 truncate">
                     {isGameTimerPaused ? (
                       <span className="text-amber-300 font-bold">Session paused</span>
                     ) : (
                       <>
-                        Auto-recording active play • Resets at 12:00 AM •{' '}
+                        Auto-recording • Resets at 12:00 AM •{' '}
                         <span className="text-emerald-400 font-medium">
-                          ~{Math.round((freeTrainingStats.todaySeconds / 60) * 1.5)}m doom scrolling saved
+                          ~{Math.round((freeTrainingStats.todaySeconds / 60) * 1.5)}m saved
                         </span>
                       </>
                     )}
@@ -1236,13 +1236,13 @@ export default function App() {
                 </div>
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 justify-end shrink-0">
                 <button
                   onClick={() => {
                     sound.playClick();
                     setIsGameTimerPaused(!isGameTimerPaused);
                   }}
-                  className={`px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1 cursor-pointer ${
+                  className={`flex-1 sm:flex-initial px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1 cursor-pointer ${
                     isGameTimerPaused
                       ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-sm'
                       : 'bg-slate-800 hover:bg-slate-700 text-amber-300 border border-slate-700'
@@ -1266,9 +1266,9 @@ export default function App() {
                     setFreeTrainingConfig(null);
                     setActiveMode('daily-protocol');
                   }}
-                  className="px-4 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5"
+                  className="flex-1 sm:flex-initial px-3.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1"
                 >
-                  ← Back to Protocol
+                  ← Protocol
                 </button>
               </div>
             </div>

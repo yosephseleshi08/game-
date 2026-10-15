@@ -72,26 +72,26 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
       : 100;
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-6">
+    <div className="w-full max-w-4xl mx-auto px-3 sm:px-4 py-4 sm:py-6 overflow-x-hidden">
       {/* Title */}
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 mb-6 shadow-xl flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <span className="text-xs font-bold uppercase tracking-wider text-cyan-400 bg-cyan-950/80 px-2.5 py-0.5 rounded-full border border-cyan-800/60">
+      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-5 mb-5 sm:mb-6 shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
+        <div className="min-w-0">
+          <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-cyan-400 bg-cyan-950/80 px-2 sm:px-2.5 py-0.5 rounded-full border border-cyan-800/60">
             Yoseph's Personal Telemetry
           </span>
-          <h2 className="text-xl font-extrabold text-white mt-1">
+          <h2 className="text-lg sm:text-xl font-extrabold text-white mt-1 truncate">
             Yosi's Cognitive Index & Telemetry
           </h2>
-          <p className="text-xs text-slate-400">
+          <p className="text-[11px] sm:text-xs text-slate-400">
             Personal cognitive analytics tracking Yoseph's 1-Hour Protocol speed, working memory, and data keys.
           </p>
         </div>
 
-        <div className="flex items-center gap-2.5 flex-wrap">
+        <div className="flex items-center gap-2 sm:gap-2.5 flex-wrap self-start sm:self-auto shrink-0">
           {/* Quick Type of Guy Badge Trigger */}
           <button
             onClick={() => onOpenArchetype ? onOpenArchetype() : setActiveTab('archetype')}
-            className={`px-3 py-1.5 rounded-xl border text-xs font-bold flex items-center gap-1.5 transition-all shadow-sm cursor-pointer bg-slate-800/90 ${archetype.borderAccent} ${archetype.textAccent} hover:bg-slate-700`}
+            className={`px-2.5 sm:px-3 py-1.5 rounded-xl border text-xs font-bold flex items-center gap-1.5 transition-all shadow-sm cursor-pointer bg-slate-800/90 ${archetype.borderAccent} ${archetype.textAccent} hover:bg-slate-700`}
             title="Inspect your Type of Guy athlete persona"
           >
             <span>{archetype.emoji}</span>
@@ -100,63 +100,63 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
             <Sparkles className="w-3.5 h-3.5 text-amber-400" />
           </button>
 
-          <div className="bg-slate-800/80 border border-slate-700 px-3 py-1.5 rounded-xl text-center">
-            <span className="text-[10px] text-slate-400 block uppercase font-bold">Accuracy</span>
-            <span className="text-base font-black text-emerald-400">{accuracy}%</span>
+          <div className="bg-slate-800/80 border border-slate-700 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl text-center">
+            <span className="text-[8px] sm:text-[10px] text-slate-400 block uppercase font-bold">Accuracy</span>
+            <span className="text-sm sm:text-base font-black text-emerald-400">{accuracy}%</span>
           </div>
-          <div className="bg-slate-800/80 border border-slate-700 px-3 py-1.5 rounded-xl text-center">
-            <span className="text-[10px] text-slate-400 block uppercase font-bold">Total XP</span>
-            <span className="text-base font-black text-cyan-400">{stats.xp}</span>
+          <div className="bg-slate-800/80 border border-slate-700 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl text-center">
+            <span className="text-[8px] sm:text-[10px] text-slate-400 block uppercase font-bold">Total XP</span>
+            <span className="text-sm sm:text-base font-black text-cyan-400">{stats.xp}</span>
           </div>
         </div>
       </div>
 
       {/* Fresh Start & Backup Strip */}
-      <div className="bg-gradient-to-r from-cyan-950/50 via-slate-900 to-slate-900 border border-cyan-500/40 rounded-2xl p-3.5 mb-6 shadow-lg flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-cyan-500/20 border border-cyan-500/40 flex items-center justify-center text-cyan-400 shrink-0">
-            <Flame className="w-5 h-5 fill-cyan-400" />
+      <div className="bg-gradient-to-r from-cyan-950/50 via-slate-900 to-slate-900 border border-cyan-500/40 rounded-2xl p-3 sm:p-3.5 mb-5 sm:mb-6 shadow-lg flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+          <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-cyan-500/20 border border-cyan-500/40 flex items-center justify-center text-cyan-400 shrink-0">
+            <Flame className="w-4 h-4 sm:w-5 sm:h-5 fill-cyan-400" />
           </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="text-white font-bold text-xs">Yosi Game Telemetry & Backup</span>
-              <span className="text-[10px] px-2 py-0.5 rounded-full bg-cyan-900/60 text-cyan-300 font-mono font-bold border border-cyan-700/60">
-                {stats.currentStreak} Days Streak
+          <div className="min-w-0">
+            <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+              <span className="text-white font-bold text-xs truncate">Yosi Game Telemetry & Backup</span>
+              <span className="text-[9px] sm:text-[10px] px-1.5 sm:px-2 py-0.5 rounded-full bg-cyan-900/60 text-cyan-300 font-mono font-bold border border-cyan-700/60">
+                {stats.currentStreak} Days
               </span>
             </div>
-            <p className="text-[11px] text-slate-400">
-              Clean state active. You can reset to Day 1 (0 XP) or export your offline backup anytime.
+            <p className="text-[10px] sm:text-[11px] text-slate-400 truncate">
+              Clean state active. Reset to Day 1 (0 XP) or export your offline backup anytime.
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 self-stretch sm:self-auto justify-end shrink-0">
           <button
             onClick={() => {
               if (confirm('Reset all progress to clean Day 1 / 0 XP start?')) {
                 if (onRestoreStreak) onRestoreStreak();
               }
             }}
-            className="px-3 py-1.5 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/40 font-bold text-xs transition-all flex items-center gap-1.5 cursor-pointer active:scale-95"
+            className="flex-1 sm:flex-initial px-2.5 sm:px-3 py-1.5 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/40 font-bold text-xs transition-all flex items-center justify-center gap-1 cursor-pointer active:scale-95"
           >
             <RotateCcw className="w-3.5 h-3.5" />
-            <span>Reset (0 XP)</span>
+            <span>Reset</span>
           </button>
           <button
             onClick={() => {
               exportDataBackupFile();
             }}
-            className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 font-bold text-xs transition-all flex items-center gap-1.5 cursor-pointer"
+            className="flex-1 sm:flex-initial px-2.5 sm:px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 font-bold text-xs transition-all flex items-center justify-center gap-1 cursor-pointer"
             title="Download full progress backup JSON file"
           >
             <Download className="w-3.5 h-3.5 text-cyan-400" />
-            <span>Download Save (.json)</span>
+            <span>Save (.json)</span>
           </button>
         </div>
       </div>
 
       {/* Tabs Header */}
-      <div className="flex items-center gap-2 mb-6 border-b border-slate-800 pb-2 overflow-x-auto">
+      <div className="flex items-center gap-1.5 sm:gap-2 mb-5 sm:mb-6 border-b border-slate-800 pb-2 overflow-x-auto touch-scroll-x max-w-full">
         <button
           onClick={() => setActiveTab('heatmap')}
           className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 ${

@@ -235,44 +235,44 @@ export const ManualMemoryPalaceTimer: React.FC<ManualMemoryPalaceTimerProps> = (
 
   return (
     <div
-      className={`rounded-3xl border transition-all duration-300 relative overflow-hidden backdrop-blur ${
+      className={`rounded-2xl sm:rounded-3xl border transition-all duration-300 relative overflow-hidden backdrop-blur w-full max-w-full ${
         isFullscreen
-          ? 'fixed inset-0 z-50 bg-slate-950 p-6 flex flex-col justify-between overflow-y-auto'
-          : 'bg-gradient-to-b from-slate-900/90 via-slate-950/90 to-slate-900/90 border-amber-500/30 p-6 shadow-2xl'
+          ? 'fixed inset-0 z-50 bg-slate-950 p-4 sm:p-6 flex flex-col justify-between overflow-y-auto'
+          : 'bg-gradient-to-b from-slate-900/90 via-slate-950/90 to-slate-900/90 border-amber-500/30 p-4 sm:p-6 shadow-2xl'
       }`}
     >
       {/* Background Ambient Glow */}
-      <div className="absolute top-0 right-0 -mr-20 -mt-20 w-64 h-64 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute bottom-0 left-0 -ml-20 -mb-20 w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute top-0 right-0 -mr-20 -mt-20 w-48 sm:w-64 h-48 sm:h-64 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute bottom-0 left-0 -ml-20 -mb-20 w-48 sm:w-64 h-48 sm:h-64 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
 
       {/* Header bar */}
-      <div className="flex flex-wrap items-center justify-between gap-3 mb-6 relative z-10">
-        <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-amber-500 to-orange-600 p-0.5 shadow-lg shadow-amber-500/20 shrink-0">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-5 sm:mb-6 relative z-10">
+        <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-tr from-amber-500 to-orange-600 p-0.5 shadow-lg shadow-amber-500/20 shrink-0">
             <div className="w-full h-full bg-slate-950 rounded-[14px] flex items-center justify-center">
-              <Castle className="w-6 h-6 text-amber-400" />
+              <Castle className="w-5 h-5 sm:w-6 sm:h-6 text-amber-400" />
             </div>
           </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40">
-                Mandatory Protocol Step 4
+          <div className="min-w-0">
+            <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+              <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40">
+                Mandatory Step 4
               </span>
-              <span className="text-[11px] font-mono text-slate-400">
-                1 Hour (60 Min) Offline
+              <span className="text-[10px] sm:text-[11px] font-mono text-slate-400">
+                1 Hour (60 Min)
               </span>
             </div>
-            <h3 className="text-lg sm:text-xl font-black text-white mt-0.5">
+            <h3 className="text-base sm:text-xl font-black text-white mt-0.5 truncate">
               Manual Memory Palace Focus Timer
             </h3>
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
           {/* Alpha Soundscape Button */}
           <button
             onClick={toggleAlphaSound}
-            className={`p-2.5 rounded-xl border text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+            className={`p-2 sm:p-2.5 rounded-xl border text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
               isAlphaSoundOn
                 ? 'bg-amber-500/20 border-amber-500/50 text-amber-300 ring-1 ring-amber-400/40'
                 : 'bg-slate-800/80 border-slate-700 text-slate-400 hover:text-slate-200'
@@ -280,13 +280,13 @@ export const ManualMemoryPalaceTimer: React.FC<ManualMemoryPalaceTimerProps> = (
             title="Toggle 10Hz Alpha Brainwave Ambiance Drone"
           >
             {isAlphaSoundOn ? <Volume2 className="w-4 h-4 text-amber-400 animate-pulse" /> : <VolumeX className="w-4 h-4" />}
-            <span className="hidden sm:inline">10Hz Alpha Tone</span>
+            <span className="text-[11px] sm:text-xs">Alpha Tone</span>
           </button>
 
           {/* Fullscreen Toggle */}
           <button
             onClick={() => setIsFullscreen(!isFullscreen)}
-            className="p-2.5 rounded-xl bg-slate-800/80 border border-slate-700 text-slate-300 hover:text-white transition-all cursor-pointer"
+            className="p-2 sm:p-2.5 rounded-xl bg-slate-800/80 border border-slate-700 text-slate-300 hover:text-white transition-all cursor-pointer"
             title={isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen Zen Mode'}
           >
             {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
@@ -295,22 +295,22 @@ export const ManualMemoryPalaceTimer: React.FC<ManualMemoryPalaceTimerProps> = (
       </div>
 
       {/* Main Digital Clock & Circular Gauge */}
-      <div className="flex flex-col items-center justify-center my-4 relative z-10">
+      <div className="flex flex-col items-center justify-center my-2 sm:my-4 relative z-10 w-full">
         <div className="relative flex items-center justify-center">
           {/* Circular SVG Progress Ring */}
-          <svg className="w-56 h-56 sm:w-64 sm:h-64 transform -rotate-90">
+          <svg className="w-44 h-44 sm:w-60 sm:h-60 transform -rotate-90">
             <circle
               cx="50%"
               cy="50%"
-              r="42%"
+              r="40%"
               className="stroke-slate-800"
-              strokeWidth="8"
+              strokeWidth="7"
               fill="transparent"
             />
             <circle
               cx="50%"
               cy="50%"
-              r="42%"
+              r="40%"
               className={`transition-all duration-500 ${
                 isCompleted
                   ? 'stroke-emerald-400'
@@ -318,35 +318,35 @@ export const ManualMemoryPalaceTimer: React.FC<ManualMemoryPalaceTimerProps> = (
                   ? 'stroke-amber-400'
                   : 'stroke-amber-500/60'
               }`}
-              strokeWidth="8"
-              strokeDasharray={2 * Math.PI * 105}
-              strokeDashoffset={2 * Math.PI * 105 * (1 - progressPercent / 100)}
+              strokeWidth="7"
+              strokeDasharray={2 * Math.PI * 95}
+              strokeDashoffset={2 * Math.PI * 95 * (1 - progressPercent / 100)}
               strokeLinecap="round"
               fill="transparent"
             />
           </svg>
 
           {/* Time text centered inside gauge */}
-          <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
+          <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-2">
             {isCompleted ? (
               <div className="flex flex-col items-center animate-in zoom-in duration-300">
-                <div className="w-12 h-12 rounded-2xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 flex items-center justify-center mb-2">
-                  <CheckCircle2 className="w-7 h-7" />
+                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 flex items-center justify-center mb-1.5 sm:mb-2">
+                  <CheckCircle2 className="w-6 h-6 sm:w-7 sm:h-7" />
                 </div>
-                <span className="text-xs uppercase font-extrabold text-emerald-400 tracking-wider">
-                  60 Min Completed
+                <span className="text-[10px] sm:text-xs uppercase font-extrabold text-emerald-400 tracking-wider">
+                  60m Done
                 </span>
-                <span className="text-xl font-black text-white mt-1">Mastered Today</span>
+                <span className="text-base sm:text-xl font-black text-white mt-0.5">Mastered</span>
               </div>
             ) : (
               <>
-                <span className="text-[10px] sm:text-xs uppercase font-mono tracking-widest text-slate-400 mb-1">
-                  {isRunning ? '⏳ Focus In Progress' : '⏸️ Sitting Practice'}
+                <span className="text-[9px] sm:text-xs uppercase font-mono tracking-widest text-slate-400 mb-0.5 sm:mb-1">
+                  {isRunning ? '⏳ Focus Active' : '⏸️ Sitting Practice'}
                 </span>
-                <span className="text-4xl sm:text-5xl font-mono font-black text-white tracking-tight drop-shadow-md">
+                <span className="text-3xl sm:text-5xl font-mono font-black text-white tracking-tight drop-shadow-md">
                   {formatTime(remainingSeconds)}
                 </span>
-                <span className="text-xs text-amber-300/80 font-mono mt-1 font-bold">
+                <span className="text-[10px] sm:text-xs text-amber-300/80 font-mono mt-0.5 sm:mt-1 font-bold">
                   {formatTime(elapsedSeconds)} / 60:00 ({progressPercent}%)
                 </span>
               </>
@@ -355,13 +355,13 @@ export const ManualMemoryPalaceTimer: React.FC<ManualMemoryPalaceTimerProps> = (
         </div>
 
         {/* Action Controls */}
-        <div className="flex items-center gap-3 mt-6">
+        <div className="flex items-center gap-2 sm:gap-3 mt-4 sm:mt-6 w-full max-w-xs justify-center">
           {!isCompleted ? (
             <>
               <button
                 id="memory-palace-play-pause-btn"
                 onClick={toggleTimer}
-                className={`px-8 py-3.5 rounded-2xl font-black text-sm flex items-center gap-2 shadow-xl cursor-pointer active:scale-95 transition-all ${
+                className={`flex-1 px-4 sm:px-8 py-3 sm:py-3.5 rounded-2xl font-black text-xs sm:text-sm flex items-center justify-center gap-2 shadow-xl cursor-pointer active:scale-95 transition-all ${
                   isRunning
                     ? 'bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/50'
                     : 'bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 shadow-amber-500/20'
@@ -369,13 +369,13 @@ export const ManualMemoryPalaceTimer: React.FC<ManualMemoryPalaceTimerProps> = (
               >
                 {isRunning ? (
                   <>
-                    <Pause className="w-5 h-5 fill-amber-300" />
-                    <span>Pause Timer</span>
+                    <Pause className="w-4 h-4 sm:w-5 sm:h-5 fill-amber-300" />
+                    <span>Pause</span>
                   </>
                 ) : (
                   <>
-                    <Play className="w-5 h-5 fill-slate-950" />
-                    <span>{elapsedSeconds > 0 ? 'Resume 60m Training' : 'Start 1-Hour Palace Timer'}</span>
+                    <Play className="w-4 h-4 sm:w-5 sm:h-5 fill-slate-950" />
+                    <span>{elapsedSeconds > 0 ? 'Resume' : 'Start 1h Timer'}</span>
                   </>
                 )}
               </button>
@@ -383,16 +383,16 @@ export const ManualMemoryPalaceTimer: React.FC<ManualMemoryPalaceTimerProps> = (
               <button
                 onClick={() => setShowResetConfirm(true)}
                 disabled={elapsedSeconds === 0}
-                className="p-3.5 rounded-2xl bg-slate-800/80 hover:bg-slate-700 border border-slate-700 text-slate-400 hover:text-slate-200 transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                className="p-3 sm:p-3.5 rounded-2xl bg-slate-800/80 hover:bg-slate-700 border border-slate-700 text-slate-400 hover:text-slate-200 transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed shrink-0"
                 title="Reset timer to 60:00"
               >
-                <RotateCcw className="w-5 h-5" />
+                <RotateCcw className="w-4 h-4 sm:w-5 sm:h-5" />
               </button>
             </>
           ) : (
-            <div className="px-5 py-2.5 rounded-2xl bg-emerald-950/80 border border-emerald-500/40 text-emerald-300 text-xs font-bold flex items-center gap-2 shadow-lg">
-              <ShieldCheck className="w-4 h-4 text-emerald-400" />
-              <span>1-Hour Manual Palace Banked for Day {curriculumDay}! Locked until tomorrow.</span>
+            <div className="w-full px-4 py-2.5 rounded-2xl bg-emerald-950/80 border border-emerald-500/40 text-emerald-300 text-xs font-bold flex items-center justify-center gap-2 shadow-lg text-center">
+              <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
+              <span>1-Hour Palace Mastered for Day {curriculumDay}!</span>
             </div>
           )}
         </div>

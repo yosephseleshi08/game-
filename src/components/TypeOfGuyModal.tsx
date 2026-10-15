@@ -69,23 +69,23 @@ export const TypeOfGuyModal: React.FC<TypeOfGuyModalProps> = ({
         <div className={`absolute -bottom-32 -right-32 w-72 h-72 rounded-full bg-gradient-to-bl ${archetype.auraGradient} opacity-20 blur-3xl pointer-events-none`} />
 
         {/* Top header bar */}
-        <div className="relative flex items-center justify-between gap-3 mb-5 border-b border-slate-800 pb-3">
-          <div className="flex items-center gap-2.5">
-            <span className="text-2xl">{archetype.emoji}</span>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="text-[10px] font-black uppercase tracking-widest text-cyan-400 bg-cyan-950/90 px-2 py-0.5 rounded-full border border-cyan-800/60 flex items-center gap-1">
+        <div className="relative flex items-start justify-between gap-2.5 mb-4 sm:mb-5 border-b border-slate-800 pb-3">
+          <div className="flex items-start gap-2.5 min-w-0">
+            <span className="text-2xl shrink-0 mt-0.5">{archetype.emoji}</span>
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-cyan-400 bg-cyan-950/90 px-2 py-0.5 rounded-full border border-cyan-800/60 flex items-center gap-1">
                   <Activity className="w-3 h-3 text-cyan-400" />
-                  Yosi's Cognitive Persona Diagnostic
+                  Yosi's Persona Diagnostic
                 </span>
-                <span className="text-[10px] uppercase font-bold text-amber-300">
+                <span className="text-[9px] sm:text-[10px] uppercase font-bold text-amber-300">
                   For Yoseph
                 </span>
-                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border bg-slate-800/80 ${archetype.borderAccent} ${archetype.textAccent}`}>
+                <span className={`text-[9px] sm:text-[10px] font-bold px-2 py-0.5 rounded-full border bg-slate-800/80 ${archetype.borderAccent} ${archetype.textAccent}`}>
                   {archetype.tierName} (Tier {archetype.tierLevel})
                 </span>
               </div>
-              <h3 className="text-xs font-semibold text-slate-400 mt-0.5">
+              <h3 className="text-[11px] sm:text-xs font-semibold text-slate-400 mt-1 line-clamp-2">
                 Calculated strictly from your verified active practice & cognitive telemetry
               </h3>
             </div>

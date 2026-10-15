@@ -200,20 +200,20 @@ export const DailyProtocolTracker: React.FC<DailyProtocolTrackerProps> = ({
   });
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-6">
+    <div className="w-full max-w-4xl mx-auto px-3 sm:px-4 py-4 sm:py-6 overflow-x-hidden">
       {/* Top Protocol Header */}
-      <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 mb-6 shadow-2xl relative overflow-hidden backdrop-blur">
-        <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
-          <div>
-            <div className="flex items-center gap-2 mb-1.5 flex-wrap">
-              <span className="text-xs font-bold uppercase tracking-wider text-emerald-400 bg-emerald-950/80 px-3 py-0.5 rounded-full border border-emerald-800/60 flex items-center gap-1">
-                <Calendar className="w-3.5 h-3.5" /> 365-Day Real Calendar Training
+      <div className="bg-slate-900 border border-slate-800 rounded-2xl sm:rounded-3xl p-4 sm:p-6 mb-5 sm:mb-6 shadow-2xl relative overflow-hidden backdrop-blur">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+          <div className="min-w-0">
+            <div className="flex items-center gap-1.5 sm:gap-2 mb-1.5 flex-wrap">
+              <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-emerald-400 bg-emerald-950/80 px-2.5 sm:px-3 py-0.5 rounded-full border border-emerald-800/60 flex items-center gap-1">
+                <Calendar className="w-3 h-3 sm:w-3.5 sm:h-3.5" /> 365-Day Calendar
               </span>
-              <span className="text-xs text-cyan-300 font-mono font-bold bg-cyan-950/80 px-2.5 py-0.5 rounded-full border border-cyan-800/60">
-                {new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric', year: 'numeric' })}
+              <span className="text-[10px] sm:text-xs text-cyan-300 font-mono font-bold bg-cyan-950/80 px-2 sm:px-2.5 py-0.5 rounded-full border border-cyan-800/60">
+                {new Date().toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
               </span>
             </div>
-            <h2 className="text-2xl sm:text-3xl font-black text-white flex items-center gap-2">
+            <h2 className="text-xl sm:text-3xl font-black text-white flex items-center gap-2 truncate">
               Yosi's Day {protocol.curriculumDay} Protocol
             </h2>
             <p className="text-xs text-slate-300 mt-1 max-w-xl leading-relaxed">
@@ -223,41 +223,41 @@ export const DailyProtocolTracker: React.FC<DailyProtocolTrackerProps> = ({
           </div>
 
           {/* 12 AM Reset Countdown Card */}
-          <div className="bg-slate-950/80 border border-slate-800 p-3.5 rounded-2xl flex flex-col items-center min-w-[170px] shadow-inner">
+          <div className="bg-slate-950/80 border border-slate-800 p-3 sm:p-3.5 rounded-2xl flex flex-col items-center w-full sm:w-auto sm:min-w-[170px] shadow-inner shrink-0">
             <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider flex items-center gap-1 mb-1">
               <Clock className="w-3 h-3 text-cyan-400" />
               12:00 AM Midnight Reset
             </span>
-            <div className="text-xl font-mono font-black text-cyan-400 tracking-tight">
+            <div className="text-lg sm:text-xl font-mono font-black text-cyan-400 tracking-tight">
               {String(timeLeft.hours).padStart(2, '0')}:{String(timeLeft.minutes).padStart(2, '0')}:
               {String(timeLeft.seconds).padStart(2, '0')}
             </div>
-            <span className="text-[9px] text-slate-500 mt-0.5 font-medium">
-              {protocol.isLockedOut ? 'Locked until 12:00 AM' : 'Daily deadline resets at midnight'}
+            <span className="text-[9px] text-slate-500 mt-0.5 font-medium text-center">
+              {protocol.isLockedOut ? 'Locked until 12:00 AM' : 'Resets at midnight'}
             </span>
           </div>
         </div>
 
         {/* Real Calendar 7-Day Streak & History Strip */}
-        <div className="bg-slate-950/70 border border-slate-800/80 rounded-2xl p-3.5 mb-4">
-          <div className="flex items-center justify-between gap-2 mb-2.5">
-            <div className="flex items-center gap-2">
-              <Flame className="w-4 h-4 text-orange-400 fill-orange-400" />
+        <div className="bg-slate-950/70 border border-slate-800/80 rounded-2xl p-2.5 sm:p-3.5 mb-4">
+          <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+            <div className="flex items-center gap-1.5">
+              <Flame className="w-3.5 h-3.5 text-orange-400 fill-orange-400" />
               <span className="text-xs font-bold text-white">
-                Active Calendar Streak: <span className="text-amber-300 font-mono font-black">{currentStreak} Days</span>
+                Active Streak: <span className="text-amber-300 font-mono font-black">{currentStreak} Days</span>
               </span>
             </div>
-            <div className="flex items-center gap-2 text-[10px] text-slate-400 font-medium">
-              <span className="flex items-center gap-1 text-emerald-400"><CheckCircle2 className="w-3 h-3" /> Green = Done</span>
-              <span className="flex items-center gap-1 text-rose-400"><XCircle className="w-3 h-3" /> Red = Missed</span>
+            <div className="flex items-center gap-2 text-[9px] sm:text-[10px] text-slate-400 font-medium">
+              <span className="flex items-center gap-1 text-emerald-400"><CheckCircle2 className="w-3 h-3" /> Done</span>
+              <span className="flex items-center gap-1 text-rose-400"><XCircle className="w-3 h-3" /> Missed</span>
             </div>
           </div>
 
-          <div className="grid grid-cols-7 gap-1.5 sm:gap-2">
+          <div className="grid grid-cols-7 gap-1 sm:gap-2">
             {recentDays.map((day) => (
               <div
                 key={day.dateStr}
-                className={`p-2 rounded-xl border text-center transition-all ${
+                className={`p-1 sm:p-2 rounded-xl border text-center transition-all min-w-0 ${
                   day.isToday
                     ? day.status === 'completed'
                       ? 'bg-emerald-500/20 border-emerald-400 text-emerald-200 ring-2 ring-emerald-500/40'
@@ -267,19 +267,19 @@ export const DailyProtocolTracker: React.FC<DailyProtocolTrackerProps> = ({
                     : 'bg-rose-950/50 border-rose-600/40 text-rose-300'
                 }`}
               >
-                <span className="text-[10px] block uppercase font-mono font-bold opacity-80">
+                <span className="text-[8px] sm:text-[10px] block uppercase font-mono font-bold opacity-80 truncate">
                   {day.dayLabel}
                 </span>
-                <span className="text-xs font-black block my-0.5">
+                <span className="text-[11px] sm:text-xs font-black block my-0.5">
                   {day.dayNum}
                 </span>
-                <span className="text-[9px] font-bold block">
+                <span className="text-[8px] sm:text-[9px] font-bold block truncate">
                   {day.status === 'completed' ? (
                     <span className="text-emerald-400">PASSED</span>
                   ) : day.isToday ? (
                     <span className="text-amber-300">TODAY</span>
                   ) : (
-                    <span className="text-rose-400">FAILED</span>
+                    <span className="text-rose-400">MISSED</span>
                   )}
                 </span>
               </div>
@@ -415,9 +415,9 @@ export const DailyProtocolTracker: React.FC<DailyProtocolTrackerProps> = ({
                     </div>
                   </div>
 
-                  <div className="self-end sm:self-center shrink-0">
+                  <div className="w-full sm:w-auto self-stretch sm:self-center shrink-0 mt-2 sm:mt-0">
                     {isLocked ? (
-                      <div className="px-4 py-2 rounded-xl bg-slate-800/80 border border-emerald-500/30 text-emerald-300 text-xs font-bold flex items-center gap-1.5">
+                      <div className="w-full sm:w-auto px-4 py-2 rounded-xl bg-slate-800/80 border border-emerald-500/30 text-emerald-300 text-xs font-bold flex items-center justify-center gap-1.5">
                         <Lock className="w-3.5 h-3.5" />
                         <span>Completed & Locked</span>
                       </div>
@@ -427,7 +427,7 @@ export const DailyProtocolTracker: React.FC<DailyProtocolTrackerProps> = ({
                           sound.playClick();
                           onNavigateMode('mnemonic-pegs');
                         }}
-                        className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black text-xs transition-all shadow-md shadow-amber-500/20 flex items-center gap-1.5 cursor-pointer active:scale-95"
+                        className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black text-xs transition-all shadow-md shadow-amber-500/20 flex items-center justify-center gap-1.5 cursor-pointer active:scale-95"
                       >
                         <span>Start 20m Session</span>
                         <ArrowRight className="w-3.5 h-3.5" />
@@ -497,9 +497,9 @@ export const DailyProtocolTracker: React.FC<DailyProtocolTrackerProps> = ({
                     </div>
                   </div>
 
-                  <div className="self-end sm:self-center shrink-0">
+                  <div className="w-full sm:w-auto self-stretch sm:self-center shrink-0 mt-2 sm:mt-0">
                     {isLocked ? (
-                      <div className="px-4 py-2 rounded-xl bg-slate-800/80 border border-emerald-500/30 text-emerald-300 text-xs font-bold flex items-center gap-1.5">
+                      <div className="w-full sm:w-auto px-4 py-2 rounded-xl bg-slate-800/80 border border-emerald-500/30 text-emerald-300 text-xs font-bold flex items-center justify-center gap-1.5">
                         <Lock className="w-3.5 h-3.5" />
                         <span>Completed & Locked</span>
                       </div>
@@ -509,7 +509,7 @@ export const DailyProtocolTracker: React.FC<DailyProtocolTrackerProps> = ({
                           sound.playClick();
                           onNavigateMode('dual-nback');
                         }}
-                        className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 text-slate-950 font-black text-xs transition-all shadow-md shadow-sky-500/20 flex items-center gap-1.5 cursor-pointer active:scale-95"
+                        className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 text-slate-950 font-black text-xs transition-all shadow-md shadow-sky-500/20 flex items-center justify-center gap-1.5 cursor-pointer active:scale-95"
                       >
                         <span>Start 20m Session</span>
                         <ArrowRight className="w-3.5 h-3.5" />
@@ -579,9 +579,9 @@ export const DailyProtocolTracker: React.FC<DailyProtocolTrackerProps> = ({
                     </div>
                   </div>
 
-                  <div className="self-end sm:self-center shrink-0">
+                  <div className="w-full sm:w-auto self-stretch sm:self-center shrink-0 mt-2 sm:mt-0">
                     {isLocked ? (
-                      <div className="px-4 py-2 rounded-xl bg-slate-800/80 border border-emerald-500/30 text-emerald-300 text-xs font-bold flex items-center gap-1.5">
+                      <div className="w-full sm:w-auto px-4 py-2 rounded-xl bg-slate-800/80 border border-emerald-500/30 text-emerald-300 text-xs font-bold flex items-center justify-center gap-1.5">
                         <Lock className="w-3.5 h-3.5" />
                         <span>Completed & Locked</span>
                       </div>
@@ -591,7 +591,7 @@ export const DailyProtocolTracker: React.FC<DailyProtocolTrackerProps> = ({
                           sound.playClick();
                           onNavigateMode('symbol-detective');
                         }}
-                        className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-400 hover:to-pink-500 text-white font-black text-xs transition-all shadow-md shadow-purple-500/20 flex items-center gap-1.5 cursor-pointer active:scale-95"
+                        className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-400 hover:to-pink-500 text-white font-black text-xs transition-all shadow-md shadow-purple-500/20 flex items-center justify-center gap-1.5 cursor-pointer active:scale-95"
                       >
                         <span>Start 20m Session</span>
                         <ArrowRight className="w-3.5 h-3.5" />

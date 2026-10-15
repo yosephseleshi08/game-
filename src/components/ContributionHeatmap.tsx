@@ -240,9 +240,9 @@ export const ContributionHeatmap: React.FC<ContributionHeatmapProps> = ({
   };
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-200">
+    <div className="space-y-5 sm:space-y-6 animate-in fade-in duration-200 w-full max-w-full overflow-x-hidden">
       {/* Top Header Card */}
-      <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 sm:p-6 shadow-xl relative overflow-hidden">
+      <div className="bg-slate-900 border border-slate-800 rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-xl relative overflow-hidden">
         <div className="flex flex-wrap items-center justify-between gap-4 relative z-10 mb-4">
           <div className="flex items-center gap-3">
             <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-emerald-500 via-cyan-400 to-indigo-500 p-0.5 shadow-lg shadow-cyan-500/20 shrink-0">
@@ -349,10 +349,10 @@ export const ContributionHeatmap: React.FC<ContributionHeatmapProps> = ({
       </div>
 
       {/* Main Heatmap Grid Card */}
-      <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 sm:p-6 shadow-xl">
+      <div className="bg-slate-900 border border-slate-800 rounded-2xl sm:rounded-3xl p-3.5 sm:p-6 shadow-xl w-full max-w-full overflow-hidden">
         {/* Time range selector */}
-        <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-          <div className="flex items-center gap-1.5 bg-slate-950 p-1 rounded-xl border border-slate-800">
+        <div className="flex flex-wrap items-center justify-between gap-2.5 sm:gap-3 mb-4">
+          <div className="flex flex-wrap items-center gap-1 sm:gap-1.5 bg-slate-950 p-1 rounded-xl border border-slate-800 max-w-full">
             <button
               onClick={() => {
                 sound.playClick();
@@ -393,8 +393,13 @@ export const ContributionHeatmap: React.FC<ContributionHeatmapProps> = ({
           </div>
         </div>
 
+        {/* Mobile Swipe Hint */}
+        <div className="flex items-center justify-between sm:hidden text-[10px] text-cyan-400 font-mono mb-1.5 px-1">
+          <span>← Swipe horizontally to view full calendar history →</span>
+        </div>
+
         {/* Heatmap Grid */}
-        <div className="overflow-x-auto pb-3 pt-2 scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-slate-950">
+        <div className="overflow-x-auto pb-3 pt-2 scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-slate-950 touch-scroll-x">
           <div className="min-w-[700px] inline-block select-none">
             <div className="flex gap-2">
               {/* Day Labels */}
