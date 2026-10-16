@@ -681,12 +681,15 @@ export function loadFreeTrainingStats(curriculumDay: number = 1): FreeTrainingSe
     };
 
     // Check if 12:00 AM midnight rollover occurred
-    if (stats.currentDayCycle && stats.currentDayCycle !== currentCycle) {
+    const savedDateStr = (stats.currentDayCycle || '').slice(0, 10);
+    const currentDateStr = (currentCycle || '').slice(0, 10);
+
+    if (savedDateStr && currentDateStr && savedDateStr !== currentDateStr) {
       if (stats.todaySeconds > 0 || stats.todayReps > 0) {
-        const prevDate = stats.lastSessionDate ? stats.lastSessionDate.split('T')[0] : 'Previous Day';
-        stats.dailyHistory[stats.currentDayCycle] = {
+        const prevDate = stats.lastSessionDate ? stats.lastSessionDate.split('T')[0] : savedDateStr;
+        stats.dailyHistory[savedDateStr] = {
           date: prevDate,
-          cycleKey: stats.currentDayCycle,
+          cycleKey: savedDateStr,
           curriculumDay: stats.todayCurriculumDay || curriculumDay,
           seconds: stats.todaySeconds,
           reps: stats.todayReps,
@@ -694,7 +697,7 @@ export function loadFreeTrainingStats(curriculumDay: number = 1): FreeTrainingSe
         };
       }
       // Reset for today's new 12:00 AM cycle
-      stats.currentDayCycle = currentCycle;
+      stats.currentDayCycle = currentDateStr;
       stats.todayCurriculumDay = curriculumDay;
       stats.todaySeconds = 0;
       stats.todayReps = 0;
@@ -728,21 +731,23 @@ export function recordFreeTrainingTime(
   if (secondsToAdd <= 0 && repsToAdd <= 0) return stats;
 
   const currentCycle = getCurrentCycleInfo().cycleKey;
+  const savedDateStr = (stats.currentDayCycle || '').slice(0, 10);
+  const currentDateStr = (currentCycle || '').slice(0, 10);
 
   // Check rollover during recording
-  if (stats.currentDayCycle && stats.currentDayCycle !== currentCycle) {
+  if (savedDateStr && currentDateStr && savedDateStr !== currentDateStr) {
     if (stats.todaySeconds > 0 || stats.todayReps > 0) {
-      const prevDate = stats.lastSessionDate ? stats.lastSessionDate.split('T')[0] : 'Previous Day';
-      stats.dailyHistory[stats.currentDayCycle] = {
+      const prevDate = stats.lastSessionDate ? stats.lastSessionDate.split('T')[0] : savedDateStr;
+      stats.dailyHistory[savedDateStr] = {
         date: prevDate,
-        cycleKey: stats.currentDayCycle,
+        cycleKey: savedDateStr,
         curriculumDay: stats.todayCurriculumDay || curriculumDay,
         seconds: stats.todaySeconds,
         reps: stats.todayReps,
         gamesBreakdown: { ...stats.todayGamesBreakdown },
       };
     }
-    stats.currentDayCycle = currentCycle;
+    stats.currentDayCycle = currentDateStr;
     stats.todayCurriculumDay = curriculumDay;
     stats.todaySeconds = 0;
     stats.todayReps = 0;

@@ -416,6 +416,9 @@ export const DailyProtocolTracker: React.FC<DailyProtocolTrackerProps> = ({
                         </div>
                         <span className="text-[10px] font-mono text-slate-300 font-bold">
                           {formatSecsToMins(playedSecs)} / 20m ({Math.min(100, Math.round((playedSecs / 1200) * 100))}%)
+                          {!isLocked && playedSecs > 0 && (
+                            <span className="text-amber-300 ml-1.5">• {formatSecsToMins(remaining)} remaining</span>
+                          )}
                         </span>
                       </div>
                     </div>
@@ -435,7 +438,7 @@ export const DailyProtocolTracker: React.FC<DailyProtocolTrackerProps> = ({
                         }}
                         className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black text-xs transition-all shadow-md shadow-amber-500/20 flex items-center justify-center gap-1.5 cursor-pointer active:scale-95"
                       >
-                        <span>Start 20m Session</span>
+                        <span>{playedSecs > 0 ? `Resume (${Math.ceil(remaining / 60)}m left)` : 'Start 20m Session'}</span>
                         <ArrowRight className="w-3.5 h-3.5" />
                       </button>
                     )}
@@ -498,6 +501,9 @@ export const DailyProtocolTracker: React.FC<DailyProtocolTrackerProps> = ({
                         </div>
                         <span className="text-[10px] font-mono text-slate-300 font-bold">
                           {formatSecsToMins(playedSecs)} / 20m ({Math.min(100, Math.round((playedSecs / 1200) * 100))}%)
+                          {!isLocked && playedSecs > 0 && (
+                            <span className="text-sky-300 ml-1.5">• {formatSecsToMins(remaining)} remaining</span>
+                          )}
                         </span>
                       </div>
                     </div>
@@ -517,7 +523,7 @@ export const DailyProtocolTracker: React.FC<DailyProtocolTrackerProps> = ({
                         }}
                         className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 text-slate-950 font-black text-xs transition-all shadow-md shadow-sky-500/20 flex items-center justify-center gap-1.5 cursor-pointer active:scale-95"
                       >
-                        <span>Start 20m Session</span>
+                        <span>{playedSecs > 0 ? `Resume (${Math.ceil(remaining / 60)}m left)` : 'Start 20m Session'}</span>
                         <ArrowRight className="w-3.5 h-3.5" />
                       </button>
                     )}
@@ -580,6 +586,9 @@ export const DailyProtocolTracker: React.FC<DailyProtocolTrackerProps> = ({
                         </div>
                         <span className="text-[10px] font-mono text-slate-300 font-bold">
                           {formatSecsToMins(playedSecs)} / 20m ({Math.min(100, Math.round((playedSecs / 1200) * 100))}%)
+                          {!isLocked && playedSecs > 0 && (
+                            <span className="text-purple-300 ml-1.5">• {formatSecsToMins(remaining)} remaining</span>
+                          )}
                         </span>
                       </div>
                     </div>
@@ -599,7 +608,7 @@ export const DailyProtocolTracker: React.FC<DailyProtocolTrackerProps> = ({
                         }}
                         className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-400 hover:to-pink-500 text-white font-black text-xs transition-all shadow-md shadow-purple-500/20 flex items-center justify-center gap-1.5 cursor-pointer active:scale-95"
                       >
-                        <span>Start 20m Session</span>
+                        <span>{playedSecs > 0 ? `Resume (${Math.ceil(remaining / 60)}m left)` : 'Start 20m Session'}</span>
                         <ArrowRight className="w-3.5 h-3.5" />
                       </button>
                     )}

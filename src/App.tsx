@@ -216,71 +216,115 @@ export default function App() {
     }
   }, [activeMode, isPlayingGame, protocol.curriculumDay]);
 
-  // Active game timer loop - tracks exact playing time and auto-saves to daily 12 AM cycle
+  // Active game timer loop - tracks exact playing time and auto-saves every second to storage
   useEffect(() => {
     if (!isPlayingGame || isGameTimerPaused) return;
 
     const interval = setInterval(() => {
       setCurrentGameSeconds((prev) => prev + 1);
-      unflushedSecondsRef.current += 1;
 
-      // Optimistically increment todaySeconds and todayGamesBreakdown for real-time responsiveness
-      setFreeTrainingStats((prev) => {
-        const currentModeSecs = ((prev.todayGamesBreakdown || {})[activeMode] || 0) + 1;
+      // Record exact 1 second to freeTrainingStats and flush immediately to disk
+      const updatedFree = recordFreeTrainingTime(1, 0, activeMode, protocol.curriculumDay);
+      setFreeTrainingStats(updatedFree);
 
-        // Check if strict 20-minute (1200 seconds) quota is completed!
-        if (currentModeSecs >= 1200) {
-          setTimeout(() => {
-            sound.playMilestoneFanfare();
-            setProtocol((prevP) => {
-              const updatedTasks = prevP.tasks.map((t) =>
-                t.id === activeMode
-                  ? { ...t, isCompleted: true, currentCount: 20, secondsElapsed: 1200 }
-                  : t
-              );
-              return { ...prevP, tasks: updatedTasks };
-            });
-            handleAddXp(250);
-            setStreakRestoreNotice(
-              `🎉 20-Minute Protocol Achieved! ${activeMode} is strictly locked until tomorrow at 12:00 AM.`
-            );
-            setActiveMode('daily-protocol');
-          }, 100);
-        }
+      const currentModeSecs = Math.min(1200, (updatedFree.todayGamesBreakdown?.[activeMode] || 0));
 
-        return {
-          ...prev,
-          todaySeconds: prev.todaySeconds + 1,
-          totalSecondsPracticed: (prev.totalSecondsPracticed || 0) + 1,
-          totalMinutesPracticed: Math.floor(((prev.totalSecondsPracticed || 0) + 1) / 60),
-          todayGamesBreakdown: activeMode
+      // Update protocol tasks so protocol.tasks always has the exact elapsed seconds
+      setProtocol((prevP) => {
+        const isCompleted = currentModeSecs >= 1200;
+        const updatedTasks = prevP.tasks.map((t) =>
+          t.id === activeMode
             ? {
-                ...(prev.todayGamesBreakdown || {}),
-                [activeMode]: Math.min(1200, currentModeSecs),
+                ...t,
+                secondsElapsed: currentModeSecs,
+                currentCount: Math.floor(currentModeSecs / 60),
+                isCompleted: Boolean(t.isCompleted || isCompleted),
               }
-            : prev.todayGamesBreakdown,
-        };
+            : t
+        );
+        const updatedProto = { ...prevP, tasks: updatedTasks };
+        saveDailyProtocol(updatedProto);
+        return updatedProto;
       });
 
-      // Flush to disk every 5 seconds
-      if (unflushedSecondsRef.current >= 5) {
-        const secs = unflushedSecondsRef.current;
-        unflushedSecondsRef.current = 0;
-        const updated = recordFreeTrainingTime(secs, 0, activeMode, protocol.curriculumDay);
-        setFreeTrainingStats(updated);
+      // Synchronize 4-hour plan tasks
+      const currentPlan = loadFourHourPlan();
+      const updatedPlanTasks = currentPlan.tasks.map((pt) => {
+        if (pt.gameMode === activeMode) {
+          return {
+            ...pt,
+            elapsedSeconds: currentModeSecs,
+            isCompleted: Boolean(pt.isCompleted || currentModeSecs >= pt.targetMinutes * 60),
+          };
+        }
+        return pt;
+      });
+      saveFourHourPlan({ ...currentPlan, tasks: updatedPlanTasks });
+
+      // Check if strict 20-minute (1200 seconds) quota is completed!
+      if (currentModeSecs >= 1200) {
+        sound.playMilestoneFanfare();
+        handleAddXp(250);
+        setStreakRestoreNotice(
+          `🎉 20-Minute Protocol Achieved! ${activeMode} is strictly locked until tomorrow at 12:00 AM.`
+        );
+        setActiveMode('daily-protocol');
       }
     }, 1000);
 
-    return () => {
-      clearInterval(interval);
-      if (unflushedSecondsRef.current > 0) {
-        const secs = unflushedSecondsRef.current;
-        unflushedSecondsRef.current = 0;
-        const updated = recordFreeTrainingTime(secs, 0, activeMode, protocol.curriculumDay);
-        setFreeTrainingStats(updated);
+    return () => clearInterval(interval);
+  }, [isPlayingGame, isGameTimerPaused, activeMode, protocol.curriculumDay]);
+
+  // Background tab-close and visibility beacon to ensure zero seconds are ever lost
+  useEffect(() => {
+    const handleSaveOnUnload = () => {
+      if (!isPlayingGame || !activeMode) return;
+      const statsToSave = loadUserStats();
+      const protoToSave = loadDailyProtocol();
+      const planToSave = loadFourHourPlan();
+      const freeToSave = loadFreeTrainingStats(protoToSave.curriculumDay);
+
+      try {
+        const payload = JSON.stringify({
+          stats: statsToSave,
+          protocol: protoToSave,
+          freeTrainingStats: freeToSave,
+          fourHourPlan: planToSave,
+          profile: currentProfile,
+        });
+        if (navigator.sendBeacon) {
+          navigator.sendBeacon('/api/yoseph/progress', new Blob([payload], { type: 'application/json' }));
+        }
+      } catch {
+        // Fallback
       }
     };
-  }, [isPlayingGame, isGameTimerPaused, activeMode, protocol.curriculumDay]);
+
+    window.addEventListener('beforeunload', handleSaveOnUnload);
+    window.addEventListener('pagehide', handleSaveOnUnload);
+    return () => {
+      window.removeEventListener('beforeunload', handleSaveOnUnload);
+      window.removeEventListener('pagehide', handleSaveOnUnload);
+    };
+  }, [isPlayingGame, activeMode, currentProfile]);
+
+  // Periodic cloud sync during active gameplay (every 10 seconds)
+  useEffect(() => {
+    if (!isPlayingGame || isGameTimerPaused) return;
+
+    const syncInterval = setInterval(() => {
+      const plan = loadFourHourPlan();
+      pushServerMasterProgress({
+        stats,
+        protocol,
+        freeTrainingStats,
+        profile: currentProfile,
+        fourHourPlan: plan,
+      }).catch(() => {});
+    }, 10000);
+
+    return () => clearInterval(syncInterval);
+  }, [isPlayingGame, isGameTimerPaused, stats, protocol, freeTrainingStats, currentProfile]);
 
   // Continuous training reward: +15 XP every active minute
   useEffect(() => {
@@ -985,33 +1029,33 @@ export default function App() {
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
                     <span className="text-xs font-mono font-bold text-white flex items-center gap-1">
-                      Session:
-                      <span className="text-cyan-400 font-extrabold text-xs sm:text-sm">
-                        {formatTimerClock(currentGameSeconds)}
+                      Today:
+                      <span className="text-emerald-400 font-extrabold text-xs sm:text-sm">
+                        {formatTimerClock(activeModeSeconds)} / 20m
                       </span>
-                    </span>
-                    <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-cyan-950 text-cyan-300 border border-cyan-800">
-                      📅 {formatTimerClock(freeTrainingStats.todaySeconds)}
                     </span>
                     {activeModuleTarget && (
                       <span
                         className={`text-[10px] font-mono px-2 py-0.5 rounded-full border flex items-center gap-1 ${
                           isModuleGoalMet
                             ? 'bg-emerald-950/80 text-emerald-300 border-emerald-800'
-                            : 'bg-amber-950/80 text-amber-300 border-amber-800 animate-pulse'
+                            : 'bg-amber-950/80 text-amber-300 border-amber-800 animate-pulse font-bold'
                         }`}
-                        title="Yosi's 1-Hour Protocol: 20-minute module goal auto-verifies when completed"
+                        title="Yosi's 1-Hour Protocol: 20-minute discipline goal auto-verifies when completed"
                       >
                         <Clock className="w-2.5 h-2.5" />
-                        20m Target: {isModuleGoalMet ? (
-                          <span className="text-emerald-300 font-bold">✓ Mastered</span>
+                        {isModuleGoalMet ? (
+                          <span className="text-emerald-300 font-bold">✓ 20m Achieved</span>
                         ) : (
                           <span>
-                            {Math.floor(moduleRemainingSecs / 60)}m {moduleRemainingSecs % 60}s left
+                            {Math.floor(moduleRemainingSecs / 60)}m {String(moduleRemainingSecs % 60).padStart(2, '0')}s remaining
                           </span>
                         )}
                       </span>
                     )}
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 border border-slate-700">
+                      Lap: {formatTimerClock(currentGameSeconds)}
+                    </span>
                   </div>
                   <p className="text-[10px] sm:text-[11px] text-slate-400 mt-0.5 truncate">
                     {isGameTimerPaused ? (

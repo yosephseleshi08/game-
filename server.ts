@@ -182,8 +182,88 @@ async function startServer() {
     }
   });
 
+  function getUtcOrLocalDateStr(date = new Date()): string {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  }
+
+  // Roll over masterData if day has passed
+  function ensureMasterDataUpToDate(clientDateStr?: string) {
+    const todayStr = clientDateStr || getUtcOrLocalDateStr();
+    const currentProtocol = masterData.protocol;
+    if (!currentProtocol) return;
+
+    const recordedDate = (currentProtocol.currentCycleDate || '').slice(0, 10);
+    if (recordedDate && recordedDate < todayStr) {
+      // Evaluate previous day
+      const wasPalaceDone = Boolean(
+        currentProtocol.memoryPalaceTimer?.isCompleted ||
+        (currentProtocol.memoryPalaceTimer?.elapsedSeconds || 0) >= 3600
+      );
+      const wereTasksDone = (currentProtocol.tasks || []).length >= 4 &&
+        (currentProtocol.tasks || []).every((t: any) => t.isCompleted);
+      const isDayComplete = Boolean(wasPalaceDone && wereTasksDone);
+
+      masterData.protocol.history = masterData.protocol.history || {};
+      masterData.protocol.history[recordedDate] = {
+        date: recordedDate,
+        cycleKey: recordedDate,
+        curriculumDay: currentProtocol.curriculumDay || 1,
+        completed: isDayComplete,
+        failed: !isDayComplete,
+        score: isDayComplete ? 100 : 0,
+        memoryPalaceCompleted: wasPalaceDone,
+        totalSeconds: isDayComplete ? 7200 : (currentProtocol.memoryPalaceTimer?.elapsedSeconds || 0),
+      };
+
+      // Reset today for fresh 60 minutes memory palace and 0 elapsed on games
+      masterData.protocol.currentCycleDate = todayStr;
+      masterData.protocol.isLockedOut = false;
+      masterData.protocol.curriculumDay = (currentProtocol.curriculumDay || 1) + 1;
+      masterData.protocol.memoryPalaceTimer = {
+        remainingSeconds: 3600,
+        elapsedSeconds: 0,
+        isRunning: false,
+        isCompleted: false,
+      };
+      if (masterData.protocol.tasks) {
+        masterData.protocol.tasks = masterData.protocol.tasks.map((t: any) => ({
+          ...t,
+          currentCount: 0,
+          secondsElapsed: 0,
+          isCompleted: false,
+        }));
+      }
+
+      // Reset free training today's seconds & breakdown
+      if (masterData.freeTrainingStats) {
+        if (masterData.freeTrainingStats.todaySeconds > 0) {
+          masterData.freeTrainingStats.dailyHistory = masterData.freeTrainingStats.dailyHistory || {};
+          masterData.freeTrainingStats.dailyHistory[recordedDate] = {
+            date: recordedDate,
+            cycleKey: recordedDate,
+            curriculumDay: currentProtocol.curriculumDay || 1,
+            seconds: masterData.freeTrainingStats.todaySeconds,
+            reps: masterData.freeTrainingStats.todayReps || 0,
+            gamesBreakdown: { ...(masterData.freeTrainingStats.todayGamesBreakdown || {}) },
+          };
+        }
+        masterData.freeTrainingStats.todaySeconds = 0;
+        masterData.freeTrainingStats.todayReps = 0;
+        masterData.freeTrainingStats.todayGamesBreakdown = {};
+        masterData.freeTrainingStats.currentDayCycle = todayStr;
+      }
+
+      writeMasterData(masterData);
+    }
+  }
+
   // API 2: Fetch Yoseph's Synchronized Master Progress
-  app.get('/api/yoseph/progress', (_req, res) => {
+  app.get('/api/yoseph/progress', (req, res) => {
+    const clientDate = typeof req.query.date === 'string' ? req.query.date : undefined;
+    ensureMasterDataUpToDate(clientDate);
     res.json(masterData);
   });
 
@@ -199,6 +279,9 @@ async function startServer() {
 
     const currentProtocol = masterData.protocol || DEFAULT_YOSEPH_STATE.protocol;
     const incomingProtocol = incoming.protocol;
+
+    const currentDateStr = (currentProtocol.currentCycleDate || '').slice(0, 10);
+    const incomingDateStr = (incomingProtocol.currentCycleDate || '').slice(0, 10);
 
     // Merge stats: keep highest XP, level, streaks, and best game scores
     const mergedXp = Math.max(currentStats.xp || 0, incomingStats.xp || 0);
@@ -227,30 +310,124 @@ async function startServer() {
       ),
     };
 
-    // Merge memory palace timer (Loci 60m focus timer) across devices
-    const currentTimer = currentProtocol.memoryPalaceTimer;
-    const incomingTimer = incomingProtocol.memoryPalaceTimer;
-    const currentElapsed = currentTimer?.elapsedSeconds || 0;
-    const incomingElapsed = incomingTimer?.elapsedSeconds || 0;
-    const bestElapsed = Math.max(currentElapsed, incomingElapsed);
-    const isPalaceDone = Boolean(currentTimer?.isCompleted || incomingTimer?.isCompleted || bestElapsed >= 3600);
-    const bestRemaining = isPalaceDone ? 0 : Math.max(0, 3600 - bestElapsed);
-
-    const mergedMemoryPalaceTimer = {
-      elapsedSeconds: bestElapsed,
-      remainingSeconds: bestRemaining,
-      isRunning: false,
-      isCompleted: isPalaceDone,
-      lastTickDate: incomingTimer?.lastTickDate || currentTimer?.lastTickDate,
-    };
-
-    // Merge protocol: keep higher curriculum day and combine history
+    // Combine history first
     const mergedHistory = {
       ...(currentProtocol.history || {}),
       ...(incomingProtocol.history || {}),
     };
 
-    const higherDay = Math.max(currentProtocol.curriculumDay || 1, incomingProtocol.curriculumDay || 1);
+    const isSameDate = currentDateStr === incomingDateStr;
+    const isIncomingNewer = incomingDateStr > currentDateStr;
+    const isCurrentNewer = currentDateStr > incomingDateStr;
+
+    // If day rolled over from server to incoming (incoming is today, server was yesterday)
+    if (isIncomingNewer && currentDateStr) {
+      const wasServerPalaceDone = Boolean(
+        currentProtocol.memoryPalaceTimer?.isCompleted ||
+        (currentProtocol.memoryPalaceTimer?.elapsedSeconds || 0) >= 3600
+      );
+      const wereServerTasksDone = (currentProtocol.tasks || []).length >= 4 &&
+        (currentProtocol.tasks || []).every((t: any) => t.isCompleted);
+      const isPastDayComplete = Boolean(wasServerPalaceDone && wereServerTasksDone);
+
+      mergedHistory[currentDateStr] = {
+        date: currentDateStr,
+        cycleKey: currentDateStr,
+        curriculumDay: currentProtocol.curriculumDay || 1,
+        completed: isPastDayComplete,
+        failed: !isPastDayComplete,
+        score: isPastDayComplete ? 100 : 0,
+        memoryPalaceCompleted: wasServerPalaceDone,
+        totalSeconds: isPastDayComplete ? 7200 : (currentProtocol.memoryPalaceTimer?.elapsedSeconds || 0),
+      };
+    } else if (isCurrentNewer && incomingDateStr) {
+      const wasIncomingPalaceDone = Boolean(
+        incomingProtocol.memoryPalaceTimer?.isCompleted ||
+        (incomingProtocol.memoryPalaceTimer?.elapsedSeconds || 0) >= 3600
+      );
+      const wereIncomingTasksDone = (incomingProtocol.tasks || []).length >= 4 &&
+        (incomingProtocol.tasks || []).every((t: any) => t.isCompleted);
+      const isPastDayComplete = Boolean(wasIncomingPalaceDone && wereIncomingTasksDone);
+
+      mergedHistory[incomingDateStr] = {
+        date: incomingDateStr,
+        cycleKey: incomingDateStr,
+        curriculumDay: incomingProtocol.curriculumDay || 1,
+        completed: isPastDayComplete,
+        failed: !isPastDayComplete,
+        score: isPastDayComplete ? 100 : 0,
+        memoryPalaceCompleted: wasIncomingPalaceDone,
+        totalSeconds: isPastDayComplete ? 7200 : (incomingProtocol.memoryPalaceTimer?.elapsedSeconds || 0),
+      };
+    }
+
+    // Determine target day and active memory palace timer
+    let activeDateStr = isSameDate ? currentDateStr : (isIncomingNewer ? incomingDateStr : currentDateStr);
+    let higherDay = Math.max(currentProtocol.curriculumDay || 1, incomingProtocol.curriculumDay || 1);
+
+    let mergedMemoryPalaceTimer: any;
+    if (isSameDate) {
+      // Both devices are on the SAME day: merge elapsed seconds so progress syncs across PC and phone!
+      const currentTimer = currentProtocol.memoryPalaceTimer;
+      const incomingTimer = incomingProtocol.memoryPalaceTimer;
+      const currentElapsed = currentTimer?.elapsedSeconds || 0;
+      const incomingElapsed = incomingTimer?.elapsedSeconds || 0;
+      const bestElapsed = Math.max(currentElapsed, incomingElapsed);
+      const isPalaceDone = Boolean(currentTimer?.isCompleted || incomingTimer?.isCompleted || bestElapsed >= 3600);
+      const bestRemaining = isPalaceDone ? 0 : Math.max(0, 3600 - bestElapsed);
+
+      mergedMemoryPalaceTimer = {
+        elapsedSeconds: bestElapsed,
+        remainingSeconds: bestRemaining,
+        isRunning: false,
+        isCompleted: isPalaceDone,
+        lastTickDate: incomingTimer?.lastTickDate || currentTimer?.lastTickDate,
+      };
+    } else if (isIncomingNewer) {
+      // Incoming device is on the new day -> take incoming timer (fresh 60m if starting today)
+      mergedMemoryPalaceTimer = incomingProtocol.memoryPalaceTimer || {
+        elapsedSeconds: 0,
+        remainingSeconds: 3600,
+        isRunning: false,
+        isCompleted: false,
+      };
+    } else {
+      // Current server is already on the newer day
+      mergedMemoryPalaceTimer = currentProtocol.memoryPalaceTimer || {
+        elapsedSeconds: 0,
+        remainingSeconds: 3600,
+        isRunning: false,
+        isCompleted: false,
+      };
+    }
+
+    // Free training stats merge
+    const currentFree = masterData.freeTrainingStats || DEFAULT_YOSEPH_STATE.freeTrainingStats;
+    const incomingFree = incoming.freeTrainingStats || {};
+
+    let mergedBreakdown: Record<string, number> = {};
+    if (isSameDate) {
+      const allGameModes = Array.from(new Set([
+        ...Object.keys(currentFree.todayGamesBreakdown || {}),
+        ...Object.keys(incomingFree.todayGamesBreakdown || {}),
+        'memory-palace',
+        'mnemonic-pegs',
+        'dual-nback',
+        'symbol-detective',
+      ]));
+
+      for (const gm of allGameModes) {
+        mergedBreakdown[gm] = Math.max(
+          currentFree.todayGamesBreakdown?.[gm] || 0,
+          incomingFree.todayGamesBreakdown?.[gm] || 0,
+          gm === 'memory-palace' ? (mergedMemoryPalaceTimer?.elapsedSeconds || 0) : 0
+        );
+      }
+    } else if (isIncomingNewer) {
+      mergedBreakdown = { ...(incomingFree.todayGamesBreakdown || {}) };
+    } else {
+      mergedBreakdown = { ...(currentFree.todayGamesBreakdown || {}) };
+    }
 
     // Guarantee all 4 core tasks exist and merge elapsed seconds
     const standardTaskIds = ['mnemonic-pegs', 'dual-nback', 'symbol-detective', 'memory-palace'];
@@ -258,7 +435,7 @@ async function startServer() {
     const mergedTasks = standardTaskIds.map((id) => {
       const ct = currentProtocol.tasks?.find((t: any) => t.id === id);
       const it = incomingProtocol.tasks?.find((t: any) => t.id === id);
-      const template = it || ct || allKnownTasks.find((t: any) => t.id === id) || {
+      const template = (isIncomingNewer ? it : (isCurrentNewer ? ct : (it || ct))) || allKnownTasks.find((t: any) => t.id === id) || {
         id,
         title: id === 'memory-palace' ? 'Manual Memory Palace Training (1 Hour)' : id,
         discipline: id === 'memory-palace' ? 'Offline Deep Loci Visualization' : id,
@@ -271,22 +448,39 @@ async function startServer() {
         gameMode: id,
       };
 
-      const maxSecs = Math.max(
-        ct?.secondsElapsed || 0,
-        it?.secondsElapsed || 0,
-        id === 'memory-palace' ? bestElapsed : 0
-      );
+      let maxSecs = 0;
+      if (isSameDate) {
+        maxSecs = Math.max(
+          ct?.secondsElapsed || 0,
+          it?.secondsElapsed || 0,
+          mergedBreakdown[id] || 0,
+          id === 'memory-palace' ? (mergedMemoryPalaceTimer?.elapsedSeconds || 0) : 0
+        );
+      } else if (isIncomingNewer) {
+        maxSecs = Math.max(
+          it?.secondsElapsed || 0,
+          mergedBreakdown[id] || 0,
+          id === 'memory-palace' ? (mergedMemoryPalaceTimer?.elapsedSeconds || 0) : 0
+        );
+      } else {
+        maxSecs = Math.max(
+          ct?.secondsElapsed || 0,
+          mergedBreakdown[id] || 0,
+          id === 'memory-palace' ? (mergedMemoryPalaceTimer?.elapsedSeconds || 0) : 0
+        );
+      }
+
       const maxCount = Math.max(
-        ct?.currentCount || 0,
-        it?.currentCount || 0,
-        Math.floor(maxSecs / 60)
+        Math.floor(maxSecs / 60),
+        isSameDate ? Math.max(ct?.currentCount || 0, it?.currentCount || 0) : (isIncomingNewer ? (it?.currentCount || 0) : (ct?.currentCount || 0))
       );
       const isTaskDone = Boolean(
-        ct?.isCompleted ||
-        it?.isCompleted ||
         (template.targetCount && maxCount >= template.targetCount) ||
         (template.targetSeconds && maxSecs >= template.targetSeconds) ||
-        (id === 'memory-palace' && isPalaceDone)
+        (id === 'memory-palace' && mergedMemoryPalaceTimer?.isCompleted) ||
+        (isSameDate && (ct?.isCompleted || it?.isCompleted)) ||
+        (isIncomingNewer && it?.isCompleted) ||
+        (isCurrentNewer && ct?.isCompleted)
       );
 
       return {
@@ -297,42 +491,24 @@ async function startServer() {
       };
     });
 
+    const isAllFourDone = mergedTasks.every((t) => t.isCompleted);
+
     const mergedProtocol = {
-      ...(incomingProtocol.curriculumDay >= currentProtocol.curriculumDay ? incomingProtocol : currentProtocol),
+      ...(isIncomingNewer ? incomingProtocol : (isCurrentNewer ? currentProtocol : incomingProtocol)),
+      currentCycleDate: activeDateStr,
       curriculumDay: higherDay,
       tasks: mergedTasks,
       memoryPalaceTimer: mergedMemoryPalaceTimer,
-      isLockedOut: Boolean(currentProtocol.isLockedOut || incomingProtocol.isLockedOut),
+      isLockedOut: Boolean(isSameDate ? (currentProtocol.isLockedOut || incomingProtocol.isLockedOut || isAllFourDone) : isAllFourDone),
       history: mergedHistory,
     };
-
-    // Merge free training stats with Math.max on per-game breakdowns
-    const currentFree = masterData.freeTrainingStats || DEFAULT_YOSEPH_STATE.freeTrainingStats;
-    const incomingFree = incoming.freeTrainingStats || {};
-
-    const allGameModes = Array.from(new Set([
-      ...Object.keys(currentFree.todayGamesBreakdown || {}),
-      ...Object.keys(incomingFree.todayGamesBreakdown || {}),
-      'memory-palace',
-      'mnemonic-pegs',
-      'dual-nback',
-      'symbol-detective',
-    ]));
-
-    const mergedBreakdown: Record<string, number> = {};
-    for (const gm of allGameModes) {
-      mergedBreakdown[gm] = Math.max(
-        currentFree.todayGamesBreakdown?.[gm] || 0,
-        incomingFree.todayGamesBreakdown?.[gm] || 0,
-        gm === 'memory-palace' ? bestElapsed : 0
-      );
-    }
 
     const calculatedTodaySeconds = Object.values(mergedBreakdown).reduce((a, b) => a + b, 0);
 
     const mergedFree = {
       ...currentFree,
-      ...incomingFree,
+      ...(isIncomingNewer ? incomingFree : (isCurrentNewer ? currentFree : incomingFree)),
+      currentDayCycle: activeDateStr,
       totalSecondsPracticed: Math.max(
         currentFree.totalSecondsPracticed || 0,
         incomingFree.totalSecondsPracticed || 0,
@@ -344,11 +520,7 @@ async function startServer() {
         Math.floor(Math.max(currentFree.totalSecondsPracticed || 0, incomingFree.totalSecondsPracticed || 0, calculatedTodaySeconds) / 60)
       ),
       totalRepsCompleted: Math.max(currentFree.totalRepsCompleted || 0, incomingFree.totalRepsCompleted || 0),
-      todaySeconds: Math.max(
-        currentFree.todaySeconds || 0,
-        incomingFree.todaySeconds || 0,
-        calculatedTodaySeconds
-      ),
+      todaySeconds: calculatedTodaySeconds,
       todayGamesBreakdown: mergedBreakdown,
       dailyHistory: {
         ...(currentFree.dailyHistory || {}),
@@ -361,8 +533,28 @@ async function startServer() {
     const incomingFourHour = incoming.fourHourPlan;
     let mergedFourHour = incomingFourHour || currentFourHour;
     if (currentFourHour && incomingFourHour) {
+      const isPlanIncomingNewer = (incomingFourHour.currentDate || '') > (currentFourHour.currentDate || '');
+      const isPlanSameDate = (incomingFourHour.currentDate || '') === (currentFourHour.currentDate || '');
+
+      let planTasks = incomingFourHour.tasks;
+      if (isPlanSameDate) {
+        planTasks = incomingFourHour.tasks?.map((it: any) => {
+          const ct = currentFourHour.tasks?.find((t: any) => t.id === it.id);
+          const elapsed = Math.max(it.elapsedSeconds || 0, ct?.elapsedSeconds || 0, mergedBreakdown[it.gameMode] || 0);
+          return {
+            ...it,
+            elapsedSeconds: elapsed,
+            isCompleted: Boolean(it.isCompleted || ct?.isCompleted || elapsed >= it.targetMinutes * 60),
+          };
+        });
+      } else if (!isPlanIncomingNewer) {
+        planTasks = currentFourHour.tasks;
+      }
+
       mergedFourHour = {
-        ...incomingFourHour,
+        ...(isPlanIncomingNewer ? incomingFourHour : currentFourHour),
+        currentDate: isPlanIncomingNewer ? incomingFourHour.currentDate : currentFourHour.currentDate,
+        tasks: planTasks,
         currentStreak: Math.max(currentFourHour.currentStreak || 0, incomingFourHour.currentStreak || 0),
         bestStreak: Math.max(currentFourHour.bestStreak || 0, incomingFourHour.bestStreak || 0),
         history: {
