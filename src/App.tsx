@@ -30,6 +30,11 @@ import { UserProfileModal } from './components/UserProfileModal';
 import { DailyMilestoneModal } from './components/DailyMilestoneModal';
 import { FreeTrainingView } from './components/FreeTrainingView';
 import { FourHourPlanView } from './components/FourHourPlanView';
+import { EideticMatrixGame } from './components/EideticMatrixGame';
+import { AyumuChimpGame } from './components/AyumuChimpGame';
+import { MemoryPalaceGame } from './components/MemoryPalaceGame';
+import { SpacedRepetitionGame } from './components/SpacedRepetitionGame';
+import { DailyWorkoutGame } from './components/DailyWorkoutGame';
 import { YosephSecurityGate } from './components/YosephSecurityGate';
 import { TypeOfGuyModal } from './components/TypeOfGuyModal';
 import { getAthleteArchetype } from './utils/archetype';
@@ -182,30 +187,45 @@ export default function App() {
   const [isGameTimerPaused, setIsGameTimerPaused] = useState(false);
   const unflushedSecondsRef = useRef(0);
 
-  const PLAYABLE_GAME_MODES: GameMode[] = [
+  const ALL_INTERACTIVE_GAMES: GameMode[] = [
     'mnemonic-pegs',
     'dual-nback',
     'symbol-detective',
+    'eidetic-matrix',
+    'ayumu-chimp',
+    'memory-palace',
+    'spaced-repetition',
+    'daily-workout',
   ];
 
-  // Yoseph's 1-Hour Protocol Targets (3 disciplines x 20 minutes = 60 minutes)
-  const ONE_HOUR_MODULE_TARGETS: Partial<Record<GameMode, { title: string; minutes: number }>> = {
+  // Yoseph's Cognitive Protocol & Laboratory Goals
+  const GAME_TARGETS: Record<GameMode, { title: string; minutes: number }> = {
     'mnemonic-pegs': { title: 'Mnemonic Major Pegs (Number-to-Image)', minutes: 20 },
     'dual-nback': { title: 'Dual N-Back Buffer (Working Memory RAM)', minutes: 20 },
     'symbol-detective': { title: 'Symbol Detective Lab (Script Speed)', minutes: 20 },
+    'memory-palace': { title: 'Manual Memory Palace Training (1 Hour)', minutes: 60 },
+    'eidetic-matrix': { title: 'Eidetic Matrix (Visual RAM)', minutes: 15 },
+    'ayumu-chimp': { title: 'Ayumu Chimp Test (Flash Working Memory)', minutes: 15 },
+    'spaced-repetition': { title: 'Spaced Repetition Review', minutes: 15 },
+    'daily-workout': { title: 'Daily Cognitive Workout (PQ Evaluation)', minutes: 20 },
+    'daily-protocol': { title: 'Daily Protocol', minutes: 60 },
+    'four-hour-plan': { title: '4-Hour Plan', minutes: 240 },
+    'free-training': { title: 'Free Training Hub', minutes: 60 },
+    'community': { title: 'Community Hub', minutes: 0 },
+    'stats': { title: 'Performance Telemetry', minutes: 0 },
   };
 
-  const isPlayingGame = PLAYABLE_GAME_MODES.includes(activeMode);
-
-  const activeModuleTarget = ONE_HOUR_MODULE_TARGETS[activeMode];
-  const existingTaskSeconds = protocol.tasks?.find((t) => t.id === activeMode)?.secondsElapsed || 0;
-  const activeModeSeconds = activeModuleTarget
-    ? Math.min(1200, Math.max(existingTaskSeconds, freeTrainingStats.todayGamesBreakdown?.[activeMode] || 0))
-    : 0;
+  const isPlayingGame = ALL_INTERACTIVE_GAMES.includes(activeMode);
+  const activeModuleTarget = GAME_TARGETS[activeMode];
   const targetSeconds = activeModuleTarget ? activeModuleTarget.minutes * 60 : 0;
+
+  const existingTaskSeconds = protocol.tasks?.find((t) => t.id === activeMode)?.secondsElapsed || 0;
+  const palaceTimerSeconds = activeMode === 'memory-palace' ? (protocol.memoryPalaceTimer?.elapsedSeconds || 0) : 0;
+  const breakdownSeconds = freeTrainingStats.todayGamesBreakdown?.[activeMode] || 0;
+  const activeModeSeconds = Math.max(existingTaskSeconds, palaceTimerSeconds, breakdownSeconds);
   const moduleRemainingSecs = Math.max(0, targetSeconds - activeModeSeconds);
-  const isModuleGoalMet = activeModuleTarget && (
-    moduleRemainingSecs === 0 ||
+  const isModuleGoalMet = activeModuleTarget && targetSeconds > 0 && (
+    activeModeSeconds >= targetSeconds ||
     protocol.tasks.find((t) => t.id === activeMode)?.isCompleted ||
     protocol.isLockedOut
   );
@@ -219,8 +239,9 @@ export default function App() {
   useEffect(() => {
     if (isPlayingGame) {
       const taskSecs = protocol.tasks?.find((t) => t.id === activeMode)?.secondsElapsed || 0;
+      const palaceSecs = activeMode === 'memory-palace' ? (protocol.memoryPalaceTimer?.elapsedSeconds || 0) : 0;
       const breakdownSecs = freeTrainingStats.todayGamesBreakdown?.[activeMode] || 0;
-      const initialSecs = Math.max(taskSecs, breakdownSecs);
+      const initialSecs = Math.max(taskSecs, palaceSecs, breakdownSecs);
       activeModeSecondsRef.current = initialSecs;
       setCurrentGameSeconds(initialSecs);
       setIsGameTimerPaused(false);
@@ -232,11 +253,8 @@ export default function App() {
     if (!isPlayingGame || isGameTimerPaused) return;
 
     const interval = setInterval(() => {
-      // Base on the continuous monotonically increasing seconds for this mode
-      const baseSecs = activeModeSecondsRef.current;
-      const nextSecs = Math.min(1200, baseSecs + 1);
-      activeModeSecondsRef.current = nextSecs;
-
+      activeModeSecondsRef.current += 1;
+      const nextSecs = activeModeSecondsRef.current;
       setCurrentGameSeconds(nextSecs);
 
       // Record exact 1 second to freeTrainingStats and flush immediately to disk
@@ -249,18 +267,42 @@ export default function App() {
 
       // Update protocol tasks so protocol.tasks always has the exact elapsed seconds
       setProtocol((prevP) => {
-        const isCompleted = nextSecs >= 1200;
-        const updatedTasks = prevP.tasks.map((t) =>
-          t.id === activeMode
-            ? {
-                ...t,
-                secondsElapsed: nextSecs,
-                currentCount: Math.floor(nextSecs / 60),
-                isCompleted: Boolean(t.isCompleted || isCompleted),
-              }
-            : t
-        );
-        const updatedProto = { ...prevP, tasks: updatedTasks };
+        let modified = false;
+        const targetSecs = (GAME_TARGETS[activeMode]?.minutes || 20) * 60;
+        const isCompleted = nextSecs >= targetSecs;
+
+        const updatedTasks = prevP.tasks.map((t) => {
+          if (t.id === activeMode) {
+            modified = true;
+            return {
+              ...t,
+              secondsElapsed: nextSecs,
+              currentCount: Math.floor(nextSecs / 60),
+              isCompleted: Boolean(t.isCompleted || isCompleted),
+            };
+          }
+          return t;
+        });
+
+        let updatedPalaceTimer = prevP.memoryPalaceTimer;
+        if (activeMode === 'memory-palace' && prevP.memoryPalaceTimer) {
+          modified = true;
+          const palaceDone = nextSecs >= 3600;
+          updatedPalaceTimer = {
+            ...prevP.memoryPalaceTimer,
+            elapsedSeconds: nextSecs,
+            remainingSeconds: Math.max(0, 3600 - nextSecs),
+            isCompleted: Boolean(prevP.memoryPalaceTimer.isCompleted || palaceDone),
+          };
+        }
+
+        if (!modified) return prevP;
+
+        const updatedProto = {
+          ...prevP,
+          tasks: updatedTasks,
+          memoryPalaceTimer: updatedPalaceTimer,
+        };
         saveDailyProtocol(updatedProto);
         return updatedProto;
       });
@@ -279,14 +321,13 @@ export default function App() {
       });
       saveFourHourPlan({ ...currentPlan, tasks: updatedPlanTasks });
 
-      // Check if strict 20-minute (1200 seconds) quota is completed!
-      if (nextSecs >= 1200) {
+      // Check if strict 20-minute (1200 seconds) quota is completed for 3 primary disciplines!
+      if (['mnemonic-pegs', 'dual-nback', 'symbol-detective'].includes(activeMode) && nextSecs === 1200) {
         sound.playMilestoneFanfare();
         handleAddXp(250);
         setStreakRestoreNotice(
           `🎉 20-Minute Protocol Achieved! ${activeMode} is strictly locked until tomorrow at 12:00 AM.`
         );
-        setActiveMode('daily-protocol');
       }
     }, 1000);
 
@@ -1049,24 +1090,24 @@ export default function App() {
                     <span className="text-xs font-mono font-bold text-white flex items-center gap-1">
                       Session:
                       <span className="text-emerald-400 font-extrabold text-xs sm:text-sm">
-                        {formatTimerClock(Math.max(activeModeSeconds, currentGameSeconds))} / 20m
+                        {formatTimerClock(currentGameSeconds)} / {activeModuleTarget?.minutes || 20}m
                       </span>
                     </span>
                     {activeModuleTarget && (
                       <span
                         className={`text-[10px] font-mono px-2 py-0.5 rounded-full border flex items-center gap-1 ${
-                          Math.max(activeModeSeconds, currentGameSeconds) >= 1200 || isModuleGoalMet
+                          currentGameSeconds >= targetSeconds || isModuleGoalMet
                             ? 'bg-emerald-950/80 text-emerald-300 border-emerald-800 font-bold'
                             : 'bg-amber-950/80 text-amber-300 border-amber-800 animate-pulse font-bold'
                         }`}
-                        title="Yosi's 1-Hour Protocol: 20-minute discipline goal auto-verifies when completed"
+                        title="Session discipline goal auto-verifies when completed"
                       >
                         <Clock className="w-2.5 h-2.5" />
-                        {Math.max(activeModeSeconds, currentGameSeconds) >= 1200 || isModuleGoalMet ? (
-                          <span className="text-emerald-300 font-bold">✓ 20m Completed & Saved</span>
+                        {currentGameSeconds >= targetSeconds || isModuleGoalMet ? (
+                          <span className="text-emerald-300 font-bold">✓ {activeModuleTarget.minutes}m Completed & Saved</span>
                         ) : (
                           <span>
-                            {Math.floor(Math.max(0, 1200 - Math.max(activeModeSeconds, currentGameSeconds)) / 60)}m {String(Math.max(0, 1200 - Math.max(activeModeSeconds, currentGameSeconds)) % 60).padStart(2, '0')}s remaining
+                            {Math.floor(Math.max(0, targetSeconds - currentGameSeconds) / 60)}m {String(Math.max(0, targetSeconds - currentGameSeconds) % 60).padStart(2, '0')}s remaining
                           </span>
                         )}
                       </span>
@@ -1133,7 +1174,7 @@ export default function App() {
           </div>
         )}
 
-        {(activeMode === 'daily-protocol' || activeMode === 'four-hour-plan' || activeMode === 'free-training') && (
+        {activeMode === 'daily-protocol' && (
           <DailyProtocolTracker
             protocol={protocol}
             onUpdateProtocol={setProtocol}
@@ -1148,6 +1189,32 @@ export default function App() {
             isSpeedLockedToPlan={isSpeedLockedToPlan}
             todayGamesBreakdown={freeTrainingStats.todayGamesBreakdown}
             currentStreak={stats.currentStreak}
+          />
+        )}
+
+        {activeMode === 'four-hour-plan' && (
+          <FourHourPlanView
+            onNavigateMode={setActiveMode}
+            onAddXp={handleAddXp}
+            todayGamesBreakdown={freeTrainingStats.todayGamesBreakdown}
+            protocol={protocol}
+            todaySeconds={freeTrainingStats.todaySeconds}
+          />
+        )}
+
+        {activeMode === 'free-training' && (
+          <FreeTrainingView
+            curriculumDay={protocol.curriculumDay}
+            currentSpeed={currentSpeed}
+            onSpeedChange={handleSpeedChange}
+            onNavigateMode={setActiveMode}
+            onStartStepWithConfig={(mode, config) => {
+              setFreeTrainingConfig(config || null);
+              setActiveMode(mode);
+            }}
+            onAddXp={handleAddXp}
+            stats={freeTrainingStats}
+            onUpdateStats={setFreeTrainingStats}
           />
         )}
 
@@ -1202,6 +1269,80 @@ export default function App() {
               (freeTrainingStats.todayGamesBreakdown?.['symbol-detective'] || 0) >= 1200
             }
             onNavigateMode={setActiveMode}
+          />
+        )}
+
+        {activeMode === 'eidetic-matrix' && (
+          <EideticMatrixGame
+            currentSpeed={currentSpeed}
+            curriculumDay={protocol.curriculumDay}
+            isLockedOut={false}
+            isFreeTraining={true}
+            initialLevel={freeTrainingConfig?.level}
+            onSpeedChange={handleSpeedChange}
+            onAddXp={handleAddXp}
+            onRecordResult={(success, level) => {
+              if (success && level > stats.matrixMaxLevel) {
+                setStats((prev) => ({ ...prev, matrixMaxLevel: level }));
+              }
+            }}
+            onNavigateMode={setActiveMode}
+          />
+        )}
+
+        {activeMode === 'ayumu-chimp' && (
+          <AyumuChimpGame
+            currentSpeed={currentSpeed}
+            curriculumDay={protocol.curriculumDay}
+            isLockedOut={false}
+            isFreeTraining={true}
+            initialDigits={freeTrainingConfig?.digits}
+            onSpeedChange={handleSpeedChange}
+            onAddXp={handleAddXp}
+            onRecordResult={(success, numbersCount) => {
+              if (success && numbersCount > stats.ayumuMaxNumbers) {
+                setStats((prev) => ({ ...prev, ayumuMaxNumbers: numbersCount }));
+              }
+            }}
+            onNavigateMode={setActiveMode}
+          />
+        )}
+
+        {activeMode === 'memory-palace' && (
+          <MemoryPalaceGame
+            curriculumDay={protocol.curriculumDay}
+            isLockedOut={protocol.isLockedOut}
+            isFreeTraining={true}
+            onAddXp={handleAddXp}
+            onCompletePalaceStep={() => {
+              handleAddXp(50);
+            }}
+            onNavigateMode={setActiveMode}
+          />
+        )}
+
+        {activeMode === 'spaced-repetition' && (
+          <SpacedRepetitionGame
+            curriculumDay={protocol.curriculumDay}
+            isLockedOut={false}
+            isFreeTraining={true}
+            onAddXp={handleAddXp}
+            onCardReviewed={() => handleAddXp(5)}
+            onNavigateMode={setActiveMode}
+          />
+        )}
+
+        {activeMode === 'daily-workout' && (
+          <DailyWorkoutGame
+            stats={stats}
+            curriculumDay={protocol.curriculumDay}
+            onAddXp={handleAddXp}
+            onSavePQRecord={(record) => {
+              setStats((prev) => ({
+                ...prev,
+                pqHistory: [record, ...(prev.pqHistory || [])].slice(0, 30),
+              }));
+            }}
           />
         )}
 

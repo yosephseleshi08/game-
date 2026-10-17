@@ -714,10 +714,14 @@ export function mergeUserProgress(
       : sLocal.progressHistory,
   };
 
-  const localDateStr = (pLocal.currentCycleDate || '').slice(0, 10);
+  const fallbackDateStr = new Date().toISOString().slice(0, 10);
+  const localDateStr = (pLocal.currentCycleDate || fallbackDateStr).slice(0, 10);
   const cloudDateStr = (pCloud.currentCycleDate || '').slice(0, 10);
 
-  const isSameDate = Boolean(localDateStr && cloudDateStr && localDateStr === cloudDateStr);
+  const isSameDate = Boolean(
+    (localDateStr && cloudDateStr && localDateStr === cloudDateStr) ||
+    (!cloudDateStr && Boolean(localDateStr))
+  );
   const isCloudNewer = Boolean(localDateStr && cloudDateStr && cloudDateStr > localDateStr);
   const isLocalNewer = Boolean(localDateStr && cloudDateStr && localDateStr > cloudDateStr);
 

@@ -74,22 +74,37 @@ export const DailyProtocolTracker: React.FC<DailyProtocolTrackerProps> = ({
     return () => clearInterval(timer);
   }, []);
 
+  // Exact seconds trained per discipline today:
+  const pegsSecs = Math.max(
+    protocol.tasks.find((t) => t.id === 'mnemonic-pegs')?.secondsElapsed || 0,
+    todayGamesBreakdown['mnemonic-pegs'] || 0
+  );
+  const nbackSecs = Math.max(
+    protocol.tasks.find((t) => t.id === 'dual-nback')?.secondsElapsed || 0,
+    todayGamesBreakdown['dual-nback'] || 0
+  );
+  const detectiveSecs = Math.max(
+    protocol.tasks.find((t) => t.id === 'symbol-detective')?.secondsElapsed || 0,
+    todayGamesBreakdown['symbol-detective'] || 0
+  );
+
   // Check if each discipline has reached its required duration today
   const isPegsDone =
     protocol.tasks.find((t) => t.id === 'mnemonic-pegs')?.isCompleted ||
-    (todayGamesBreakdown['mnemonic-pegs'] || 0) >= 1200;
+    pegsSecs >= 1200;
 
   const isNBackDone =
     protocol.tasks.find((t) => t.id === 'dual-nback')?.isCompleted ||
-    (todayGamesBreakdown['dual-nback'] || 0) >= 1200;
+    nbackSecs >= 1200;
 
   const isDetectiveDone =
     protocol.tasks.find((t) => t.id === 'symbol-detective')?.isCompleted ||
-    (todayGamesBreakdown['symbol-detective'] || 0) >= 1200;
+    detectiveSecs >= 1200;
 
   const isMemoryPalaceDone =
     protocol.tasks.find((t) => t.id === 'memory-palace')?.isCompleted ||
     protocol.memoryPalaceTimer?.isCompleted ||
+    (protocol.memoryPalaceTimer?.elapsedSeconds || 0) >= 3600 ||
     (todayGamesBreakdown['memory-palace'] || 0) >= 3600;
 
   const isAllThreeGamesDone = Boolean(isPegsDone && isNBackDone && isDetectiveDone);
@@ -99,7 +114,21 @@ export const DailyProtocolTracker: React.FC<DailyProtocolTrackerProps> = ({
     (isNBackDone ? 1 : 0) +
     (isDetectiveDone ? 1 : 0);
 
-  const progressPercent = Math.round((completedTasksCount / 3) * 100);
+  // Continuous percentage based on actual seconds trained (user preference)
+  const totalCoreTrainedSeconds =
+    Math.min(1200, pegsSecs) +
+    Math.min(1200, nbackSecs) +
+    Math.min(1200, detectiveSecs);
+
+  let allTrainingSeconds = 0;
+  for (const key of Object.keys(todayGamesBreakdown)) {
+    allTrainingSeconds += Number(todayGamesBreakdown[key]) || 0;
+  }
+
+  // Either core disciplines or any interactive games trained today
+  const displaySeconds = Math.max(totalCoreTrainedSeconds, Math.min(3600, allTrainingSeconds));
+  // 3 disciplines x 20 min = 60 min = 3600s quota
+  const progressPercent = Math.min(100, Math.round((displaySeconds / 3600) * 100));
 
   // Auto-complete day and lock out when all 3 primary 20-minute games are achieved
   useEffect(() => {
@@ -303,7 +332,7 @@ export const DailyProtocolTracker: React.FC<DailyProtocolTrackerProps> = ({
         </div>
         <div className="flex justify-between items-center text-xs text-slate-400 font-medium">
           <span>
-            {completedTasksCount} of 3 Primary Game Disciplines Completed ({progressPercent}%)
+            {formatSecsToMins(displaySeconds)} of 60m Trained ({progressPercent}%) • {completedTasksCount} of 3 Mastered
           </span>
           <span className={(isAllThreeGamesDone || protocol.isLockedOut) ? 'text-emerald-400 font-bold flex items-center gap-1' : 'text-amber-400 font-bold flex items-center gap-1'}>
             {(isAllThreeGamesDone || protocol.isLockedOut) ? (
@@ -314,7 +343,7 @@ export const DailyProtocolTracker: React.FC<DailyProtocolTrackerProps> = ({
             ) : (
               <>
                 <Hourglass className="w-4 h-4 text-amber-400 animate-spin" />
-                Complete 3 Games (20m each) for Daily Quota
+                Live Training Active ({formatSecsToMins(displaySeconds)} / 60m)
               </>
             )}
           </span>
@@ -366,7 +395,7 @@ export const DailyProtocolTracker: React.FC<DailyProtocolTrackerProps> = ({
         <div className="grid grid-cols-1 gap-3.5">
           {/* Game 1: Mnemonic Pegs */}
           {(() => {
-            const playedSecs = todayGamesBreakdown['mnemonic-pegs'] || 0;
+            const playedSecs = pegsSecs;
             const isLocked = playedSecs >= 1200 || isPegsDone;
             const remaining = Math.max(0, 1200 - playedSecs);
             return (
@@ -451,7 +480,7 @@ export const DailyProtocolTracker: React.FC<DailyProtocolTrackerProps> = ({
 
           {/* Game 2: Dual N-Back Buffer */}
           {(() => {
-            const playedSecs = todayGamesBreakdown['dual-nback'] || 0;
+            const playedSecs = nbackSecs;
             const isLocked = playedSecs >= 1200 || isNBackDone;
             const remaining = Math.max(0, 1200 - playedSecs);
             return (
@@ -536,7 +565,7 @@ export const DailyProtocolTracker: React.FC<DailyProtocolTrackerProps> = ({
 
           {/* Game 3: Symbol Detective Lab */}
           {(() => {
-            const playedSecs = todayGamesBreakdown['symbol-detective'] || 0;
+            const playedSecs = detectiveSecs;
             const isLocked = playedSecs >= 1200 || isDetectiveDone;
             const remaining = Math.max(0, 1200 - playedSecs);
             return (

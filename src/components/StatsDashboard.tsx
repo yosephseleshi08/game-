@@ -276,7 +276,9 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
                 <Clock className="w-4 h-4 text-cyan-400" />
               </div>
               <div className="text-xl font-black text-white">
-                {Math.floor((resolvedFreeTrainingStats?.todaySeconds || 0) / 60)}m
+                {(resolvedFreeTrainingStats?.todaySeconds || 0) >= 60
+                  ? `${Math.floor((resolvedFreeTrainingStats?.todaySeconds || 0) / 60)}m ${String((resolvedFreeTrainingStats?.todaySeconds || 0) % 60).padStart(2, '0')}s`
+                  : `${resolvedFreeTrainingStats?.todaySeconds || 0}s`}
               </div>
               <p className="text-[10px] text-slate-400 mt-0.5">Today's active focus</p>
             </div>

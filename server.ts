@@ -41,6 +41,7 @@ const DEFAULT_YOSEPH_STATE = {
   protocol: {
     curriculumDay: 1,
     currentPhase: 1,
+    currentCycleDate: new Date().toISOString().slice(0, 10),
     isLockedOut: false,
     tasks: [
       {
@@ -197,7 +198,11 @@ async function startServer() {
     if (!currentProtocol) return;
 
     const recordedDate = (currentProtocol.currentCycleDate || '').slice(0, 10);
-    if (recordedDate && recordedDate < todayStr) {
+    if (!recordedDate) {
+      currentProtocol.currentCycleDate = todayStr;
+      return;
+    }
+    if (recordedDate < todayStr) {
       // Evaluate previous day: primary criterion is completing the 3 games (20 min each)
       const were3GamesDone = ['mnemonic-pegs', 'dual-nback', 'symbol-detective'].every((id) => {
         const t = (currentProtocol.tasks || []).find((task: any) => task.id === id);
@@ -319,9 +324,11 @@ async function startServer() {
       ...(incomingProtocol.history || {}),
     };
 
-    const isSameDate = currentDateStr === incomingDateStr;
-    const isIncomingNewer = incomingDateStr > currentDateStr;
-    const isCurrentNewer = currentDateStr > incomingDateStr;
+    const isSameDate = Boolean(currentDateStr && incomingDateStr && currentDateStr === incomingDateStr) ||
+      (!currentDateStr && Boolean(incomingDateStr)) ||
+      (!incomingDateStr && Boolean(currentDateStr));
+    const isIncomingNewer = Boolean(currentDateStr && incomingDateStr && incomingDateStr > currentDateStr);
+    const isCurrentNewer = Boolean(currentDateStr && incomingDateStr && currentDateStr > incomingDateStr);
 
     // If day rolled over from server to incoming (incoming is today, server was yesterday)
     if (isIncomingNewer && currentDateStr) {
