@@ -13,6 +13,7 @@ import {
   saveFreeTrainingStats,
   recordFreeTrainingTime,
   cleanEverySingleThing,
+  recalculateAllTimeTotals,
 } from './utils/storage';
 import { sound } from './utils/audio';
 import { Header } from './components/Header';
@@ -49,6 +50,7 @@ import {
   pushServerMasterProgress,
   resetServerMasterProgress,
   subscribeToMasterCloudProgress,
+  YosephMasterPayload,
 } from './utils/yosephSync';
 import { loadFourHourPlan, saveFourHourPlan, resetFourHourPlanToZero } from './utils/fourHourPlan';
 import {
@@ -198,6 +200,23 @@ export default function App() {
     'daily-workout',
   ];
 
+  // Up-to-date live references to prevent stale closures during cloud and remote sync
+  const liveStatsRef = useRef(stats);
+  const liveProtocolRef = useRef(protocol);
+  const liveFreeStatsRef = useRef(freeTrainingStats);
+  const liveProfileRef = useRef(currentProfile);
+  const liveActiveModeRef = useRef(activeMode);
+  const isPlayingGameRef = useRef(ALL_INTERACTIVE_GAMES.includes(activeMode));
+  const currentGameSecondsRef = useRef(currentGameSeconds);
+
+  useEffect(() => { liveStatsRef.current = stats; }, [stats]);
+  useEffect(() => { liveProtocolRef.current = protocol; }, [protocol]);
+  useEffect(() => { liveFreeStatsRef.current = freeTrainingStats; }, [freeTrainingStats]);
+  useEffect(() => { liveProfileRef.current = currentProfile; }, [currentProfile]);
+  useEffect(() => { liveActiveModeRef.current = activeMode; }, [activeMode]);
+  useEffect(() => { isPlayingGameRef.current = ALL_INTERACTIVE_GAMES.includes(activeMode); }, [activeMode]);
+  useEffect(() => { currentGameSecondsRef.current = currentGameSeconds; }, [currentGameSeconds]);
+
   // Yoseph's Cognitive Protocol & Laboratory Goals
   const GAME_TARGETS: Record<GameMode, { title: string; minutes: number }> = {
     'mnemonic-pegs': { title: 'Mnemonic Major Pegs (Number-to-Image)', minutes: 20 },
@@ -232,7 +251,10 @@ export default function App() {
 
   const activeModeSecondsRef = useRef(activeModeSeconds);
   useEffect(() => {
-    activeModeSecondsRef.current = activeModeSeconds;
+    if (activeModeSeconds > activeModeSecondsRef.current) {
+      activeModeSecondsRef.current = activeModeSeconds;
+      setCurrentGameSeconds(activeModeSeconds);
+    }
   }, [activeModeSeconds]);
 
   // Initialize session seconds when entering any game to the already accumulated time so it never resets to 0!
@@ -241,7 +263,7 @@ export default function App() {
       const taskSecs = protocol.tasks?.find((t) => t.id === activeMode)?.secondsElapsed || 0;
       const palaceSecs = activeMode === 'memory-palace' ? (protocol.memoryPalaceTimer?.elapsedSeconds || 0) : 0;
       const breakdownSecs = freeTrainingStats.todayGamesBreakdown?.[activeMode] || 0;
-      const initialSecs = Math.max(taskSecs, palaceSecs, breakdownSecs);
+      const initialSecs = Math.max(taskSecs, palaceSecs, breakdownSecs, activeModeSecondsRef.current);
       activeModeSecondsRef.current = initialSecs;
       setCurrentGameSeconds(initialSecs);
       setIsGameTimerPaused(false);
@@ -374,16 +396,16 @@ export default function App() {
     const syncInterval = setInterval(() => {
       const plan = loadFourHourPlan();
       pushServerMasterProgress({
-        stats,
-        protocol,
-        freeTrainingStats,
-        profile: currentProfile,
+        stats: liveStatsRef.current,
+        protocol: liveProtocolRef.current,
+        freeTrainingStats: liveFreeStatsRef.current,
+        profile: liveProfileRef.current,
         fourHourPlan: plan,
       }).catch(() => {});
     }, 10000);
 
     return () => clearInterval(syncInterval);
-  }, [isPlayingGame, isGameTimerPaused, stats, protocol, freeTrainingStats, currentProfile]);
+  }, [isPlayingGame, isGameTimerPaused]);
 
   // Continuous training reward: +15 XP every active minute
   useEffect(() => {
@@ -440,66 +462,118 @@ export default function App() {
   // ----------------------------------------------------
   // Yoseph Unified Multi-Device Sync Engine (2 Phones & 1 PC)
   // ----------------------------------------------------
+  const applyRemoteProgressMerge = (remoteData: YosephMasterPayload) => {
+    const localPlan = loadFourHourPlan();
+    const currentLocalStats = liveStatsRef.current;
+    const currentLocalProtocol = liveProtocolRef.current;
+    const currentLocalFree = liveFreeStatsRef.current;
+    const currentLocalProfile = liveProfileRef.current;
+
+    const merged = mergeUserProgress(
+      currentLocalStats,
+      remoteData.stats,
+      currentLocalProtocol,
+      remoteData.protocol,
+      currentLocalFree,
+      remoteData.freeTrainingStats
+    );
+    const mergedPlan = mergeFourHourPlans(localPlan, remoteData.fourHourPlan);
+    if (mergedPlan) saveFourHourPlan(mergedPlan);
+
+    // CRITICAL: If user is actively playing a game on this device,
+    // protect the active game's live seconds from being overwritten or reduced!
+    if (isPlayingGameRef.current && liveActiveModeRef.current) {
+      const playingMode = liveActiveModeRef.current;
+      const currentLiveSecs = Math.max(
+        currentGameSecondsRef.current,
+        activeModeSecondsRef.current,
+        currentLocalFree.todayGamesBreakdown?.[playingMode] || 0
+      );
+
+      if (merged.mergedFreeStats) {
+        merged.mergedFreeStats.todayGamesBreakdown = merged.mergedFreeStats.todayGamesBreakdown || {};
+        merged.mergedFreeStats.todayGamesBreakdown[playingMode] = Math.max(
+          merged.mergedFreeStats.todayGamesBreakdown[playingMode] || 0,
+          currentLiveSecs
+        );
+        merged.mergedFreeStats.todaySeconds = Object.values(merged.mergedFreeStats.todayGamesBreakdown).reduce(
+          (a, b) => a + b,
+          0
+        );
+        recalculateAllTimeTotals(merged.mergedFreeStats);
+      }
+
+      if (merged.mergedProtocol?.tasks) {
+        merged.mergedProtocol.tasks = merged.mergedProtocol.tasks.map((t) => {
+          if (t.id === playingMode) {
+            const bestSecs = Math.max(t.secondsElapsed || 0, currentLiveSecs);
+            return {
+              ...t,
+              secondsElapsed: bestSecs,
+              currentCount: Math.floor(bestSecs / 60),
+              isCompleted: Boolean(t.isCompleted || (t.targetSeconds && bestSecs >= t.targetSeconds)),
+            };
+          }
+          return t;
+        });
+      }
+
+      if (playingMode === 'memory-palace' && merged.mergedProtocol?.memoryPalaceTimer) {
+        const bestPalaceSecs = Math.max(merged.mergedProtocol.memoryPalaceTimer.elapsedSeconds || 0, currentLiveSecs);
+        merged.mergedProtocol.memoryPalaceTimer.elapsedSeconds = bestPalaceSecs;
+        merged.mergedProtocol.memoryPalaceTimer.remainingSeconds = Math.max(0, 3600 - bestPalaceSecs);
+      }
+    }
+
+    setStats(merged.mergedStats);
+    saveUserStats(merged.mergedStats);
+    setProtocol(merged.mergedProtocol);
+    saveDailyProtocol(merged.mergedProtocol);
+    if (merged.mergedFreeStats) {
+      setFreeTrainingStats(merged.mergedFreeStats);
+      saveFreeTrainingStats(merged.mergedFreeStats);
+    }
+
+    let updatedProfile = currentLocalProfile;
+    if (remoteData.profile) {
+      updatedProfile = {
+        ...currentLocalProfile,
+        ...remoteData.profile,
+        level: merged.mergedStats.level,
+        xp: merged.mergedStats.xp,
+        curriculumDay: merged.mergedProtocol.curriculumDay,
+        currentStreak: merged.mergedStats.currentStreak,
+        bestStreak: merged.mergedStats.bestStreak,
+      };
+      setCurrentProfile(updatedProfile);
+      saveLocalProfile(updatedProfile);
+    }
+
+    return {
+      stats: merged.mergedStats,
+      protocol: merged.mergedProtocol,
+      freeTrainingStats: merged.mergedFreeStats || currentLocalFree,
+      fourHourPlan: mergedPlan || localPlan,
+      profile: updatedProfile,
+    };
+  };
+
   const handleForceSync = async () => {
     setCloudSyncStatus('syncing');
     isSyncingFromRemoteRef.current = true;
     try {
       const serverData = await fetchServerMasterProgress();
-      const localPlan = loadFourHourPlan();
-
       if (serverData) {
-        const merged = mergeUserProgress(
-          stats,
-          serverData.stats,
-          protocol,
-          serverData.protocol,
-          freeTrainingStats,
-          serverData.freeTrainingStats
-        );
-        const mergedPlan = mergeFourHourPlans(localPlan, serverData.fourHourPlan);
-        if (mergedPlan) {
-          saveFourHourPlan(mergedPlan);
-        }
-
-        setStats(merged.mergedStats);
-        saveUserStats(merged.mergedStats);
-        setProtocol(merged.mergedProtocol);
-        saveDailyProtocol(merged.mergedProtocol);
-        if (merged.mergedFreeStats) {
-          setFreeTrainingStats(merged.mergedFreeStats);
-          saveFreeTrainingStats(merged.mergedFreeStats);
-        }
-
-        let updatedProfile = currentProfile;
-        if (serverData.profile) {
-          updatedProfile = {
-            ...currentProfile,
-            ...serverData.profile,
-            level: merged.mergedStats.level,
-            xp: merged.mergedStats.xp,
-            curriculumDay: merged.mergedProtocol.curriculumDay,
-            currentStreak: merged.mergedStats.currentStreak,
-            bestStreak: merged.mergedStats.bestStreak,
-          };
-          setCurrentProfile(updatedProfile);
-          saveLocalProfile(updatedProfile);
-        }
-
-        // Push combined highest watermark back to server
-        await pushServerMasterProgress({
-          stats: merged.mergedStats,
-          protocol: merged.mergedProtocol,
-          freeTrainingStats: merged.mergedFreeStats || freeTrainingStats,
-          fourHourPlan: mergedPlan || localPlan,
-          profile: updatedProfile,
-        });
+        const combined = applyRemoteProgressMerge(serverData);
+        // Push combined watermark back to server
+        await pushServerMasterProgress(combined);
       } else {
         await pushServerMasterProgress({
-          stats,
-          protocol,
-          freeTrainingStats,
-          fourHourPlan: localPlan,
-          profile: currentProfile,
+          stats: liveStatsRef.current,
+          protocol: liveProtocolRef.current,
+          freeTrainingStats: liveFreeStatsRef.current,
+          fourHourPlan: loadFourHourPlan(),
+          profile: liveProfileRef.current,
         });
       }
       setCloudSyncStatus('synced');
@@ -516,46 +590,13 @@ export default function App() {
   };
 
   // Live real-time Firestore listener for all 3 devices (PC, Phone 1, Phone 2)
+  // Attached once on mount to prevent cyclic re-subscription during gameplay
   useEffect(() => {
     const unsub = subscribeToMasterCloudProgress((remoteData) => {
       if (isSyncingFromRemoteRef.current) return;
       isSyncingFromRemoteRef.current = true;
       try {
-        const localPlan = loadFourHourPlan();
-        const merged = mergeUserProgress(
-          stats,
-          remoteData.stats,
-          protocol,
-          remoteData.protocol,
-          freeTrainingStats,
-          remoteData.freeTrainingStats
-        );
-        const mergedPlan = mergeFourHourPlans(localPlan, remoteData.fourHourPlan);
-        if (mergedPlan) saveFourHourPlan(mergedPlan);
-
-        setStats(merged.mergedStats);
-        saveUserStats(merged.mergedStats);
-        setProtocol(merged.mergedProtocol);
-        saveDailyProtocol(merged.mergedProtocol);
-        if (merged.mergedFreeStats) {
-          setFreeTrainingStats(merged.mergedFreeStats);
-          saveFreeTrainingStats(merged.mergedFreeStats);
-        }
-        if (remoteData.profile) {
-          setCurrentProfile((prevProf) => {
-            const upProf = {
-              ...prevProf,
-              ...remoteData.profile,
-              level: merged.mergedStats.level,
-              xp: merged.mergedStats.xp,
-              curriculumDay: merged.mergedProtocol.curriculumDay,
-              currentStreak: merged.mergedStats.currentStreak,
-              bestStreak: merged.mergedStats.bestStreak,
-            };
-            saveLocalProfile(upProf);
-            return upProf;
-          });
-        }
+        applyRemoteProgressMerge(remoteData);
         setCloudSyncStatus('synced');
         setLastSyncedTime(new Date());
       } finally {
@@ -566,7 +607,7 @@ export default function App() {
     });
 
     return () => unsub();
-  }, [stats, protocol, freeTrainingStats]);
+  }, []);
 
   // Sync on startup and poll every 15s so any other phone or PC updates immediately appear
   useEffect(() => {
@@ -593,7 +634,7 @@ export default function App() {
       window.removeEventListener('focus', handleSyncOnForeground);
       document.removeEventListener('visibilitychange', handleSyncOnForeground);
     };
-  }, [stats, protocol, freeTrainingStats]);
+  }, []);
 
   // Debounced auto-save to server when user completes training on this device
   useEffect(() => {
@@ -609,10 +650,10 @@ export default function App() {
         setCloudSyncStatus('syncing');
         const plan = loadFourHourPlan();
         await pushServerMasterProgress({
-          stats,
-          protocol,
-          freeTrainingStats,
-          profile: currentProfile,
+          stats: liveStatsRef.current,
+          protocol: liveProtocolRef.current,
+          freeTrainingStats: liveFreeStatsRef.current,
+          profile: liveProfileRef.current,
           fourHourPlan: plan,
         });
         setCloudSyncStatus('synced');

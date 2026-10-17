@@ -140,15 +140,32 @@ const DEFAULT_YOSEPH_STATE = {
 };
 
 function readMasterData() {
+  const todayStr = new Date().toISOString().slice(0, 10);
   try {
     if (fs.existsSync(DATA_FILE)) {
       const raw = fs.readFileSync(DATA_FILE, 'utf-8');
-      return JSON.parse(raw);
+      const parsed = JSON.parse(raw);
+      if (parsed.protocol) {
+        if (!parsed.protocol.currentCycleDate) {
+          parsed.protocol.currentCycleDate = todayStr;
+        }
+        const completedDays = Object.values(parsed.protocol.history || {}).filter((h: any) => h.completed).length;
+        if (completedDays === 0 && parsed.protocol.curriculumDay > 1) {
+          parsed.protocol.curriculumDay = 1;
+        }
+      }
+      return parsed;
     }
   } catch (err) {
     console.error('Error reading master progress file:', err);
   }
-  return DEFAULT_YOSEPH_STATE;
+  return {
+    ...DEFAULT_YOSEPH_STATE,
+    protocol: {
+      ...DEFAULT_YOSEPH_STATE.protocol,
+      currentCycleDate: todayStr,
+    },
+  };
 }
 
 function writeMasterData(data: any) {
@@ -287,10 +304,6 @@ async function startServer() {
 
     const currentProtocol = masterData.protocol || DEFAULT_YOSEPH_STATE.protocol;
     const incomingProtocol = incoming.protocol;
-
-    const currentDateStr = (currentProtocol.currentCycleDate || '').slice(0, 10);
-    const incomingDateStr = (incomingProtocol.currentCycleDate || '').slice(0, 10);
-
     // Merge stats: keep highest XP, level, streaks, and best game scores
     const mergedXp = Math.max(currentStats.xp || 0, incomingStats.xp || 0);
     const mergedCurrentStreak = Math.max(currentStats.currentStreak || 0, incomingStats.currentStreak || 0);
@@ -324,11 +337,13 @@ async function startServer() {
       ...(incomingProtocol.history || {}),
     };
 
-    const isSameDate = Boolean(currentDateStr && incomingDateStr && currentDateStr === incomingDateStr) ||
-      (!currentDateStr && Boolean(incomingDateStr)) ||
-      (!incomingDateStr && Boolean(currentDateStr));
-    const isIncomingNewer = Boolean(currentDateStr && incomingDateStr && incomingDateStr > currentDateStr);
-    const isCurrentNewer = Boolean(currentDateStr && incomingDateStr && currentDateStr > incomingDateStr);
+    const todayStr = getUtcOrLocalDateStr();
+    const currentDateStr = (currentProtocol.currentCycleDate || todayStr).slice(0, 10);
+    const incomingDateStr = (incomingProtocol.currentCycleDate || todayStr).slice(0, 10);
+
+    const isSameDate = currentDateStr === incomingDateStr;
+    const isIncomingNewer = incomingDateStr > currentDateStr;
+    const isCurrentNewer = currentDateStr > incomingDateStr;
 
     // If day rolled over from server to incoming (incoming is today, server was yesterday)
     if (isIncomingNewer && currentDateStr) {
@@ -372,7 +387,7 @@ async function startServer() {
     }
 
     // Determine target day and active memory palace timer
-    let activeDateStr = isSameDate ? currentDateStr : (isIncomingNewer ? incomingDateStr : currentDateStr);
+    let activeDateStr = isSameDate ? (incomingDateStr || currentDateStr || todayStr) : (isIncomingNewer ? incomingDateStr : (currentDateStr || todayStr));
     let higherDay = Math.max(currentProtocol.curriculumDay || 1, incomingProtocol.curriculumDay || 1);
 
     let mergedMemoryPalaceTimer: any;
@@ -424,6 +439,10 @@ async function startServer() {
         'mnemonic-pegs',
         'dual-nback',
         'symbol-detective',
+        'eidetic-matrix',
+        'ayumu-chimp',
+        'spaced-repetition',
+        'daily-workout',
       ]));
 
       for (const gm of allGameModes) {

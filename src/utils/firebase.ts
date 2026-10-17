@@ -716,14 +716,11 @@ export function mergeUserProgress(
 
   const fallbackDateStr = new Date().toISOString().slice(0, 10);
   const localDateStr = (pLocal.currentCycleDate || fallbackDateStr).slice(0, 10);
-  const cloudDateStr = (pCloud.currentCycleDate || '').slice(0, 10);
+  const cloudDateStr = (pCloud.currentCycleDate || localDateStr).slice(0, 10);
 
-  const isSameDate = Boolean(
-    (localDateStr && cloudDateStr && localDateStr === cloudDateStr) ||
-    (!cloudDateStr && Boolean(localDateStr))
-  );
-  const isCloudNewer = Boolean(localDateStr && cloudDateStr && cloudDateStr > localDateStr);
-  const isLocalNewer = Boolean(localDateStr && cloudDateStr && localDateStr > cloudDateStr);
+  const isSameDate = localDateStr === cloudDateStr;
+  const isCloudNewer = cloudDateStr > localDateStr;
+  const isLocalNewer = localDateStr > cloudDateStr;
 
   // Combine history: archive older day as failed if incomplete
   const combinedHistory = {
@@ -827,6 +824,10 @@ export function mergeUserProgress(
       'mnemonic-pegs',
       'dual-nback',
       'symbol-detective',
+      'eidetic-matrix',
+      'ayumu-chimp',
+      'spaced-repetition',
+      'daily-workout',
     ]));
 
     for (const gm of allGameModes) {
