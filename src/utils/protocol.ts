@@ -95,9 +95,9 @@ export function generateTasksForDay(day: number): ProtocolTask[] {
     },
     {
       id: 'memory-palace',
-      title: 'Manual Memory Palace Training (1 Hour)',
+      title: 'Manual Memory Palace Training (1 Hour Bonus)',
       discipline: 'Offline Deep Loci Visualization',
-      targetDescription: 'Sit down and practice your memory palace loci manually with the 60-minute focus countdown timer (mandatory for daily streak)',
+      targetDescription: 'Practice your memory palace loci manually with the 60-minute focus countdown timer (Optional Bonus: +500 Bonus XP)',
       targetCount: 60,
       currentCount: 0,
       targetSeconds: 3600,
@@ -143,37 +143,39 @@ export function addDaysToDateString(dateStr: string, daysToAdd: number): string 
 }
 
 /**
- * Checks whether all 4 designated disciplines are 100% complete:
+ * Checks whether the primary 1-hour 3-game daily protocol is complete:
  * 1. Mnemonic Pegs: 20m (1200s)
  * 2. Dual N-Back: 20m (1200s)
  * 3. Symbol Detective: 20m (1200s)
- * 4. Manual Memory Palace: 60m (3600s)
+ * 
+ * Note: Memory Palace (1 hour) is an optional bonus immersion that awards +500 bonus XP.
  */
 export function checkIsDailyProtocolFullyDone(
   tasks: ProtocolTask[],
   todayGamesBreakdown?: Record<string, number>,
-  memoryPalaceTimer?: MemoryPalaceTimerState
+  _memoryPalaceTimer?: MemoryPalaceTimerState
 ): boolean {
-  if (!tasks || tasks.length < 4) return false;
+  if (!tasks || tasks.length < 3) return false;
+
+  const getSecs = (id: string) => {
+    const fromTask = tasks.find((t) => t.id === id)?.secondsElapsed || 0;
+    const fromBreakdown = todayGamesBreakdown?.[id] || 0;
+    return Math.max(fromTask, fromBreakdown);
+  };
 
   const pegsDone =
     tasks.find((t) => t.id === 'mnemonic-pegs')?.isCompleted ||
-    (todayGamesBreakdown?.['mnemonic-pegs'] || 0) >= 1200;
+    getSecs('mnemonic-pegs') >= 1200;
 
   const nbackDone =
     tasks.find((t) => t.id === 'dual-nback')?.isCompleted ||
-    (todayGamesBreakdown?.['dual-nback'] || 0) >= 1200;
+    getSecs('dual-nback') >= 1200;
 
   const detectiveDone =
     tasks.find((t) => t.id === 'symbol-detective')?.isCompleted ||
-    (todayGamesBreakdown?.['symbol-detective'] || 0) >= 1200;
+    getSecs('symbol-detective') >= 1200;
 
-  const palaceDone =
-    tasks.find((t) => t.id === 'memory-palace')?.isCompleted ||
-    memoryPalaceTimer?.isCompleted ||
-    (todayGamesBreakdown?.['memory-palace'] || 0) >= 3600;
-
-  return Boolean(pegsDone && nbackDone && detectiveDone && palaceDone);
+  return Boolean(pegsDone && nbackDone && detectiveDone);
 }
 
 /**

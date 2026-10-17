@@ -86,7 +86,9 @@ export async function fetchServerMasterProgress(): Promise<YosephMasterPayload |
 
   // 2. Fallback to server endpoint
   try {
-    const res = await fetch('/api/yoseph/progress', {
+    const now = new Date();
+    const clientDateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    const res = await fetch(`/api/yoseph/progress?date=${clientDateStr}`, {
       method: 'GET',
       headers: { 'Cache-Control': 'no-cache' },
     });

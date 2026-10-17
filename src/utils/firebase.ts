@@ -728,13 +728,15 @@ export function mergeUserProgress(
   };
 
   if (isLocalNewer && cloudDateStr) {
+    const wereCloud3GamesDone = ['mnemonic-pegs', 'dual-nback', 'symbol-detective'].every((id) => {
+      const task = (pCloud.tasks || []).find((t) => t.id === id);
+      return task && (task.isCompleted || (task.secondsElapsed || 0) >= 1200);
+    });
     const wasCloudPalaceDone = Boolean(
       pCloud.memoryPalaceTimer?.isCompleted ||
       (pCloud.memoryPalaceTimer?.elapsedSeconds || 0) >= 3600
     );
-    const wereCloudTasksDone = (pCloud.tasks || []).length >= 4 &&
-      (pCloud.tasks || []).every((t) => t.isCompleted);
-    const isPastCloudDone = Boolean(wasCloudPalaceDone && wereCloudTasksDone);
+    const isPastCloudDone = wereCloud3GamesDone;
 
     combinedHistory[cloudDateStr] = {
       date: cloudDateStr,
@@ -747,13 +749,15 @@ export function mergeUserProgress(
       totalSeconds: isPastCloudDone ? 7200 : (pCloud.memoryPalaceTimer?.elapsedSeconds || 0),
     };
   } else if (isCloudNewer && localDateStr) {
+    const wereLocal3GamesDone = ['mnemonic-pegs', 'dual-nback', 'symbol-detective'].every((id) => {
+      const task = (pLocal.tasks || []).find((t) => t.id === id);
+      return task && (task.isCompleted || (task.secondsElapsed || 0) >= 1200);
+    });
     const wasLocalPalaceDone = Boolean(
       pLocal.memoryPalaceTimer?.isCompleted ||
       (pLocal.memoryPalaceTimer?.elapsedSeconds || 0) >= 3600
     );
-    const wereLocalTasksDone = (pLocal.tasks || []).length >= 4 &&
-      (pLocal.tasks || []).every((t) => t.isCompleted);
-    const isPastLocalDone = Boolean(wasLocalPalaceDone && wereLocalTasksDone);
+    const isPastLocalDone = wereLocal3GamesDone;
 
     combinedHistory[localDateStr] = {
       date: localDateStr,
@@ -897,7 +901,10 @@ export function mergeUserProgress(
     };
   });
 
-  const isAllFourDone = mergedTasks.every((t) => t.isCompleted);
+  const isAllThreeGamesDone = ['mnemonic-pegs', 'dual-nback', 'symbol-detective'].every((id) => {
+    const task = mergedTasks.find((t) => t.id === id);
+    return task && (task.isCompleted || (task.secondsElapsed || 0) >= 1200);
+  });
 
   const mergedProtocol: DailyProtocolState = {
     ...(isLocalNewer ? pLocal : (isCloudNewer ? pCloud : pLocal)),
@@ -905,7 +912,7 @@ export function mergeUserProgress(
     curriculumDay: highestDay,
     tasks: mergedTasks,
     memoryPalaceTimer: mergedMemoryPalaceTimer,
-    isLockedOut: Boolean(isSameDate ? (pLocal.isLockedOut || pCloud.isLockedOut || isAllFourDone) : isAllFourDone),
+    isLockedOut: Boolean(isSameDate ? (pLocal.isLockedOut || pCloud.isLockedOut || isAllThreeGamesDone) : isAllThreeGamesDone),
     history: combinedHistory,
   };
 

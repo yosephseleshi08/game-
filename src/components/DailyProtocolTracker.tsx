@@ -92,25 +92,26 @@ export const DailyProtocolTracker: React.FC<DailyProtocolTrackerProps> = ({
     protocol.memoryPalaceTimer?.isCompleted ||
     (todayGamesBreakdown['memory-palace'] || 0) >= 3600;
 
-  const isAllFourDone = Boolean(isPegsDone && isNBackDone && isDetectiveDone && isMemoryPalaceDone);
+  const isAllThreeGamesDone = Boolean(isPegsDone && isNBackDone && isDetectiveDone);
 
   const completedTasksCount =
     (isPegsDone ? 1 : 0) +
     (isNBackDone ? 1 : 0) +
-    (isDetectiveDone ? 1 : 0) +
-    (isMemoryPalaceDone ? 1 : 0);
+    (isDetectiveDone ? 1 : 0);
 
-  const progressPercent = Math.round((completedTasksCount / 4) * 100);
+  const progressPercent = Math.round((completedTasksCount / 3) * 100);
 
-  // Auto-complete day and lock out when all 4 tasks are achieved
+  // Auto-complete day and lock out when all 3 primary 20-minute games are achieved
   useEffect(() => {
-    if (isAllFourDone && !protocol.isLockedOut) {
+    if (isAllThreeGamesDone && !protocol.isLockedOut) {
       sound.playMilestoneFanfare();
       const updated: DailyProtocolState = {
         ...protocol,
         isLockedOut: true,
         completedAt: new Date().toISOString(),
-        tasks: protocol.tasks.map((t) => ({ ...t, isCompleted: true })),
+        tasks: protocol.tasks.map((t) =>
+          t.id !== 'memory-palace' ? { ...t, isCompleted: true } : t
+        ),
         history: {
           ...protocol.history,
           [todayStr]: {
@@ -121,16 +122,16 @@ export const DailyProtocolTracker: React.FC<DailyProtocolTrackerProps> = ({
             failed: false,
             score: 100,
             completedAt: new Date().toISOString(),
-            totalSeconds: 7200,
-            memoryPalaceCompleted: true,
+            totalSeconds: 3600,
+            memoryPalaceCompleted: Boolean(isMemoryPalaceDone),
           },
         },
       };
       onUpdateProtocol(updated);
       saveDailyProtocol(updated);
-      onAddXp(350); // Daily completion XP
+      onAddXp(350); // Daily completion XP for completing the 1-hour 3-game protocol
     }
-  }, [isAllFourDone, protocol.isLockedOut]);
+  }, [isAllThreeGamesDone, protocol.isLockedOut]);
 
   // Handler for memory palace timer update
   const handleUpdateMemoryPalaceTimer = (timer: MemoryPalaceTimerState) => {
@@ -189,7 +190,7 @@ export const DailyProtocolTracker: React.FC<DailyProtocolTrackerProps> = ({
 
     let status: 'completed' | 'failed' | 'today' | 'upcoming' = 'upcoming';
     if (isToday) {
-      status = isAllFourDone ? 'completed' : 'today';
+      status = (isAllThreeGamesDone || protocol.isLockedOut) ? 'completed' : 'today';
     } else if (historyRecord) {
       status = historyRecord.completed ? 'completed' : 'failed';
     } else {
@@ -302,10 +303,10 @@ export const DailyProtocolTracker: React.FC<DailyProtocolTrackerProps> = ({
         </div>
         <div className="flex justify-between items-center text-xs text-slate-400 font-medium">
           <span>
-            {completedTasksCount} of 4 Mandatory Daily Pillars Completed ({progressPercent}%)
+            {completedTasksCount} of 3 Primary Game Disciplines Completed ({progressPercent}%)
           </span>
-          <span className={isAllFourDone ? 'text-emerald-400 font-bold flex items-center gap-1' : 'text-amber-400 font-bold flex items-center gap-1'}>
-            {isAllFourDone ? (
+          <span className={(isAllThreeGamesDone || protocol.isLockedOut) ? 'text-emerald-400 font-bold flex items-center gap-1' : 'text-amber-400 font-bold flex items-center gap-1'}>
+            {(isAllThreeGamesDone || protocol.isLockedOut) ? (
               <>
                 <ShieldCheck className="w-4 h-4 text-emerald-400" />
                 Day {protocol.curriculumDay} Mastered (Banked as Green Day)
@@ -313,7 +314,7 @@ export const DailyProtocolTracker: React.FC<DailyProtocolTrackerProps> = ({
             ) : (
               <>
                 <Hourglass className="w-4 h-4 text-amber-400 animate-spin" />
-                All 4 Pillars Required Before Midnight
+                Complete 3 Games (20m each) for Daily Quota
               </>
             )}
           </span>
@@ -620,20 +621,20 @@ export const DailyProtocolTracker: React.FC<DailyProtocolTrackerProps> = ({
         </div>
       </div>
 
-      {/* PART 2: 1-HOUR MANUAL MEMORY PALACE OFFLINE TRAINING */}
+      {/* PART 2: DEDICATED BONUS IMMERSION - 1-HOUR MEMORY PALACE */}
       <div className="mb-8">
         <div className="flex items-center justify-between gap-2 mb-3">
           <div>
             <h3 className="text-base font-black text-white flex items-center gap-2">
               <Castle className="w-4 h-4 text-amber-400" />
-              Part 2: 1-Hour Manual Memory Palace Practice
+              Bonus Immersion: 1-Hour Manual Memory Palace Practice
             </h3>
             <p className="text-xs text-slate-400">
-              Sit down by yourself and traverse your loci manually with this 60-minute focus countdown timer
+              Sit down by yourself and traverse your loci manually with this 60-minute focus countdown timer (Optional Bonus Training)
             </p>
           </div>
           <span className="text-xs font-mono font-bold text-amber-300 px-2.5 py-1 rounded-xl bg-amber-950/80 border border-amber-800">
-            Mandatory for Streak
+            Bonus (+500 XP)
           </span>
         </div>
 
@@ -648,10 +649,10 @@ export const DailyProtocolTracker: React.FC<DailyProtocolTrackerProps> = ({
 
       {/* Daily Goal Policy Notice */}
       <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-4 flex items-start gap-3 text-xs text-slate-400">
-        <AlertCircle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+        <AlertCircle className="w-5 h-5 text-cyan-400 shrink-0 mt-0.5" />
         <div className="leading-relaxed">
-          <strong className="text-slate-200 block mb-0.5 font-bold">Strict Daily Goal Policy:</strong>
-          Without completing both the 1-Hour 3-game practice AND the 1-Hour Memory Palace manual countdown, your daily protocol does not complete. Incomplete days are marked as <span className="text-rose-400 font-bold">RED (Failed)</span> and reset your active streak. The calendar always advances with each passing day.
+          <strong className="text-slate-200 block mb-0.5 font-bold">Yoseph's Daily Goal Policy:</strong>
+          Completing the 3 interactive games (20 minutes each = 60 minutes total) satisfies your primary daily training protocol and advances your green streak. The 1-Hour Memory Palace practice serves as a separate bonus training module with independent rewards (+500 Bonus XP).
         </div>
       </div>
     </div>

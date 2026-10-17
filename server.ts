@@ -189,22 +189,25 @@ async function startServer() {
     return `${y}-${m}-${d}`;
   }
 
-  // Roll over masterData if day has passed
+  // Roll over masterData if day has passed (strictly requires client's local date to avoid server UTC resets)
   function ensureMasterDataUpToDate(clientDateStr?: string) {
-    const todayStr = clientDateStr || getUtcOrLocalDateStr();
+    if (!clientDateStr) return; // Prevent server UTC clock from wiping user's in-progress day
+    const todayStr = clientDateStr;
     const currentProtocol = masterData.protocol;
     if (!currentProtocol) return;
 
     const recordedDate = (currentProtocol.currentCycleDate || '').slice(0, 10);
     if (recordedDate && recordedDate < todayStr) {
-      // Evaluate previous day
+      // Evaluate previous day: primary criterion is completing the 3 games (20 min each)
+      const were3GamesDone = ['mnemonic-pegs', 'dual-nback', 'symbol-detective'].every((id) => {
+        const t = (currentProtocol.tasks || []).find((task: any) => task.id === id);
+        return t && (t.isCompleted || (t.secondsElapsed || 0) >= 1200);
+      });
       const wasPalaceDone = Boolean(
         currentProtocol.memoryPalaceTimer?.isCompleted ||
         (currentProtocol.memoryPalaceTimer?.elapsedSeconds || 0) >= 3600
       );
-      const wereTasksDone = (currentProtocol.tasks || []).length >= 4 &&
-        (currentProtocol.tasks || []).every((t: any) => t.isCompleted);
-      const isDayComplete = Boolean(wasPalaceDone && wereTasksDone);
+      const isDayComplete = were3GamesDone;
 
       masterData.protocol.history = masterData.protocol.history || {};
       masterData.protocol.history[recordedDate] = {
@@ -491,7 +494,10 @@ async function startServer() {
       };
     });
 
-    const isAllFourDone = mergedTasks.every((t) => t.isCompleted);
+    const isAllThreeGamesDone = ['mnemonic-pegs', 'dual-nback', 'symbol-detective'].every((id) => {
+      const task = mergedTasks.find((t) => t.id === id);
+      return task && (task.isCompleted || (task.secondsElapsed || 0) >= 1200);
+    });
 
     const mergedProtocol = {
       ...(isIncomingNewer ? incomingProtocol : (isCurrentNewer ? currentProtocol : incomingProtocol)),
@@ -499,7 +505,7 @@ async function startServer() {
       curriculumDay: higherDay,
       tasks: mergedTasks,
       memoryPalaceTimer: mergedMemoryPalaceTimer,
-      isLockedOut: Boolean(isSameDate ? (currentProtocol.isLockedOut || incomingProtocol.isLockedOut || isAllFourDone) : isAllFourDone),
+      isLockedOut: Boolean(isSameDate ? (currentProtocol.isLockedOut || incomingProtocol.isLockedOut || isAllThreeGamesDone) : isAllThreeGamesDone),
       history: mergedHistory,
     };
 
@@ -612,7 +618,9 @@ async function startServer() {
         middlewareMode: true,
         host: '0.0.0.0',
         port: PORT,
-        hmr: false, // Explicitly disable WebSocket HMR in AI Studio
+        hmr: {
+          server: httpServer,
+        },
         watch: null,
       },
       appType: 'spa',

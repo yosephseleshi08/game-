@@ -198,7 +198,10 @@ export default function App() {
   const isPlayingGame = PLAYABLE_GAME_MODES.includes(activeMode);
 
   const activeModuleTarget = ONE_HOUR_MODULE_TARGETS[activeMode];
-  const activeModeSeconds = activeModuleTarget ? (freeTrainingStats.todayGamesBreakdown?.[activeMode] || 0) : 0;
+  const existingTaskSeconds = protocol.tasks?.find((t) => t.id === activeMode)?.secondsElapsed || 0;
+  const activeModeSeconds = activeModuleTarget
+    ? Math.min(1200, Math.max(existingTaskSeconds, freeTrainingStats.todayGamesBreakdown?.[activeMode] || 0))
+    : 0;
   const targetSeconds = activeModuleTarget ? activeModuleTarget.minutes * 60 : 0;
   const moduleRemainingSecs = Math.max(0, targetSeconds - activeModeSeconds);
   const isModuleGoalMet = activeModuleTarget && (
@@ -207,37 +210,52 @@ export default function App() {
     protocol.isLockedOut
   );
 
-  // Reset session seconds when entering any game
+  const activeModeSecondsRef = useRef(activeModeSeconds);
+  useEffect(() => {
+    activeModeSecondsRef.current = activeModeSeconds;
+  }, [activeModeSeconds]);
+
+  // Initialize session seconds when entering any game to the already accumulated time so it never resets to 0!
   useEffect(() => {
     if (isPlayingGame) {
-      setCurrentGameSeconds(0);
+      const taskSecs = protocol.tasks?.find((t) => t.id === activeMode)?.secondsElapsed || 0;
+      const breakdownSecs = freeTrainingStats.todayGamesBreakdown?.[activeMode] || 0;
+      const initialSecs = Math.max(taskSecs, breakdownSecs);
+      activeModeSecondsRef.current = initialSecs;
+      setCurrentGameSeconds(initialSecs);
       setIsGameTimerPaused(false);
-      setFreeTrainingStats(loadFreeTrainingStats(protocol.curriculumDay));
     }
-  }, [activeMode, isPlayingGame, protocol.curriculumDay]);
+  }, [activeMode, isPlayingGame]);
 
   // Active game timer loop - tracks exact playing time and auto-saves every second to storage
   useEffect(() => {
     if (!isPlayingGame || isGameTimerPaused) return;
 
     const interval = setInterval(() => {
-      setCurrentGameSeconds((prev) => prev + 1);
+      // Base on the continuous monotonically increasing seconds for this mode
+      const baseSecs = activeModeSecondsRef.current;
+      const nextSecs = Math.min(1200, baseSecs + 1);
+      activeModeSecondsRef.current = nextSecs;
+
+      setCurrentGameSeconds(nextSecs);
 
       // Record exact 1 second to freeTrainingStats and flush immediately to disk
       const updatedFree = recordFreeTrainingTime(1, 0, activeMode, protocol.curriculumDay);
+      if ((updatedFree.todayGamesBreakdown?.[activeMode] || 0) < nextSecs) {
+        updatedFree.todayGamesBreakdown[activeMode] = nextSecs;
+        saveFreeTrainingStats(updatedFree);
+      }
       setFreeTrainingStats(updatedFree);
-
-      const currentModeSecs = Math.min(1200, (updatedFree.todayGamesBreakdown?.[activeMode] || 0));
 
       // Update protocol tasks so protocol.tasks always has the exact elapsed seconds
       setProtocol((prevP) => {
-        const isCompleted = currentModeSecs >= 1200;
+        const isCompleted = nextSecs >= 1200;
         const updatedTasks = prevP.tasks.map((t) =>
           t.id === activeMode
             ? {
                 ...t,
-                secondsElapsed: currentModeSecs,
-                currentCount: Math.floor(currentModeSecs / 60),
+                secondsElapsed: nextSecs,
+                currentCount: Math.floor(nextSecs / 60),
                 isCompleted: Boolean(t.isCompleted || isCompleted),
               }
             : t
@@ -253,8 +271,8 @@ export default function App() {
         if (pt.gameMode === activeMode) {
           return {
             ...pt,
-            elapsedSeconds: currentModeSecs,
-            isCompleted: Boolean(pt.isCompleted || currentModeSecs >= pt.targetMinutes * 60),
+            elapsedSeconds: nextSecs,
+            isCompleted: Boolean(pt.isCompleted || nextSecs >= pt.targetMinutes * 60),
           };
         }
         return pt;
@@ -262,7 +280,7 @@ export default function App() {
       saveFourHourPlan({ ...currentPlan, tasks: updatedPlanTasks });
 
       // Check if strict 20-minute (1200 seconds) quota is completed!
-      if (currentModeSecs >= 1200) {
+      if (nextSecs >= 1200) {
         sound.playMilestoneFanfare();
         handleAddXp(250);
         setStreakRestoreNotice(
@@ -1029,32 +1047,36 @@ export default function App() {
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
                     <span className="text-xs font-mono font-bold text-white flex items-center gap-1">
-                      Today:
+                      Session:
                       <span className="text-emerald-400 font-extrabold text-xs sm:text-sm">
-                        {formatTimerClock(activeModeSeconds)} / 20m
+                        {formatTimerClock(Math.max(activeModeSeconds, currentGameSeconds))} / 20m
                       </span>
                     </span>
                     {activeModuleTarget && (
                       <span
                         className={`text-[10px] font-mono px-2 py-0.5 rounded-full border flex items-center gap-1 ${
-                          isModuleGoalMet
-                            ? 'bg-emerald-950/80 text-emerald-300 border-emerald-800'
+                          Math.max(activeModeSeconds, currentGameSeconds) >= 1200 || isModuleGoalMet
+                            ? 'bg-emerald-950/80 text-emerald-300 border-emerald-800 font-bold'
                             : 'bg-amber-950/80 text-amber-300 border-amber-800 animate-pulse font-bold'
                         }`}
                         title="Yosi's 1-Hour Protocol: 20-minute discipline goal auto-verifies when completed"
                       >
                         <Clock className="w-2.5 h-2.5" />
-                        {isModuleGoalMet ? (
-                          <span className="text-emerald-300 font-bold">✓ 20m Achieved</span>
+                        {Math.max(activeModeSeconds, currentGameSeconds) >= 1200 || isModuleGoalMet ? (
+                          <span className="text-emerald-300 font-bold">✓ 20m Completed & Saved</span>
                         ) : (
                           <span>
-                            {Math.floor(moduleRemainingSecs / 60)}m {String(moduleRemainingSecs % 60).padStart(2, '0')}s remaining
+                            {Math.floor(Math.max(0, 1200 - Math.max(activeModeSeconds, currentGameSeconds)) / 60)}m {String(Math.max(0, 1200 - Math.max(activeModeSeconds, currentGameSeconds)) % 60).padStart(2, '0')}s remaining
                           </span>
                         )}
                       </span>
                     )}
-                    <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 border border-slate-700">
-                      Lap: {formatTimerClock(currentGameSeconds)}
+                    <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full border ${
+                      isGameTimerPaused
+                        ? 'bg-amber-950/80 text-amber-300 border-amber-700/80'
+                        : 'bg-emerald-950/80 text-emerald-300 border-emerald-700/80'
+                    }`}>
+                      {isGameTimerPaused ? '❚❚ Paused' : '● Live Saving'}
                     </span>
                   </div>
                   <p className="text-[10px] sm:text-[11px] text-slate-400 mt-0.5 truncate">
